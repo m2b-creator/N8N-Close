@@ -1,0 +1,63 @@
+{
+  "name": "n8n-nodes-close-crm",
+  "version": "1.0.0",
+  "description": "N8N community node for Close CRM integration",
+  "keywords": [
+    "n8n-community-node-package"
+  ],
+  "license": "Apache-2.0",
+  "homepage": "https://github.com/n8n-io/n8n-nodes-close-crm",
+  "author": {
+    "name": "N8N Community",
+    "email": "community@n8n.io"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/n8n-io/n8n-nodes-close-crm.git"
+  },
+  "engines": {
+    "node": ">=18.10",
+    "pnpm": ">=9.1"
+  },
+  "packageManager": "pnpm@9.1.0",
+  "main": "index.js",
+  "scripts": {
+    "build": "tsc && gulp build:icons",
+    "dev": "tsc --watch",
+    "format": "prettier nodes credentials --write",
+    "lint": "eslint \"nodes/**/*.ts\" \"credentials/**/*.ts\"",
+    "lintfix": "eslint nodes credentials package.json --fix",
+    "prepublishOnly": "pnpm build && pnpm lint -o .eslintcache && pnpm test",
+    "test": "jest"
+  },
+  "files": [
+    "dist"
+  ],
+  "n8n": {
+    "n8nNodesApiVersion": 1,
+    "credentials": [
+      "dist/credentials/CloseApi.credentials.js"
+    ],
+    "nodes": [
+      "dist/nodes/Close/Close.node.js",
+      "dist/nodes/Close/CloseTrigger.node.js"
+    ]
+  },
+  "devDependencies": {
+    "@types/jest": "^29.5.3",
+    "@types/node": "^18.16.16",
+    "@typescript-eslint/eslint-plugin": "^6.0.0",
+    "@typescript-eslint/parser": "^6.0.0",
+    "eslint": "^8.44.0",
+    "eslint-plugin-n8n-nodes-base": "^1.11.0",
+    "gulp": "^4.0.2",
+    "jest": "^29.6.1",
+    "n8n-workflow": "latest",
+    "prettier": "^3.0.0",
+    "ts-jest": "^29.1.1",
+    "typescript": "^5.1.6"
+  },
+  "peerDependencies": {
+    "n8n-workflow": "*"
+  }
+}
