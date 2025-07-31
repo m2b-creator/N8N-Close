@@ -1,1 +1,0 @@
-{"version":3,"file":"ensure-error.js","sourceRoot":"","sources":["../../src/errors/ensure-error.ts"],"names":[],"mappings":";;AACA,kCAOC;AAPD,SAAgB,WAAW,CAAC,KAAc;IACzC,OAAO,KAAK,YAAY,KAAK;QAC5B,CAAC,CAAC,KAAK;QACP,CAAC,CAAC,IAAI,KAAK,CAAC,oDAAoD,EAAE;YAEhE,KAAK,EAAE,KAAK;SACZ,CAAC,CAAC;AACN,CAAC"}
