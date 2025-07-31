@@ -50,7 +50,7 @@ src/
 
 ### Development Workflow
 - **Debugging**: Reproduce issues first, hypothesis-driven debugging
-- **Git**: Conventional commits, feature branches
+- **Git**: Conventional commits, feature branches, automatically add files to VCS
 - **Code review**: All changes reviewed before merge
 
 ## File Organization
