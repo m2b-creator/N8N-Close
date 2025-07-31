@@ -8,6 +8,9 @@ Close CRM is a sales CRM built for high-growth companies that need to scale thei
 
 [n8n](https://n8n.io/) is a [fair-code licensed](https://docs.n8n.io/reference/license/) workflow automation platform.
 
+[![npm version](https://badge.fury.io/js/n8n-nodes-close-crm.svg)](https://www.npmjs.com/package/n8n-nodes-close-crm)
+[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
+
 [Installation](#installation)  
 [Operations](#operations)  
 [Credentials](#credentials)  
@@ -17,7 +20,42 @@ Close CRM is a sales CRM built for high-growth companies that need to scale thei
 
 ## Installation
 
-Follow the [installation guide](https://docs.n8n.io/integrations/community-nodes/installation/) in the n8n community nodes documentation.
+### Option 1: Install via n8n Community Nodes (Recommended)
+
+1. Go to **Settings > Community Nodes** in your n8n instance
+2. Select **Install**
+3. Enter `n8n-nodes-close-crm` as the package name
+4. Agree to the risks of using community nodes
+5. Select **Install**
+
+After installation is complete, the Close CRM node will be available in your node palette.
+
+### Option 2: Manual Installation
+
+If you're running n8n with npm:
+
+```bash
+# Navigate to your n8n installation directory
+cd ~/.n8n/nodes
+
+# Install the package
+npm install n8n-nodes-close-crm
+```
+
+### Option 3: Docker
+
+If you're using n8n with Docker, add the package to your docker-compose.yml:
+
+```yaml
+environment:
+  - N8N_COMMUNITY_PACKAGES=n8n-nodes-close-crm
+```
+
+Or install it in your running container:
+
+```bash
+docker exec -it n8n npm install n8n-nodes-close-crm
+```
 
 ## Operations
 
@@ -103,7 +141,23 @@ Smart View: "Hot Prospects"
 - [Close CRM API Documentation](https://developer.close.com/)
 - [Close CRM](https://close.com/)
 
-## Version history
+## Contributing
+
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add some amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
+
+## Support
+
+If you encounter any issues or have questions:
+
+1. Check the [GitHub Issues](https://github.com/mauri/n8n-nodes-close-crm/issues) page
+2. Create a new issue if your problem isn't already reported
+3. Include detailed information about your setup and the issue
+
+## Version History
 
 ### 1.0.0
 - Initial release
@@ -111,3 +165,15 @@ Smart View: "Hot Prospects"
 - Polling triggers for SmartViews, Status changes, and Custom Activities
 - Dynamic custom field support
 - Full Close CRM API integration
+- Comprehensive error handling and validation
+- TypeScript implementation with full type safety
+
+## License
+
+This project is licensed under the Apache 2.0 License - see the [LICENSE](LICENSE) file for details.
+
+## Acknowledgments
+
+- [n8n](https://n8n.io/) for the amazing workflow automation platform
+- [Close CRM](https://close.com/) for their comprehensive API
+- The n8n community for their support and contributions

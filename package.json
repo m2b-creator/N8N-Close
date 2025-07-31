@@ -1,33 +1,43 @@
 {
   "name": "n8n-nodes-close-crm",
   "version": "1.0.0",
-  "description": "N8N community node for Close CRM integration",
+  "description": "N8N community node for Close CRM integration with comprehensive lead, opportunity, task, note, and call management",
   "keywords": [
-    "n8n-community-node-package"
+    "n8n-community-node-package",
+    "n8n",
+    "close",
+    "crm",
+    "sales",
+    "lead-management",
+    "opportunity-management",
+    "workflow-automation"
   ],
   "license": "Apache-2.0",
-  "homepage": "https://github.com/n8n-io/n8n-nodes-close-crm",
+  "homepage": "https://github.com/mauri/n8n-nodes-close-crm#readme",
   "author": {
-    "name": "N8N Community",
-    "email": "community@n8n.io"
+    "name": "Mauri",
+    "email": "your-email@example.com"
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/n8n-io/n8n-nodes-close-crm.git"
+    "url": "git+https://github.com/mauri/n8n-nodes-close-crm.git"
+  },
+  "bugs": {
+    "url": "https://github.com/mauri/n8n-nodes-close-crm/issues"
   },
   "engines": {
     "node": ">=18.10",
     "pnpm": ">=9.1"
   },
   "packageManager": "pnpm@9.1.0",
-  "main": "index.js",
+  "main": "dist/nodes/Close/Close.node.js",
   "scripts": {
     "build": "tsc && gulp build:icons",
     "dev": "tsc --watch",
     "format": "prettier nodes credentials --write",
     "lint": "eslint \"nodes/**/*.ts\" \"credentials/**/*.ts\"",
     "lintfix": "eslint nodes credentials package.json --fix",
-    "prepublishOnly": "pnpm build && pnpm lint -o .eslintcache && pnpm test",
+    "prepublishOnly": "npm run build && npm run lint && npm run test",
     "test": "jest"
   },
   "files": [
