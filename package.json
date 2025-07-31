@@ -13,10 +13,10 @@
     "workflow-automation"
   ],
   "license": "Apache-2.0",
-  "homepage": "https://github.com/mauri/n8n-nodes-close-crm#readme",
+  "homepage": "https://github.com/m2b-creator/N8N-Close#readme",
   "author": {
-    "name": "Mauri",
-    "email": "your-email@example.com"
+    "name": "M2B-Creator",
+    "email": "dev@m2b.solutions"
   },
   "repository": {
     "type": "git",
