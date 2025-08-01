@@ -60,6 +60,6 @@ src/
 - Keep configuration files in project root
 
 ## Notes
-- Repository uses Apache 2.0 license
+- Repository uses MIT license
 - Claude Code settings configured in `.claude/settings.local.json`
 - Project name: "N8N-Close"

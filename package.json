@@ -1,6 +1,6 @@
 {
   "name": "n8n-nodes-close-crm",
-  "version": "1.0.2",
+  "version": "1.0.4",
   "description": "N8N community node for Close CRM integration with comprehensive lead, opportunity, task, note, and call management",
   "keywords": [
     "n8n-community-node-package",
@@ -12,7 +12,7 @@
     "opportunity-management",
     "workflow-automation"
   ],
-  "license": "Apache-2.0",
+  "license": "MIT",
   "homepage": "https://github.com/m2b-creator/N8N-Close#readme",
   "author": {
     "name": "M2B-Creator",
