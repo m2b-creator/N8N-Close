@@ -92,7 +92,7 @@ class CloseTrigger {
                         },
                     },
                     default: '',
-                    description: 'Filter by specific custom activity type ID. Leave empty to monitor all custom activities.',
+                    description: 'Filter by specific custom activity type ID. Leave empty to monitor all custom activities. Note: This filter is applied after fetching the 50 newest activities to capture all published activities across all leads.',
                 },
                 {
                     displayName: 'User ID (Optional)',
@@ -104,7 +104,7 @@ class CloseTrigger {
                         },
                     },
                     default: '',
-                    description: 'Filter by specific user ID. Leave empty to monitor activities from all users.',
+                    description: 'Filter by specific user ID. Leave empty to monitor activities from all users. Note: This filter is applied after fetching the 50 newest activities to capture all published activities across all leads.',
                 },
                 {
                     displayName: 'Contact ID (Optional)',
@@ -116,7 +116,7 @@ class CloseTrigger {
                         },
                     },
                     default: '',
-                    description: 'Filter by specific contact ID. Leave empty to monitor activities for all contacts.',
+                    description: 'Filter by specific contact ID. Leave empty to monitor activities for all contacts. Note: This filter is applied after fetching the 50 newest activities to capture all published activities across all leads.',
                 },
             ],
         };
@@ -185,25 +185,43 @@ class CloseTrigger {
             if (startDate) {
                 qs.date_created__gte = startDate;
             }
-            // Add optional filters if provided
+            // Get optional filter parameters
             const customActivityTypeId = this.getNodeParameter('customActivityTypeId');
             const userId = this.getNodeParameter('userId');
             const contactId = this.getNodeParameter('contactId');
-            if (customActivityTypeId) {
-                qs.custom_activity_type_id = customActivityTypeId;
-            }
-            if (userId) {
-                qs.user_id = userId;
-            }
-            if (contactId) {
-                qs.contact_id = contactId;
-            }
-            // Optimize polling: fetch only the newest entry to minimize resource usage
-            qs._limit = 1;
+            // Note: Close CRM API requires lead_id when filtering by custom_activity_type_id
+            // To capture activities from ALL leads, we fetch all activities and filter client-side
+            // Only add user_id and contact_id filters if they don't require lead_id
+            // According to Close API docs, user_id and contact_id filters require lead_id too
+            // So we'll fetch all activities and filter client-side for maximum compatibility
+            // Order by creation date to get newest activities first
             qs._order_by = '-date_created';
+            // Set a reasonable limit to optimize performance while ensuring we don't miss activities
+            // This balances between API efficiency and completeness
+            // 50 activities should be sufficient for most polling intervals
+            qs._limit = 50;
             try {
                 const response = await GenericFunctions_1.closeApiRequest.call(this, 'GET', '/activity/custom/', {}, qs);
-                responseData = response.data || [];
+                let activities = response.data || [];
+                // Apply client-side filtering to overcome API limitations
+                if (customActivityTypeId) {
+                    activities = activities.filter((activity) => activity.custom_activity_type_id === customActivityTypeId);
+                }
+                if (userId) {
+                    activities = activities.filter((activity) => activity.user_id === userId);
+                }
+                if (contactId) {
+                    activities = activities.filter((activity) => activity.contact_id === contactId);
+                }
+                // Filter for published activities only
+                // Published activities should have a status of 'published' or be completed
+                activities = activities.filter((activity) => {
+                    // Check if activity is published/completed
+                    // Close CRM custom activities are considered "published" when they're created and visible
+                    // We filter out any activities that might be in draft state
+                    return activity.status !== 'draft' && activity.date_created;
+                });
+                responseData = activities;
             }
             catch (error) {
                 throw new n8n_workflow_1.NodeApiError(this.getNode(), error);
