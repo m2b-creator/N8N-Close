@@ -92,6 +92,42 @@ export class CloseTrigger implements INodeType {
 				required: true,
 				description: 'The status to monitor for new leads. Choose from the list, or specify an ID using an <a href="https://docs.n8n.io/code-examples/expressions/">expression</a>.',
 			},
+			{
+				displayName: 'Custom Activity Type ID (Optional)',
+				name: 'customActivityTypeId',
+				type: 'string',
+				displayOptions: {
+					show: {
+						event: ['publishedCustomActivity'],
+					},
+				},
+				default: '',
+				description: 'Filter by specific custom activity type ID. Leave empty to monitor all custom activities.',
+			},
+			{
+				displayName: 'User ID (Optional)',
+				name: 'userId',
+				type: 'string',
+				displayOptions: {
+					show: {
+						event: ['publishedCustomActivity'],
+					},
+				},
+				default: '',
+				description: 'Filter by specific user ID. Leave empty to monitor activities from all users.',
+			},
+			{
+				displayName: 'Contact ID (Optional)',
+				name: 'contactId',
+				type: 'string',
+				displayOptions: {
+					show: {
+						event: ['publishedCustomActivity'],
+					},
+				},
+				default: '',
+				description: 'Filter by specific contact ID. Leave empty to monitor activities for all contacts.',
+			},
 		],
 	};
 
@@ -167,14 +203,29 @@ export class CloseTrigger implements INodeType {
 		}
 
 		if (event === 'publishedCustomActivity') {
-			qs._type = 'Custom';
-			
 			if (startDate) {
 				qs.date_created__gte = startDate;
 			}
 
+			// Add optional filters if provided
+			const customActivityTypeId = this.getNodeParameter('customActivityTypeId') as string;
+			const userId = this.getNodeParameter('userId') as string;
+			const contactId = this.getNodeParameter('contactId') as string;
+
+			if (customActivityTypeId) {
+				qs.custom_activity_type_id = customActivityTypeId;
+			}
+
+			if (userId) {
+				qs.user_id = userId;
+			}
+
+			if (contactId) {
+				qs.contact_id = contactId;
+			}
+
 			try {
-				const response = await closeApiRequest.call(this, 'GET', '/activity/', {}, qs);
+				const response = await closeApiRequest.call(this, 'GET', '/activity/custom/', {}, qs);
 				responseData = response.data || [];
 			} catch (error) {
 				throw new NodeApiError(this.getNode(), error as JsonObject);
