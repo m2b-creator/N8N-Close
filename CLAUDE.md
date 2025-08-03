@@ -52,6 +52,7 @@ src/
 - **Debugging**: Reproduce issues first, hypothesis-driven debugging
 - **Git**: Conventional commits, feature branches, automatically add files to VCS
 - **Code review**: All changes reviewed before merge
+- **Versioning**: Semantic versioning (MAJOR.MINOR.PATCH) in the package.json
 
 ## File Organization
 - Export components/utilities through index.ts files
