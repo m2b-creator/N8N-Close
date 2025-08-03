@@ -6,6 +6,7 @@ export declare class Close implements INodeType {
             getLeadStatuses(this: ILoadOptionsFunctions): Promise<INodePropertyOptions[]>;
             getOpportunityStatuses(this: ILoadOptionsFunctions): Promise<INodePropertyOptions[]>;
             getCustomFields(this: ILoadOptionsFunctions): Promise<INodePropertyOptions[]>;
+            getCustomFieldChoices(this: ILoadOptionsFunctions): Promise<INodePropertyOptions[]>;
             getSmartViews(this: ILoadOptionsFunctions): Promise<INodePropertyOptions[]>;
         };
     };

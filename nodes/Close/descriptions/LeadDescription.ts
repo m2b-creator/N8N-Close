@@ -193,7 +193,28 @@ export const leadFields: INodeProperties[] = [
 						name: 'fieldValue',
 						type: 'string',
 						default: '',
-						description: 'The value of the field',
+						description: 'The value of the field (for text, number, date, etc.)',
+						displayOptions: {
+							hide: {
+								fieldId: ['=/.*\\|choices$/'],
+							},
+						},
+					},
+					{
+						displayName: 'Field Value',
+						name: 'fieldValueChoice',
+						type: 'options',
+						typeOptions: {
+							loadOptionsMethod: 'getCustomFieldChoices',
+							loadOptionsDependsOn: ['fieldId'],
+						},
+						displayOptions: {
+							show: {
+								fieldId: ['=/.*\\|choices$/'],
+							},
+						},
+						default: '',
+						description: 'Select the value from available dropdown options',
 					},
 				],
 			},

@@ -106,12 +106,39 @@ class Close {
                     const returnData = [];
                     const fields = await GenericFunctions_1.closeApiRequest.call(this, 'GET', '/custom_field/lead/');
                     for (const field of fields.data) {
+                        // Include field type in the description for user clarity
+                        const fieldTypeLabel = field.type === 'choices' ? ' (Dropdown)' : ` (${field.type || 'Text'})`;
                         returnData.push({
-                            name: field.name,
-                            value: field.id,
+                            name: `${field.name}${fieldTypeLabel}`,
+                            value: `${field.id}|${field.type || 'text'}`, // Encode type in value
                         });
                     }
                     return returnData;
+                },
+                async getCustomFieldChoices() {
+                    const fieldIdWithType = this.getCurrentNodeParameter('fieldId');
+                    if (!fieldIdWithType) {
+                        return [];
+                    }
+                    // Parse the encoded field ID and type
+                    const [fieldId, fieldType] = fieldIdWithType.split('|');
+                    if (fieldType !== 'choices') {
+                        return [];
+                    }
+                    try {
+                        const field = await GenericFunctions_1.closeApiRequest.call(this, 'GET', `/custom_field/lead/${fieldId}/`);
+                        if (field.type === 'choices' && field.choices && Array.isArray(field.choices)) {
+                            return field.choices.map((choice) => ({
+                                name: choice,
+                                value: choice,
+                            }));
+                        }
+                    }
+                    catch (error) {
+                        // If field details can't be fetched, return empty array
+                        return [];
+                    }
+                    return [];
                 },
                 async getSmartViews() {
                     const returnData = [];
@@ -189,7 +216,13 @@ class Close {
                         const customFields = this.getNodeParameter('customFieldsUi', i);
                         if ((_a = customFields.customFieldsValues) === null || _a === void 0 ? void 0 : _a.length) {
                             for (const field of customFields.customFieldsValues) {
-                                body[`custom.${field.fieldId}`] = field.fieldValue;
+                                // Parse the encoded field ID and type
+                                const [actualFieldId, fieldType] = field.fieldId.split('|');
+                                // Use the appropriate value based on field type
+                                const value = fieldType === 'choices' ? field.fieldValueChoice : field.fieldValue;
+                                if (value) {
+                                    body[`custom.${actualFieldId}`] = value;
+                                }
                             }
                         }
                         responseData = await GenericFunctions_1.closeApiRequest.call(this, 'PUT', `/lead/${leadId}/`, body);

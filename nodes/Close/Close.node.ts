@@ -124,12 +124,44 @@ export class Close implements INodeType {
 				const returnData: INodePropertyOptions[] = [];
 				const fields = await closeApiRequest.call(this, 'GET', '/custom_field/lead/');
 				for (const field of fields.data) {
+					// Include field type in the description for user clarity
+					const fieldTypeLabel = field.type === 'choices' ? ' (Dropdown)' : ` (${field.type || 'Text'})`;
 					returnData.push({
-						name: field.name,
-						value: field.id,
+						name: `${field.name}${fieldTypeLabel}`,
+						value: `${field.id}|${field.type || 'text'}`, // Encode type in value
 					});
 				}
 				return returnData;
+			},
+
+			async getCustomFieldChoices(this: ILoadOptionsFunctions): Promise<INodePropertyOptions[]> {
+				const fieldIdWithType = this.getCurrentNodeParameter('fieldId') as string;
+				if (!fieldIdWithType) {
+					return [];
+				}
+
+				// Parse the encoded field ID and type
+				const [fieldId, fieldType] = fieldIdWithType.split('|');
+				
+				if (fieldType !== 'choices') {
+					return [];
+				}
+
+				try {
+					const field = await closeApiRequest.call(this, 'GET', `/custom_field/lead/${fieldId}/`);
+					
+					if (field.type === 'choices' && field.choices && Array.isArray(field.choices)) {
+						return field.choices.map((choice: string) => ({
+							name: choice,
+							value: choice,
+						}));
+					}
+				} catch (error) {
+					// If field details can't be fetched, return empty array
+					return [];
+				}
+
+				return [];
 			},
 
 			async getSmartViews(this: ILoadOptionsFunctions): Promise<INodePropertyOptions[]> {
@@ -214,13 +246,21 @@ export class Close implements INodeType {
 						const customFields = this.getNodeParameter('customFieldsUi', i) as {
 							customFieldsValues?: Array<{
 								fieldId: string;
-								fieldValue: string;
+								fieldValue?: string;
+								fieldValueChoice?: string;
 							}>;
 						};
 
 						if (customFields.customFieldsValues?.length) {
 							for (const field of customFields.customFieldsValues) {
-								body[`custom.${field.fieldId}`] = field.fieldValue;
+								// Parse the encoded field ID and type
+								const [actualFieldId, fieldType] = field.fieldId.split('|');
+								
+								// Use the appropriate value based on field type
+								const value = fieldType === 'choices' ? field.fieldValueChoice : field.fieldValue;
+								if (value) {
+									body[`custom.${actualFieldId}`] = value;
+								}
 							}
 						}
 
