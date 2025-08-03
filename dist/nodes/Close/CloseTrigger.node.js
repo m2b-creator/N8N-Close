@@ -199,7 +199,7 @@ class CloseTrigger {
             // Set a reasonable limit to optimize performance while ensuring we don't miss activities
             // This balances between API efficiency and completeness
             // 50 activities should be sufficient for most polling intervals
-            qs._limit = 50;
+            qs._limit = 1;
             try {
                 const response = await GenericFunctions_1.closeApiRequest.call(this, 'GET', '/activity/custom/', {}, qs);
                 let activities = response.data || [];
