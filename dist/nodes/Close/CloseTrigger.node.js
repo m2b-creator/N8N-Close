@@ -156,8 +156,7 @@ class CloseTrigger {
         const startDate = webhookData.lastTimeChecked;
         const endDate = now.toISOString();
         if (event === 'newLeadInSmartView') {
-            const smartViewId = this.getNodeParameter('smartViewId');
-            qs.saved_search_id = smartViewId;
+            qs.saved_search_id = this.getNodeParameter('smartViewId');
             if (startDate) {
                 qs.date_created__gte = startDate;
             }
@@ -170,8 +169,7 @@ class CloseTrigger {
             }
         }
         if (event === 'newLeadInStatus') {
-            const statusId = this.getNodeParameter('statusId');
-            qs.status_id = statusId;
+            qs.status_id = this.getNodeParameter('statusId');
             if (startDate) {
                 qs.date_created__gte = startDate;
             }

@@ -171,8 +171,7 @@ export class CloseTrigger implements INodeType {
 		const endDate = now.toISOString();
 
 		if (event === 'newLeadInSmartView') {
-			const smartViewId = this.getNodeParameter('smartViewId') as string;
-			qs.saved_search_id = smartViewId;
+			qs.saved_search_id = this.getNodeParameter('smartViewId') as string;
 			
 			if (startDate) {
 				qs.date_created__gte = startDate;
@@ -187,8 +186,7 @@ export class CloseTrigger implements INodeType {
 		}
 
 		if (event === 'newLeadInStatus') {
-			const statusId = this.getNodeParameter('statusId') as string;
-			qs.status_id = statusId;
+			qs.status_id = this.getNodeParameter('statusId') as string;
 			
 			if (startDate) {
 				qs.date_created__gte = startDate;
