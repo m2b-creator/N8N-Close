@@ -222,6 +222,10 @@ export class CloseTrigger implements INodeType {
 				qs.contact_id = contactId;
 			}
 
+			// Optimize polling: fetch only the newest entry to minimize resource usage
+			qs._limit = 1;
+			qs._order_by = '-date_created';
+
 			try {
 				const response = await closeApiRequest.call(this, 'GET', '/activity/custom/', {}, qs);
 				responseData = response.data || [];
