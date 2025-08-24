@@ -39,5 +39,6 @@ coverage/
 .cache/
 .parcel-cache/
 
-# Serena files
+# Claude and MCP files
+.claude/
 .serena/
