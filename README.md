@@ -153,7 +153,7 @@ Smart View: "Hot Prospects"
 
 If you encounter any issues or have questions:
 
-1. Check the [GitHub Issues](https://github.com/mauri/n8n-nodes-close-crm/issues) page
+1. Check the [GitHub Issues](https://github.com/m2b-creator/N8N-Close/issues) page
 2. Create a new issue if your problem isn't already reported
 3. Include detailed information about your setup and the issue
 
