@@ -20,10 +20,10 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/mauri/n8n-nodes-close-crm.git"
+    "url": "git+https://github.com/m2b-creator/N8N-Close.git"
   },
   "bugs": {
-    "url": "https://github.com/mauri/n8n-nodes-close-crm/issues"
+    "url": "https://github.com/m2b-creator/N8N-Close/issues"
   },
   "engines": {
     "node": ">=18.10",
