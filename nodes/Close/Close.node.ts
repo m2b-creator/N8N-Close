@@ -23,7 +23,10 @@ import { noteFields, noteOperations } from './descriptions/NoteDescription';
 
 import { callFields, callOperations } from './descriptions/CallDescription';
 
-import { customActivityFields, customActivityOperations } from './descriptions/CustomActivityDescription';
+import {
+	customActivityFields,
+	customActivityOperations,
+} from './descriptions/CustomActivityDescription';
 
 export class Close implements INodeType {
 	description: INodeTypeDescription = {
@@ -125,7 +128,8 @@ export class Close implements INodeType {
 				const fields = await closeApiRequest.call(this, 'GET', '/custom_field/lead/');
 				for (const field of fields.data) {
 					// Include field type in the description for user clarity
-					const fieldTypeLabel = field.type === 'choices' ? ' (Dropdown)' : ` (${field.type || 'Text'})`;
+					const fieldTypeLabel =
+						field.type === 'choices' ? ' (Dropdown)' : ` (${field.type || 'Text'})`;
 					returnData.push({
 						name: `${field.name}${fieldTypeLabel}`,
 						value: `${field.id}|${field.type || 'text'}`, // Encode type in value
@@ -142,14 +146,14 @@ export class Close implements INodeType {
 
 				// Parse the encoded field ID and type
 				const [fieldId, fieldType] = fieldIdWithType.split('|');
-				
+
 				if (fieldType !== 'choices') {
 					return [];
 				}
 
 				try {
 					const field = await closeApiRequest.call(this, 'GET', `/custom_field/lead/${fieldId}/`);
-					
+
 					if (field.type === 'choices' && field.choices && Array.isArray(field.choices)) {
 						return field.choices.map((choice: string) => ({
 							name: choice,
@@ -198,6 +202,89 @@ export class Close implements INodeType {
 					throw new NodeOperationError(this.getNode(), 'Operation is required');
 				}
 				if (resource === 'lead') {
+					if (operation === 'create') {
+						const name = this.getNodeParameter('name', i) as string;
+						if (!name) {
+							throw new NodeOperationError(
+								this.getNode(),
+								'Lead name is required for create operation',
+							);
+						}
+
+						const body: JsonObject = {
+							name,
+						};
+
+						// Add additional fields if provided
+						const additionalFields = this.getNodeParameter('additionalFields', i) as JsonObject;
+						if (additionalFields.description) {
+							body.description = additionalFields.description;
+						}
+						if (additionalFields.statusId) {
+							body.status_id = additionalFields.statusId;
+						}
+						if (additionalFields.url) {
+							body.url = additionalFields.url;
+						}
+
+						// Add contacts if provided
+						const contacts = this.getNodeParameter('contactsUi', i) as {
+							contactsValues?: Array<{
+								name?: string;
+								email?: string;
+								phone?: string;
+								title?: string;
+							}>;
+						};
+
+						if (contacts.contactsValues?.length) {
+							body.contacts = contacts.contactsValues.map((contact) => {
+								const contactObj: JsonObject = {};
+								if (contact.name) contactObj.name = contact.name;
+								if (contact.email) contactObj.emails = [{ type: 'office', email: contact.email }];
+								if (contact.phone) contactObj.phones = [{ type: 'office', phone: contact.phone }];
+								if (contact.title) contactObj.title = contact.title;
+								return contactObj;
+							});
+						}
+
+						// Add custom fields if provided
+						const customFields = this.getNodeParameter('customFieldsUi', i) as {
+							customFieldsValues?: Array<{
+								fieldId: string;
+								fieldValue?: string;
+								fieldValueChoice?: string;
+							}>;
+						};
+
+						if (customFields.customFieldsValues?.length) {
+							for (const field of customFields.customFieldsValues) {
+								// Parse the encoded field ID and type
+								const [actualFieldId, fieldType] = field.fieldId.split('|');
+
+								// Use the appropriate value based on field type
+								const value = fieldType === 'choices' ? field.fieldValueChoice : field.fieldValue;
+								if (value) {
+									body[`custom.${actualFieldId}`] = value;
+								}
+							}
+						}
+
+						responseData = await closeApiRequest.call(this, 'POST', '/lead/', body);
+					}
+
+					if (operation === 'delete') {
+						const leadId = this.getNodeParameter('leadId', i) as string;
+						if (!leadId) {
+							throw new NodeOperationError(
+								this.getNode(),
+								'Lead ID is required for delete operation',
+							);
+						}
+
+						responseData = await closeApiRequest.call(this, 'DELETE', `/lead/${leadId}/`);
+					}
+
 					if (operation === 'find') {
 						const query = this.getNodeParameter('query', i) as string;
 						const returnAll = this.getNodeParameter('returnAll', i);
@@ -215,7 +302,14 @@ export class Close implements INodeType {
 						}
 
 						if (returnAll) {
-							responseData = await closeApiRequestAllItems.call(this, 'data', 'GET', '/lead/', {}, qs);
+							responseData = await closeApiRequestAllItems.call(
+								this,
+								'data',
+								'GET',
+								'/lead/',
+								{},
+								qs,
+							);
 						} else {
 							const limit = this.getNodeParameter('limit', i);
 							qs._limit = limit;
@@ -224,10 +318,38 @@ export class Close implements INodeType {
 						}
 					}
 
+					if (operation === 'merge') {
+						const sourceLeadId = this.getNodeParameter('sourceLeadId', i) as string;
+						const destinationLeadId = this.getNodeParameter('destinationLeadId', i) as string;
+
+						if (!sourceLeadId) {
+							throw new NodeOperationError(
+								this.getNode(),
+								'Source Lead ID is required for merge operation',
+							);
+						}
+						if (!destinationLeadId) {
+							throw new NodeOperationError(
+								this.getNode(),
+								'Destination Lead ID is required for merge operation',
+							);
+						}
+
+						const body: JsonObject = {
+							source: sourceLeadId,
+							destination: destinationLeadId,
+						};
+
+						responseData = await closeApiRequest.call(this, 'POST', '/lead/merge/', body);
+					}
+
 					if (operation === 'update') {
 						const leadId = this.getNodeParameter('leadId', i) as string;
 						if (!leadId) {
-							throw new NodeOperationError(this.getNode(), 'Lead ID is required for update operation');
+							throw new NodeOperationError(
+								this.getNode(),
+								'Lead ID is required for update operation',
+							);
 						}
 						const updateFields = this.getNodeParameter('updateFields', i) as JsonObject;
 
@@ -255,7 +377,7 @@ export class Close implements INodeType {
 							for (const field of customFields.customFieldsValues) {
 								// Parse the encoded field ID and type
 								const [actualFieldId, fieldType] = field.fieldId.split('|');
-								
+
 								// Use the appropriate value based on field type
 								const value = fieldType === 'choices' ? field.fieldValueChoice : field.fieldValue;
 								if (value) {
@@ -282,7 +404,14 @@ export class Close implements INodeType {
 						}
 
 						if (returnAll) {
-							responseData = await closeApiRequestAllItems.call(this, 'data', 'GET', '/opportunity/', {}, qs);
+							responseData = await closeApiRequestAllItems.call(
+								this,
+								'data',
+								'GET',
+								'/opportunity/',
+								{},
+								qs,
+							);
 						} else {
 							const limit = this.getNodeParameter('limit', i);
 							qs._limit = limit;
@@ -294,7 +423,10 @@ export class Close implements INodeType {
 					if (operation === 'update') {
 						const opportunityId = this.getNodeParameter('opportunityId', i) as string;
 						if (!opportunityId) {
-							throw new NodeOperationError(this.getNode(), 'Opportunity ID is required for update operation');
+							throw new NodeOperationError(
+								this.getNode(),
+								'Opportunity ID is required for update operation',
+							);
 						}
 						const updateFields = this.getNodeParameter('updateFields', i) as JsonObject;
 
@@ -313,7 +445,12 @@ export class Close implements INodeType {
 							body.value_formatted = updateFields.valueFormatted;
 						}
 
-						responseData = await closeApiRequest.call(this, 'PUT', `/opportunity/${opportunityId}/`, body);
+						responseData = await closeApiRequest.call(
+							this,
+							'PUT',
+							`/opportunity/${opportunityId}/`,
+							body,
+						);
 					}
 				}
 
@@ -381,7 +518,14 @@ export class Close implements INodeType {
 						qs._type = 'Call';
 
 						if (returnAll) {
-							responseData = await closeApiRequestAllItems.call(this, 'data', 'GET', '/activity/', {}, qs);
+							responseData = await closeApiRequestAllItems.call(
+								this,
+								'data',
+								'GET',
+								'/activity/',
+								{},
+								qs,
+							);
 						} else {
 							const limit = this.getNodeParameter('limit', i);
 							qs._limit = limit;
@@ -402,7 +546,14 @@ export class Close implements INodeType {
 						}
 
 						if (returnAll) {
-							responseData = await closeApiRequestAllItems.call(this, 'data', 'GET', '/activity/', {}, qs);
+							responseData = await closeApiRequestAllItems.call(
+								this,
+								'data',
+								'GET',
+								'/activity/',
+								{},
+								qs,
+							);
 						} else {
 							const limit = this.getNodeParameter('limit', i);
 							qs._limit = limit;

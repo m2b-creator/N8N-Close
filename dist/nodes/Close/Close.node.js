@@ -155,7 +155,7 @@ class Close {
         };
     }
     async execute() {
-        var _a;
+        var _a, _b, _c;
         const items = this.getInputData();
         const returnData = [];
         const length = items.length;
@@ -173,6 +173,63 @@ class Close {
                     throw new n8n_workflow_1.NodeOperationError(this.getNode(), 'Operation is required');
                 }
                 if (resource === 'lead') {
+                    if (operation === 'create') {
+                        const name = this.getNodeParameter('name', i);
+                        if (!name) {
+                            throw new n8n_workflow_1.NodeOperationError(this.getNode(), 'Lead name is required for create operation');
+                        }
+                        const body = {
+                            name,
+                        };
+                        // Add additional fields if provided
+                        const additionalFields = this.getNodeParameter('additionalFields', i);
+                        if (additionalFields.description) {
+                            body.description = additionalFields.description;
+                        }
+                        if (additionalFields.statusId) {
+                            body.status_id = additionalFields.statusId;
+                        }
+                        if (additionalFields.url) {
+                            body.url = additionalFields.url;
+                        }
+                        // Add contacts if provided
+                        const contacts = this.getNodeParameter('contactsUi', i);
+                        if ((_a = contacts.contactsValues) === null || _a === void 0 ? void 0 : _a.length) {
+                            body.contacts = contacts.contactsValues.map(contact => {
+                                const contactObj = {};
+                                if (contact.name)
+                                    contactObj.name = contact.name;
+                                if (contact.email)
+                                    contactObj.emails = [{ type: 'office', email: contact.email }];
+                                if (contact.phone)
+                                    contactObj.phones = [{ type: 'office', phone: contact.phone }];
+                                if (contact.title)
+                                    contactObj.title = contact.title;
+                                return contactObj;
+                            });
+                        }
+                        // Add custom fields if provided
+                        const customFields = this.getNodeParameter('customFieldsUi', i);
+                        if ((_b = customFields.customFieldsValues) === null || _b === void 0 ? void 0 : _b.length) {
+                            for (const field of customFields.customFieldsValues) {
+                                // Parse the encoded field ID and type
+                                const [actualFieldId, fieldType] = field.fieldId.split('|');
+                                // Use the appropriate value based on field type
+                                const value = fieldType === 'choices' ? field.fieldValueChoice : field.fieldValue;
+                                if (value) {
+                                    body[`custom.${actualFieldId}`] = value;
+                                }
+                            }
+                        }
+                        responseData = await GenericFunctions_1.closeApiRequest.call(this, 'POST', '/lead/', body);
+                    }
+                    if (operation === 'delete') {
+                        const leadId = this.getNodeParameter('leadId', i);
+                        if (!leadId) {
+                            throw new n8n_workflow_1.NodeOperationError(this.getNode(), 'Lead ID is required for delete operation');
+                        }
+                        responseData = await GenericFunctions_1.closeApiRequest.call(this, 'DELETE', `/lead/${leadId}/`);
+                    }
                     if (operation === 'find') {
                         const query = this.getNodeParameter('query', i);
                         const returnAll = this.getNodeParameter('returnAll', i);
@@ -197,6 +254,21 @@ class Close {
                             responseData = responseData.data;
                         }
                     }
+                    if (operation === 'merge') {
+                        const sourceLeadId = this.getNodeParameter('sourceLeadId', i);
+                        const destinationLeadId = this.getNodeParameter('destinationLeadId', i);
+                        if (!sourceLeadId) {
+                            throw new n8n_workflow_1.NodeOperationError(this.getNode(), 'Source Lead ID is required for merge operation');
+                        }
+                        if (!destinationLeadId) {
+                            throw new n8n_workflow_1.NodeOperationError(this.getNode(), 'Destination Lead ID is required for merge operation');
+                        }
+                        const body = {
+                            source: sourceLeadId,
+                            destination: destinationLeadId,
+                        };
+                        responseData = await GenericFunctions_1.closeApiRequest.call(this, 'POST', '/lead/merge/', body);
+                    }
                     if (operation === 'update') {
                         const leadId = this.getNodeParameter('leadId', i);
                         if (!leadId) {
@@ -214,7 +286,7 @@ class Close {
                             body.status_id = updateFields.statusId;
                         }
                         const customFields = this.getNodeParameter('customFieldsUi', i);
-                        if ((_a = customFields.customFieldsValues) === null || _a === void 0 ? void 0 : _a.length) {
+                        if ((_c = customFields.customFieldsValues) === null || _c === void 0 ? void 0 : _c.length) {
                             for (const field of customFields.customFieldsValues) {
                                 // Parse the encoded field ID and type
                                 const [actualFieldId, fieldType] = field.fieldId.split('|');
