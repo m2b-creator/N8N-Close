@@ -8,6 +8,9 @@ const OpportunityDescription_1 = require("./descriptions/OpportunityDescription"
 const TaskDescription_1 = require("./descriptions/TaskDescription");
 const NoteDescription_1 = require("./descriptions/NoteDescription");
 const CallDescription_1 = require("./descriptions/CallDescription");
+const EmailDescription_1 = require("./descriptions/EmailDescription");
+const MeetingDescription_1 = require("./descriptions/MeetingDescription");
+const SmsDescription_1 = require("./descriptions/SmsDescription");
 const CustomActivityDescription_1 = require("./descriptions/CustomActivityDescription");
 class Close {
     constructor() {
@@ -58,6 +61,22 @@ class Close {
                             value: 'call',
                         },
                         {
+                            name: 'Email',
+                            value: 'email',
+                        },
+                        {
+                            name: 'Meeting',
+                            value: 'meeting',
+                        },
+                        {
+                            name: 'SMS',
+                            value: 'sms',
+                        },
+                        {
+                            name: 'Task',
+                            value: 'task',
+                        },
+                        {
                             name: 'Custom Activity',
                             value: 'customActivity',
                         },
@@ -74,6 +93,12 @@ class Close {
                 ...NoteDescription_1.noteFields,
                 ...CallDescription_1.callOperations,
                 ...CallDescription_1.callFields,
+                ...EmailDescription_1.emailOperations,
+                ...EmailDescription_1.emailFields,
+                ...MeetingDescription_1.meetingOperations,
+                ...MeetingDescription_1.meetingFields,
+                ...SmsDescription_1.smsOperations,
+                ...SmsDescription_1.smsFields,
                 ...CustomActivityDescription_1.customActivityOperations,
                 ...CustomActivityDescription_1.customActivityFields,
             ],
@@ -399,26 +424,307 @@ class Close {
                         }
                         responseData = await GenericFunctions_1.closeApiRequest.call(this, 'POST', '/task/', body);
                     }
+                    if (operation === 'delete') {
+                        const taskId = this.getNodeParameter('taskId', i);
+                        if (!taskId) {
+                            throw new n8n_workflow_1.NodeOperationError(this.getNode(), 'Task ID is required for delete operation');
+                        }
+                        responseData = await GenericFunctions_1.closeApiRequest.call(this, 'DELETE', `/task/${taskId}/`);
+                    }
+                    if (operation === 'get') {
+                        const taskId = this.getNodeParameter('taskId', i);
+                        if (!taskId) {
+                            throw new n8n_workflow_1.NodeOperationError(this.getNode(), 'Task ID is required for get operation');
+                        }
+                        responseData = await GenericFunctions_1.closeApiRequest.call(this, 'GET', `/task/${taskId}/`);
+                    }
+                    if (operation === 'update') {
+                        const taskId = this.getNodeParameter('taskId', i);
+                        if (!taskId) {
+                            throw new n8n_workflow_1.NodeOperationError(this.getNode(), 'Task ID is required for update operation');
+                        }
+                        const updateFields = this.getNodeParameter('updateFields', i);
+                        const body = {};
+                        if (updateFields.assignedTo) {
+                            body.assigned_to = updateFields.assignedTo;
+                        }
+                        if (updateFields.date) {
+                            body.date = updateFields.date;
+                        }
+                        if (updateFields.isComplete !== undefined) {
+                            body.is_complete = updateFields.isComplete;
+                        }
+                        if (updateFields.text) {
+                            body.text = updateFields.text;
+                        }
+                        responseData = await GenericFunctions_1.closeApiRequest.call(this, 'PUT', `/task/${taskId}/`, body);
+                    }
+                    if (operation === 'find') {
+                        const taskType = this.getNodeParameter('taskType', i);
+                        const leadId = this.getNodeParameter('leadId', i, '');
+                        const view = this.getNodeParameter('view', i, '');
+                        const returnAll = this.getNodeParameter('returnAll', i);
+                        const additionalFilters = this.getNodeParameter('additionalFilters', i);
+                        // Set task type filter
+                        if (taskType && taskType !== 'lead') {
+                            if (taskType === 'all') {
+                                qs._type = 'all';
+                            }
+                            else {
+                                qs._type = taskType;
+                            }
+                        }
+                        // Set lead filter
+                        if (leadId) {
+                            qs.lead_id = leadId;
+                        }
+                        // Set view filter
+                        if (view) {
+                            qs.view = view;
+                        }
+                        // Set additional filters
+                        if (additionalFilters.assignedTo) {
+                            qs.assigned_to = additionalFilters.assignedTo;
+                        }
+                        if (additionalFilters.dateGt) {
+                            qs.date__gt = additionalFilters.dateGt;
+                        }
+                        if (additionalFilters.dateGte) {
+                            qs.date__gte = additionalFilters.dateGte;
+                        }
+                        if (additionalFilters.dateLt) {
+                            qs.date__lt = additionalFilters.dateLt;
+                        }
+                        if (additionalFilters.dateLte) {
+                            qs.date__lte = additionalFilters.dateLte;
+                        }
+                        if (additionalFilters.dateCreatedGt) {
+                            qs.date_created__gt = additionalFilters.dateCreatedGt;
+                        }
+                        if (additionalFilters.dateCreatedGte) {
+                            qs.date_created__gte = additionalFilters.dateCreatedGte;
+                        }
+                        if (additionalFilters.dateCreatedLt) {
+                            qs.date_created__lt = additionalFilters.dateCreatedLt;
+                        }
+                        if (additionalFilters.dateCreatedLte) {
+                            qs.date_created__lte = additionalFilters.dateCreatedLte;
+                        }
+                        if (additionalFilters.isComplete !== undefined) {
+                            qs.is_complete = additionalFilters.isComplete;
+                        }
+                        if (additionalFilters.orderBy) {
+                            qs._order_by = additionalFilters.orderBy;
+                        }
+                        if (additionalFilters.taskIds) {
+                            qs.id__in = additionalFilters.taskIds;
+                        }
+                        if (returnAll) {
+                            responseData = await GenericFunctions_1.closeApiRequestAllItems.call(this, 'data', 'GET', '/task/', {}, qs);
+                        }
+                        else {
+                            const limit = this.getNodeParameter('limit', i);
+                            qs._limit = limit;
+                            responseData = await GenericFunctions_1.closeApiRequest.call(this, 'GET', '/task/', {}, qs);
+                            responseData = responseData.data;
+                        }
+                    }
+                    if (operation === 'bulkUpdate') {
+                        const bulkFilters = this.getNodeParameter('bulkFilters', i);
+                        const bulkUpdateData = this.getNodeParameter('bulkUpdateData', i);
+                        // Build query parameters for filtering tasks to update
+                        const queryParams = {};
+                        if (bulkFilters.taskIds) {
+                            queryParams.id__in = bulkFilters.taskIds;
+                        }
+                        if (bulkFilters.taskType) {
+                            queryParams._type = bulkFilters.taskType;
+                        }
+                        if (bulkFilters.leadId) {
+                            queryParams.lead_id = bulkFilters.leadId;
+                        }
+                        if (bulkFilters.isComplete !== undefined) {
+                            queryParams.is_complete = bulkFilters.isComplete;
+                        }
+                        if (bulkFilters.assignedTo) {
+                            queryParams.assigned_to = bulkFilters.assignedTo;
+                        }
+                        // Build update body (only allowed fields: assigned_to, date, is_complete)
+                        const body = {};
+                        if (bulkUpdateData.assignedTo) {
+                            body.assigned_to = bulkUpdateData.assignedTo;
+                        }
+                        if (bulkUpdateData.date) {
+                            body.date = bulkUpdateData.date;
+                        }
+                        if (bulkUpdateData.isComplete !== undefined) {
+                            body.is_complete = bulkUpdateData.isComplete;
+                        }
+                        if (Object.keys(body).length === 0) {
+                            throw new n8n_workflow_1.NodeOperationError(this.getNode(), 'At least one update field must be provided for bulk update');
+                        }
+                        responseData = await GenericFunctions_1.closeApiRequest.call(this, 'PUT', '/task/', body, queryParams);
+                    }
                 }
                 if (resource === 'note') {
                     if (operation === 'create') {
                         const leadId = this.getNodeParameter('leadId', i);
-                        const note = this.getNodeParameter('note', i);
+                        const noteContentType = this.getNodeParameter('noteContentType', i);
                         if (!leadId) {
                             throw new n8n_workflow_1.NodeOperationError(this.getNode(), 'Lead ID is required for note creation');
                         }
-                        if (!note) {
-                            throw new n8n_workflow_1.NodeOperationError(this.getNode(), 'Note content is required');
-                        }
                         const body = {
                             lead_id: leadId,
-                            note,
                             _type: 'Note',
                         };
+                        // Handle note content based on type
+                        if (noteContentType === 'html') {
+                            const noteHtml = this.getNodeParameter('noteHtml', i);
+                            if (!noteHtml) {
+                                throw new n8n_workflow_1.NodeOperationError(this.getNode(), 'Note HTML content is required');
+                            }
+                            body.note_html = noteHtml;
+                        }
+                        else {
+                            const note = this.getNodeParameter('note', i);
+                            if (!note) {
+                                throw new n8n_workflow_1.NodeOperationError(this.getNode(), 'Note content is required');
+                            }
+                            body.note = note;
+                        }
                         responseData = await GenericFunctions_1.closeApiRequest.call(this, 'POST', '/activity/note/', body);
+                    }
+                    if (operation === 'delete') {
+                        const noteId = this.getNodeParameter('noteId', i);
+                        if (!noteId) {
+                            throw new n8n_workflow_1.NodeOperationError(this.getNode(), 'Note ID is required for delete operation');
+                        }
+                        responseData = await GenericFunctions_1.closeApiRequest.call(this, 'DELETE', `/activity/note/${noteId}/`);
+                    }
+                    if (operation === 'get') {
+                        const noteId = this.getNodeParameter('noteId', i);
+                        if (!noteId) {
+                            throw new n8n_workflow_1.NodeOperationError(this.getNode(), 'Note ID is required for get operation');
+                        }
+                        responseData = await GenericFunctions_1.closeApiRequest.call(this, 'GET', `/activity/note/${noteId}/`);
+                    }
+                    if (operation === 'update') {
+                        const noteId = this.getNodeParameter('noteId', i);
+                        const updateContentType = this.getNodeParameter('updateContentType', i);
+                        if (!noteId) {
+                            throw new n8n_workflow_1.NodeOperationError(this.getNode(), 'Note ID is required for update operation');
+                        }
+                        const body = {};
+                        // Handle note content based on type
+                        if (updateContentType === 'html') {
+                            const noteHtml = this.getNodeParameter('noteHtml', i);
+                            if (noteHtml) {
+                                body.note_html = noteHtml;
+                            }
+                        }
+                        else {
+                            const note = this.getNodeParameter('note', i);
+                            if (note) {
+                                body.note = note;
+                            }
+                        }
+                        responseData = await GenericFunctions_1.closeApiRequest.call(this, 'PUT', `/activity/note/${noteId}/`, body);
+                    }
+                    if (operation === 'find') {
+                        const leadId = this.getNodeParameter('leadId', i, '');
+                        const userId = this.getNodeParameter('userId', i, '');
+                        const returnAll = this.getNodeParameter('returnAll', i);
+                        const additionalFilters = this.getNodeParameter('additionalFilters', i);
+                        if (leadId) {
+                            qs.lead_id = leadId;
+                        }
+                        if (userId) {
+                            qs.user_id = userId;
+                        }
+                        if (additionalFilters.dateCreatedGt) {
+                            qs.date_created__gt = additionalFilters.dateCreatedGt;
+                        }
+                        if (additionalFilters.dateCreatedLt) {
+                            qs.date_created__lt = additionalFilters.dateCreatedLt;
+                        }
+                        if (returnAll) {
+                            responseData = await GenericFunctions_1.closeApiRequestAllItems.call(this, 'data', 'GET', '/activity/note/', {}, qs);
+                        }
+                        else {
+                            const limit = this.getNodeParameter('limit', i);
+                            qs._limit = limit;
+                            responseData = await GenericFunctions_1.closeApiRequest.call(this, 'GET', '/activity/note/', {}, qs);
+                            responseData = responseData.data;
+                        }
                     }
                 }
                 if (resource === 'call') {
+                    if (operation === 'create') {
+                        const leadId = this.getNodeParameter('leadId', i);
+                        if (!leadId) {
+                            throw new n8n_workflow_1.NodeOperationError(this.getNode(), 'Lead ID is required for call creation');
+                        }
+                        const body = {
+                            lead_id: leadId,
+                            _type: 'Call',
+                        };
+                        // Add additional fields if provided
+                        const additionalFields = this.getNodeParameter('additionalFields', i);
+                        if (additionalFields.direction) {
+                            body.direction = additionalFields.direction;
+                        }
+                        if (additionalFields.duration) {
+                            body.duration = additionalFields.duration;
+                        }
+                        if (additionalFields.noteHtml) {
+                            body.note_html = additionalFields.noteHtml;
+                        }
+                        if (additionalFields.note) {
+                            body.note = additionalFields.note;
+                        }
+                        if (additionalFields.phone) {
+                            body.phone = additionalFields.phone;
+                        }
+                        if (additionalFields.recordingUrl) {
+                            body.recording_url = additionalFields.recordingUrl;
+                        }
+                        if (additionalFields.status) {
+                            body.status = additionalFields.status;
+                        }
+                        responseData = await GenericFunctions_1.closeApiRequest.call(this, 'POST', '/activity/call/', body);
+                    }
+                    if (operation === 'delete') {
+                        const callId = this.getNodeParameter('callId', i);
+                        if (!callId) {
+                            throw new n8n_workflow_1.NodeOperationError(this.getNode(), 'Call ID is required for delete operation');
+                        }
+                        responseData = await GenericFunctions_1.closeApiRequest.call(this, 'DELETE', `/activity/call/${callId}/`);
+                    }
+                    if (operation === 'get') {
+                        const callId = this.getNodeParameter('callId', i);
+                        if (!callId) {
+                            throw new n8n_workflow_1.NodeOperationError(this.getNode(), 'Call ID is required for get operation');
+                        }
+                        responseData = await GenericFunctions_1.closeApiRequest.call(this, 'GET', `/activity/call/${callId}/`);
+                    }
+                    if (operation === 'update') {
+                        const callId = this.getNodeParameter('callId', i);
+                        if (!callId) {
+                            throw new n8n_workflow_1.NodeOperationError(this.getNode(), 'Call ID is required for update operation');
+                        }
+                        const updateFields = this.getNodeParameter('updateFields', i);
+                        const body = {};
+                        if (updateFields.noteHtml) {
+                            body.note_html = updateFields.noteHtml;
+                        }
+                        if (updateFields.note) {
+                            body.note = updateFields.note;
+                        }
+                        if (updateFields.outcomeId) {
+                            body.outcome_id = updateFields.outcomeId;
+                        }
+                        responseData = await GenericFunctions_1.closeApiRequest.call(this, 'PUT', `/activity/call/${callId}/`, body);
+                    }
                     if (operation === 'find') {
                         const leadId = this.getNodeParameter('leadId', i, '');
                         const returnAll = this.getNodeParameter('returnAll', i);
@@ -433,6 +739,289 @@ class Close {
                             const limit = this.getNodeParameter('limit', i);
                             qs._limit = limit;
                             responseData = await GenericFunctions_1.closeApiRequest.call(this, 'GET', '/activity/', {}, qs);
+                            responseData = responseData.data;
+                        }
+                    }
+                }
+                if (resource === 'email') {
+                    if (operation === 'create') {
+                        const leadId = this.getNodeParameter('leadId', i);
+                        const to = this.getNodeParameter('to', i);
+                        const subject = this.getNodeParameter('subject', i);
+                        const status = this.getNodeParameter('status', i);
+                        if (!leadId) {
+                            throw new n8n_workflow_1.NodeOperationError(this.getNode(), 'Lead ID is required for email creation');
+                        }
+                        if (!to) {
+                            throw new n8n_workflow_1.NodeOperationError(this.getNode(), 'To field is required for email creation');
+                        }
+                        if (!subject) {
+                            throw new n8n_workflow_1.NodeOperationError(this.getNode(), 'Subject is required for email creation');
+                        }
+                        const body = {
+                            lead_id: leadId,
+                            to: [to],
+                            subject,
+                            status,
+                        };
+                        // Add additional fields if provided
+                        const additionalFields = this.getNodeParameter('additionalFields', i);
+                        if (additionalFields.bodyHtml) {
+                            body.body_html = additionalFields.bodyHtml;
+                        }
+                        if (additionalFields.bodyText) {
+                            body.body_text = additionalFields.bodyText;
+                        }
+                        if (additionalFields.cc) {
+                            body.cc = additionalFields.cc
+                                .split(',')
+                                .map((email) => email.trim());
+                        }
+                        if (additionalFields.bcc) {
+                            body.bcc = additionalFields.bcc
+                                .split(',')
+                                .map((email) => email.trim());
+                        }
+                        if (additionalFields.dateScheduled) {
+                            body.date_scheduled = additionalFields.dateScheduled;
+                        }
+                        if (additionalFields.followupDate) {
+                            body.followup_date = additionalFields.followupDate;
+                        }
+                        if (additionalFields.sendIn) {
+                            body.send_in = additionalFields.sendIn;
+                        }
+                        if (additionalFields.sender) {
+                            body.sender = additionalFields.sender;
+                        }
+                        if (additionalFields.templateId) {
+                            body.template_id = additionalFields.templateId;
+                        }
+                        responseData = await GenericFunctions_1.closeApiRequest.call(this, 'POST', '/activity/email/', body);
+                    }
+                    if (operation === 'delete') {
+                        const emailId = this.getNodeParameter('emailId', i);
+                        if (!emailId) {
+                            throw new n8n_workflow_1.NodeOperationError(this.getNode(), 'Email ID is required for delete operation');
+                        }
+                        responseData = await GenericFunctions_1.closeApiRequest.call(this, 'DELETE', `/activity/email/${emailId}/`);
+                    }
+                    if (operation === 'get') {
+                        const emailId = this.getNodeParameter('emailId', i);
+                        if (!emailId) {
+                            throw new n8n_workflow_1.NodeOperationError(this.getNode(), 'Email ID is required for get operation');
+                        }
+                        responseData = await GenericFunctions_1.closeApiRequest.call(this, 'GET', `/activity/email/${emailId}/`);
+                    }
+                    if (operation === 'update') {
+                        const emailId = this.getNodeParameter('emailId', i);
+                        if (!emailId) {
+                            throw new n8n_workflow_1.NodeOperationError(this.getNode(), 'Email ID is required for update operation');
+                        }
+                        const updateFields = this.getNodeParameter('updateFields', i);
+                        const body = {};
+                        if (updateFields.bodyHtml) {
+                            body.body_html = updateFields.bodyHtml;
+                        }
+                        if (updateFields.bodyText) {
+                            body.body_text = updateFields.bodyText;
+                        }
+                        if (updateFields.dateScheduled) {
+                            body.date_scheduled = updateFields.dateScheduled;
+                        }
+                        if (updateFields.status) {
+                            body.status = updateFields.status;
+                        }
+                        if (updateFields.subject) {
+                            body.subject = updateFields.subject;
+                        }
+                        responseData = await GenericFunctions_1.closeApiRequest.call(this, 'PUT', `/activity/email/${emailId}/`, body);
+                    }
+                    if (operation === 'find') {
+                        const leadId = this.getNodeParameter('leadId', i, '');
+                        const returnAll = this.getNodeParameter('returnAll', i);
+                        if (leadId) {
+                            qs.lead_id = leadId;
+                        }
+                        if (returnAll) {
+                            responseData = await GenericFunctions_1.closeApiRequestAllItems.call(this, 'data', 'GET', '/activity/email/', {}, qs);
+                        }
+                        else {
+                            const limit = this.getNodeParameter('limit', i);
+                            qs._limit = limit;
+                            responseData = await GenericFunctions_1.closeApiRequest.call(this, 'GET', '/activity/email/', {}, qs);
+                            responseData = responseData.data;
+                        }
+                    }
+                }
+                if (resource === 'meeting') {
+                    if (operation === 'delete') {
+                        const meetingId = this.getNodeParameter('meetingId', i);
+                        if (!meetingId) {
+                            throw new n8n_workflow_1.NodeOperationError(this.getNode(), 'Meeting ID is required for delete operation');
+                        }
+                        responseData = await GenericFunctions_1.closeApiRequest.call(this, 'DELETE', `/activity/meeting/${meetingId}/`);
+                    }
+                    if (operation === 'get') {
+                        const meetingId = this.getNodeParameter('meetingId', i);
+                        if (!meetingId) {
+                            throw new n8n_workflow_1.NodeOperationError(this.getNode(), 'Meeting ID is required for get operation');
+                        }
+                        const additionalOptions = this.getNodeParameter('additionalOptions', i);
+                        const params = {};
+                        if (additionalOptions.includeTranscripts) {
+                            params._fields = 'transcripts';
+                        }
+                        responseData = await GenericFunctions_1.closeApiRequest.call(this, 'GET', `/activity/meeting/${meetingId}/`, {}, params);
+                    }
+                    if (operation === 'update') {
+                        const meetingId = this.getNodeParameter('meetingId', i);
+                        if (!meetingId) {
+                            throw new n8n_workflow_1.NodeOperationError(this.getNode(), 'Meeting ID is required for update operation');
+                        }
+                        const updateFields = this.getNodeParameter('updateFields', i);
+                        const body = {};
+                        if (updateFields.userNoteHtml) {
+                            body.user_note_html = updateFields.userNoteHtml;
+                        }
+                        if (updateFields.outcomeId) {
+                            body.outcome_id = updateFields.outcomeId;
+                        }
+                        responseData = await GenericFunctions_1.closeApiRequest.call(this, 'PUT', `/activity/meeting/${meetingId}/`, body);
+                    }
+                    if (operation === 'find') {
+                        const leadId = this.getNodeParameter('leadId', i, '');
+                        const userId = this.getNodeParameter('userId', i, '');
+                        const returnAll = this.getNodeParameter('returnAll', i);
+                        const additionalFilters = this.getNodeParameter('additionalFilters', i);
+                        if (leadId) {
+                            qs.lead_id = leadId;
+                        }
+                        if (userId) {
+                            qs.user_id = userId;
+                        }
+                        if (additionalFilters.dateCreatedGt) {
+                            qs.date_created__gt = additionalFilters.dateCreatedGt;
+                        }
+                        if (additionalFilters.dateCreatedLt) {
+                            qs.date_created__lt = additionalFilters.dateCreatedLt;
+                        }
+                        if (returnAll) {
+                            responseData = await GenericFunctions_1.closeApiRequestAllItems.call(this, 'data', 'GET', '/activity/meeting/', {}, qs);
+                        }
+                        else {
+                            const limit = this.getNodeParameter('limit', i);
+                            qs._limit = limit;
+                            responseData = await GenericFunctions_1.closeApiRequest.call(this, 'GET', '/activity/meeting/', {}, qs);
+                            responseData = responseData.data;
+                        }
+                    }
+                }
+                if (resource === 'sms') {
+                    if (operation === 'create') {
+                        const leadId = this.getNodeParameter('leadId', i);
+                        const to = this.getNodeParameter('to', i);
+                        const localPhone = this.getNodeParameter('localPhone', i);
+                        const status = this.getNodeParameter('status', i);
+                        const text = this.getNodeParameter('text', i);
+                        if (!leadId) {
+                            throw new n8n_workflow_1.NodeOperationError(this.getNode(), 'Lead ID is required for SMS creation');
+                        }
+                        if (!to) {
+                            throw new n8n_workflow_1.NodeOperationError(this.getNode(), 'To phone is required for SMS creation');
+                        }
+                        if (!localPhone) {
+                            throw new n8n_workflow_1.NodeOperationError(this.getNode(), 'Local phone is required for SMS creation');
+                        }
+                        const body = {
+                            lead_id: leadId,
+                            to: [to],
+                            local_phone: localPhone,
+                            status,
+                        };
+                        // Add text or template_id
+                        if (text) {
+                            body.text = text;
+                        }
+                        // Add additional fields if provided
+                        const additionalFields = this.getNodeParameter('additionalFields', i);
+                        if (additionalFields.dateScheduled) {
+                            body.date_scheduled = additionalFields.dateScheduled;
+                        }
+                        if (additionalFields.direction) {
+                            body.direction = additionalFields.direction;
+                        }
+                        if (additionalFields.sendIn) {
+                            body.send_in = additionalFields.sendIn;
+                        }
+                        if (additionalFields.templateId) {
+                            body.template_id = additionalFields.templateId;
+                            // Remove text if template is used
+                            delete body.text;
+                        }
+                        // Handle send_to_inbox query parameter
+                        const queryParams = {};
+                        if (additionalFields.sendToInbox && status === 'inbox') {
+                            queryParams.send_to_inbox = 'true';
+                        }
+                        responseData = await GenericFunctions_1.closeApiRequest.call(this, 'POST', '/activity/sms/', body, queryParams);
+                    }
+                    if (operation === 'delete') {
+                        const smsId = this.getNodeParameter('smsId', i);
+                        if (!smsId) {
+                            throw new n8n_workflow_1.NodeOperationError(this.getNode(), 'SMS ID is required for delete operation');
+                        }
+                        responseData = await GenericFunctions_1.closeApiRequest.call(this, 'DELETE', `/activity/sms/${smsId}/`);
+                    }
+                    if (operation === 'get') {
+                        const smsId = this.getNodeParameter('smsId', i);
+                        if (!smsId) {
+                            throw new n8n_workflow_1.NodeOperationError(this.getNode(), 'SMS ID is required for get operation');
+                        }
+                        responseData = await GenericFunctions_1.closeApiRequest.call(this, 'GET', `/activity/sms/${smsId}/`);
+                    }
+                    if (operation === 'update') {
+                        const smsId = this.getNodeParameter('smsId', i);
+                        if (!smsId) {
+                            throw new n8n_workflow_1.NodeOperationError(this.getNode(), 'SMS ID is required for update operation');
+                        }
+                        const updateFields = this.getNodeParameter('updateFields', i);
+                        const body = {};
+                        if (updateFields.dateScheduled) {
+                            body.date_scheduled = updateFields.dateScheduled;
+                        }
+                        if (updateFields.status) {
+                            body.status = updateFields.status;
+                        }
+                        if (updateFields.text) {
+                            body.text = updateFields.text;
+                        }
+                        responseData = await GenericFunctions_1.closeApiRequest.call(this, 'PUT', `/activity/sms/${smsId}/`, body);
+                    }
+                    if (operation === 'find') {
+                        const leadId = this.getNodeParameter('leadId', i, '');
+                        const userId = this.getNodeParameter('userId', i, '');
+                        const returnAll = this.getNodeParameter('returnAll', i);
+                        const additionalFilters = this.getNodeParameter('additionalFilters', i);
+                        if (leadId) {
+                            qs.lead_id = leadId;
+                        }
+                        if (userId) {
+                            qs.user_id = userId;
+                        }
+                        if (additionalFilters.dateCreatedGt) {
+                            qs.date_created__gt = additionalFilters.dateCreatedGt;
+                        }
+                        if (additionalFilters.dateCreatedLt) {
+                            qs.date_created__lt = additionalFilters.dateCreatedLt;
+                        }
+                        if (returnAll) {
+                            responseData = await GenericFunctions_1.closeApiRequestAllItems.call(this, 'data', 'GET', '/activity/sms/', {}, qs);
+                        }
+                        else {
+                            const limit = this.getNodeParameter('limit', i);
+                            qs._limit = limit;
+                            responseData = await GenericFunctions_1.closeApiRequest.call(this, 'GET', '/activity/sms/', {}, qs);
                             responseData = responseData.data;
                         }
                     }
