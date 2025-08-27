@@ -62,12 +62,17 @@ docker exec -it n8n npm install n8n-nodes-close-crm
 ### Actions (Close CRM Node)
 
 **Lead**
+- Create: Create new leads with contacts and custom fields
+- Delete: Delete existing leads
 - Find: Search for leads using queries, SmartViews, or status filters
+- Merge: Merge two leads into one
 - Update: Update lead information including custom fields
 
 **Opportunity**
+- Create: Create new opportunities for leads
+- Delete: Delete existing opportunities
 - Find: Search for opportunities by lead or status
-- Update: Update opportunity details
+- Update: Update opportunity details including status, value, and notes
 
 **Task**
 - Create: Create new tasks for leads
@@ -120,6 +125,24 @@ Custom Fields:
   - Field Value: "Updated Value"
 ```
 
+### Create Opportunity
+```
+Resource: Opportunity
+Operation: Create
+Lead ID: lead_abc123
+Additional Fields:
+  - Status ID: stat_qualified
+  - Note: "Hot prospect from website"
+  - Value: 50000 (in cents = $500.00)
+```
+
+### Delete Opportunity
+```
+Resource: Opportunity
+Operation: Delete
+Opportunity ID: oppo_xyz789
+```
+
 ### Create Task
 ```
 Resource: Task
@@ -158,6 +181,12 @@ If you encounter any issues or have questions:
 3. Include detailed information about your setup and the issue
 
 ## Version History
+
+### 1.0.18 (Latest)
+- **NEW**: Create and Delete operations for Opportunities
+- Enhanced Opportunity management capabilities
+- Comprehensive test coverage for all Opportunity operations
+- Updated documentation with examples for new operations
 
 ### 1.0.0
 - Initial release

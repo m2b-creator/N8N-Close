@@ -15,14 +15,16 @@ describe('Close', () => {
 
 	beforeEach(() => {
 		close = new Close();
-		
+
 		// Mock IExecuteFunctions
 		mockExecuteFunctions = {
 			getInputData: jest.fn(),
 			getNodeParameter: jest.fn(),
 			helpers: {
 				constructExecutionMetaData: jest.fn().mockImplementation((data: any) => [data]),
-				returnJsonArray: jest.fn().mockImplementation((data: any) => Array.isArray(data) ? data : [data]),
+				returnJsonArray: jest
+					.fn()
+					.mockImplementation((data: any) => (Array.isArray(data) ? data : [data])),
 			},
 			continueOnFail: jest.fn(),
 			getNode: jest.fn(),
@@ -59,7 +61,9 @@ describe('Close', () => {
 		});
 
 		it('should have resource options', () => {
-			const resourceProperty = close.description.properties.find(prop => prop.name === 'resource');
+			const resourceProperty = close.description.properties.find(
+				(prop) => prop.name === 'resource',
+			);
 			expect(resourceProperty).toBeDefined();
 			expect(resourceProperty?.type).toBe('options');
 			expect(resourceProperty?.options).toHaveLength(6);
@@ -67,16 +71,32 @@ describe('Close', () => {
 
 		it('should have all lead operations', () => {
 			const operationProperty = close.description.properties.find(
-				prop => prop.name === 'operation' && prop.displayOptions?.show?.resource?.includes('lead')
+				(prop) =>
+					prop.name === 'operation' && prop.displayOptions?.show?.resource?.includes('lead'),
 			);
 			expect(operationProperty).toBeDefined();
 			expect(operationProperty?.options).toHaveLength(5);
-			
+
 			const operationValues = operationProperty?.options?.map((op: any) => op.value);
 			expect(operationValues).toContain('create');
 			expect(operationValues).toContain('delete');
 			expect(operationValues).toContain('find');
 			expect(operationValues).toContain('merge');
+			expect(operationValues).toContain('update');
+		});
+
+		it('should have all opportunity operations', () => {
+			const operationProperty = close.description.properties.find(
+				(prop) =>
+					prop.name === 'operation' && prop.displayOptions?.show?.resource?.includes('opportunity'),
+			);
+			expect(operationProperty).toBeDefined();
+			expect(operationProperty?.options).toHaveLength(4);
+
+			const operationValues = operationProperty?.options?.map((op: any) => op.value);
+			expect(operationValues).toContain('create');
+			expect(operationValues).toContain('delete');
+			expect(operationValues).toContain('find');
 			expect(operationValues).toContain('update');
 		});
 	});
@@ -227,7 +247,7 @@ describe('Close', () => {
 				mockExecuteFunctions.getNode.mockReturnValue({ name: 'Close CRM' } as any);
 
 				await expect(close.execute.call(mockExecuteFunctions)).rejects.toThrow(
-					'Lead name is required for create operation'
+					'Lead name is required for create operation',
 				);
 			});
 		});
@@ -257,7 +277,7 @@ describe('Close', () => {
 				mockExecuteFunctions.getNode.mockReturnValue({ name: 'Close CRM' } as any);
 
 				await expect(close.execute.call(mockExecuteFunctions)).rejects.toThrow(
-					'Lead ID is required for delete operation'
+					'Lead ID is required for delete operation',
 				);
 			});
 		});
@@ -294,7 +314,7 @@ describe('Close', () => {
 				mockExecuteFunctions.getNode.mockReturnValue({ name: 'Close CRM' } as any);
 
 				await expect(close.execute.call(mockExecuteFunctions)).rejects.toThrow(
-					'Source Lead ID is required for merge operation'
+					'Source Lead ID is required for merge operation',
 				);
 			});
 
@@ -308,7 +328,7 @@ describe('Close', () => {
 				mockExecuteFunctions.getNode.mockReturnValue({ name: 'Close CRM' } as any);
 
 				await expect(close.execute.call(mockExecuteFunctions)).rejects.toThrow(
-					'Destination Lead ID is required for merge operation'
+					'Destination Lead ID is required for merge operation',
 				);
 			});
 		});
@@ -339,7 +359,7 @@ describe('Close', () => {
 					'GET',
 					'/lead/',
 					{},
-					{ query: 'test query', _limit: 10 }
+					{ query: 'test query', _limit: 10 },
 				);
 			});
 
@@ -361,13 +381,7 @@ describe('Close', () => {
 
 				await close.execute.call(mockExecuteFunctions);
 
-				expect(closeApiRequestAllItems).toHaveBeenCalledWith(
-					'data',
-					'GET',
-					'/lead/',
-					{},
-					{}
-				);
+				expect(closeApiRequestAllItems).toHaveBeenCalledWith('data', 'GET', '/lead/', {}, {});
 			});
 		});
 
@@ -408,7 +422,215 @@ describe('Close', () => {
 				mockExecuteFunctions.getNode.mockReturnValue({ name: 'Close CRM' } as any);
 
 				await expect(close.execute.call(mockExecuteFunctions)).rejects.toThrow(
-					'Lead ID is required for update operation'
+					'Lead ID is required for update operation',
+				);
+			});
+		});
+	});
+
+	describe('Opportunity Operations', () => {
+		beforeEach(() => {
+			mockExecuteFunctions.getInputData.mockReturnValue([{ json: {} }]);
+		});
+
+		describe('Create Opportunity', () => {
+			it('should create an opportunity with minimum required fields', async () => {
+				const mockResponse = {
+					id: 'oppo_abc123',
+					lead_id: 'lead_xyz789',
+					status_id: 'stat_default',
+				};
+
+				mockExecuteFunctions.getNodeParameter
+					.mockReturnValueOnce('opportunity') // resource
+					.mockReturnValueOnce('create') // operation
+					.mockReturnValueOnce('lead_xyz789') // leadId
+					.mockReturnValueOnce({}); // additionalFields
+
+				(closeApiRequest as jest.Mock).mockResolvedValue(mockResponse);
+
+				const result = await close.execute.call(mockExecuteFunctions);
+
+				expect(closeApiRequest).toHaveBeenCalledWith('POST', '/opportunity/', {
+					lead_id: 'lead_xyz789',
+				});
+				expect(result[0]).toHaveLength(1);
+			});
+
+			it('should create an opportunity with additional fields', async () => {
+				const mockResponse = {
+					id: 'oppo_abc123',
+					lead_id: 'lead_xyz789',
+					status_id: 'stat_qualified',
+					note: 'Test opportunity',
+					value: 10000,
+					value_formatted: '$100.00',
+				};
+
+				mockExecuteFunctions.getNodeParameter
+					.mockReturnValueOnce('opportunity') // resource
+					.mockReturnValueOnce('create') // operation
+					.mockReturnValueOnce('lead_xyz789') // leadId
+					.mockReturnValueOnce({
+						statusId: 'stat_qualified',
+						note: 'Test opportunity',
+						value: 10000,
+						valueFormatted: '$100.00',
+					}); // additionalFields
+
+				(closeApiRequest as jest.Mock).mockResolvedValue(mockResponse);
+
+				await close.execute.call(mockExecuteFunctions);
+
+				expect(closeApiRequest).toHaveBeenCalledWith('POST', '/opportunity/', {
+					lead_id: 'lead_xyz789',
+					status_id: 'stat_qualified',
+					note: 'Test opportunity',
+					value: 10000,
+					value_formatted: '$100.00',
+				});
+			});
+
+			it('should throw error when lead ID is missing', async () => {
+				mockExecuteFunctions.getNodeParameter
+					.mockReturnValueOnce('opportunity') // resource
+					.mockReturnValueOnce('create') // operation
+					.mockReturnValueOnce(''); // leadId (empty)
+
+				mockExecuteFunctions.getNode.mockReturnValue({ name: 'Close CRM' } as any);
+
+				await expect(close.execute.call(mockExecuteFunctions)).rejects.toThrow(
+					'Lead ID is required for opportunity creation',
+				);
+			});
+		});
+
+		describe('Delete Opportunity', () => {
+			it('should delete an opportunity successfully', async () => {
+				const mockResponse = {};
+
+				mockExecuteFunctions.getNodeParameter
+					.mockReturnValueOnce('opportunity') // resource
+					.mockReturnValueOnce('delete') // operation
+					.mockReturnValueOnce('oppo_abc123'); // opportunityId
+
+				(closeApiRequest as jest.Mock).mockResolvedValue(mockResponse);
+
+				await close.execute.call(mockExecuteFunctions);
+
+				expect(closeApiRequest).toHaveBeenCalledWith('DELETE', '/opportunity/oppo_abc123/');
+			});
+
+			it('should throw error when opportunity ID is missing', async () => {
+				mockExecuteFunctions.getNodeParameter
+					.mockReturnValueOnce('opportunity') // resource
+					.mockReturnValueOnce('delete') // operation
+					.mockReturnValueOnce(''); // opportunityId (empty)
+
+				mockExecuteFunctions.getNode.mockReturnValue({ name: 'Close CRM' } as any);
+
+				await expect(close.execute.call(mockExecuteFunctions)).rejects.toThrow(
+					'Opportunity ID is required for delete operation',
+				);
+			});
+		});
+
+		describe('Find Opportunities', () => {
+			it('should find opportunities with lead ID filter', async () => {
+				const mockResponse = {
+					data: [
+						{ id: 'oppo_1', lead_id: 'lead_xyz789', status_id: 'stat_active' },
+						{ id: 'oppo_2', lead_id: 'lead_xyz789', status_id: 'stat_won' },
+					],
+				};
+
+				mockExecuteFunctions.getNodeParameter
+					.mockReturnValueOnce('opportunity') // resource
+					.mockReturnValueOnce('find') // operation
+					.mockReturnValueOnce('lead_xyz789') // leadId
+					.mockReturnValueOnce('') // statusId
+					.mockReturnValueOnce(false) // returnAll
+					.mockReturnValueOnce(10); // limit
+
+				(closeApiRequest as jest.Mock).mockResolvedValue(mockResponse);
+
+				await close.execute.call(mockExecuteFunctions);
+
+				expect(closeApiRequest).toHaveBeenCalledWith(
+					'GET',
+					'/opportunity/',
+					{},
+					{ lead_id: 'lead_xyz789', _limit: 10 },
+				);
+			});
+
+			it('should find all opportunities when returnAll is true', async () => {
+				const mockOpportunities = [
+					{ id: 'oppo_1', lead_id: 'lead_1', status_id: 'stat_active' },
+					{ id: 'oppo_2', lead_id: 'lead_2', status_id: 'stat_won' },
+				];
+
+				mockExecuteFunctions.getNodeParameter
+					.mockReturnValueOnce('opportunity') // resource
+					.mockReturnValueOnce('find') // operation
+					.mockReturnValueOnce('') // leadId
+					.mockReturnValueOnce('') // statusId
+					.mockReturnValueOnce(true); // returnAll
+
+				(closeApiRequestAllItems as jest.Mock).mockResolvedValue(mockOpportunities);
+
+				await close.execute.call(mockExecuteFunctions);
+
+				expect(closeApiRequestAllItems).toHaveBeenCalledWith(
+					'data',
+					'GET',
+					'/opportunity/',
+					{},
+					{},
+				);
+			});
+		});
+
+		describe('Update Opportunity', () => {
+			it('should update an opportunity with basic fields', async () => {
+				const mockResponse = {
+					id: 'oppo_abc123',
+					status_id: 'stat_won',
+					note: 'Updated note',
+					value: 20000,
+				};
+
+				mockExecuteFunctions.getNodeParameter
+					.mockReturnValueOnce('opportunity') // resource
+					.mockReturnValueOnce('update') // operation
+					.mockReturnValueOnce('oppo_abc123') // opportunityId
+					.mockReturnValueOnce({
+						statusId: 'stat_won',
+						note: 'Updated note',
+						value: 20000,
+					}); // updateFields
+
+				(closeApiRequest as jest.Mock).mockResolvedValue(mockResponse);
+
+				await close.execute.call(mockExecuteFunctions);
+
+				expect(closeApiRequest).toHaveBeenCalledWith('PUT', '/opportunity/oppo_abc123/', {
+					status_id: 'stat_won',
+					note: 'Updated note',
+					value: 20000,
+				});
+			});
+
+			it('should throw error when opportunity ID is missing for update', async () => {
+				mockExecuteFunctions.getNodeParameter
+					.mockReturnValueOnce('opportunity') // resource
+					.mockReturnValueOnce('update') // operation
+					.mockReturnValueOnce(''); // opportunityId (empty)
+
+				mockExecuteFunctions.getNode.mockReturnValue({ name: 'Close CRM' } as any);
+
+				await expect(close.execute.call(mockExecuteFunctions)).rejects.toThrow(
+					'Opportunity ID is required for update operation',
 				);
 			});
 		});
@@ -428,7 +650,7 @@ describe('Close', () => {
 			mockExecuteFunctions.getNode.mockReturnValue({ name: 'Close CRM' } as any);
 
 			await expect(close.execute.call(mockExecuteFunctions)).rejects.toThrow(
-				'Resource is required'
+				'Resource is required',
 			);
 		});
 
@@ -440,13 +662,13 @@ describe('Close', () => {
 			mockExecuteFunctions.getNode.mockReturnValue({ name: 'Close CRM' } as any);
 
 			await expect(close.execute.call(mockExecuteFunctions)).rejects.toThrow(
-				'Operation is required'
+				'Operation is required',
 			);
 		});
 
 		it('should handle API errors gracefully when continueOnFail is true', async () => {
 			const apiError = new Error('API Error');
-			
+
 			mockExecuteFunctions.getNodeParameter
 				.mockReturnValueOnce('lead') // resource
 				.mockReturnValueOnce('find') // operation

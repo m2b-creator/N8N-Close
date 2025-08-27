@@ -391,6 +391,53 @@ export class Close implements INodeType {
 				}
 
 				if (resource === 'opportunity') {
+					if (operation === 'create') {
+						const leadId = this.getNodeParameter('leadId', i) as string;
+						if (!leadId) {
+							throw new NodeOperationError(
+								this.getNode(),
+								'Lead ID is required for opportunity creation',
+							);
+						}
+
+						const body: JsonObject = {
+							lead_id: leadId,
+						};
+
+						// Add additional fields if provided
+						const additionalFields = this.getNodeParameter('additionalFields', i) as JsonObject;
+						if (additionalFields.statusId) {
+							body.status_id = additionalFields.statusId;
+						}
+						if (additionalFields.note) {
+							body.note = additionalFields.note;
+						}
+						if (additionalFields.value) {
+							body.value = additionalFields.value;
+						}
+						if (additionalFields.valueFormatted) {
+							body.value_formatted = additionalFields.valueFormatted;
+						}
+
+						responseData = await closeApiRequest.call(this, 'POST', '/opportunity/', body);
+					}
+
+					if (operation === 'delete') {
+						const opportunityId = this.getNodeParameter('opportunityId', i) as string;
+						if (!opportunityId) {
+							throw new NodeOperationError(
+								this.getNode(),
+								'Opportunity ID is required for delete operation',
+							);
+						}
+
+						responseData = await closeApiRequest.call(
+							this,
+							'DELETE',
+							`/opportunity/${opportunityId}/`,
+						);
+					}
+
 					if (operation === 'find') {
 						const leadId = this.getNodeParameter('leadId', i, '') as string;
 						const statusId = this.getNodeParameter('statusId', i, '') as string;
