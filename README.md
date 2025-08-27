@@ -69,12 +69,26 @@ docker exec -it n8n npm install n8n-nodes-close-crm
 - Merge: Merge two leads into one
 - Update: Update lead information including custom fields
 
+**Lead Status**
+
+- Create: Create new lead statuses (active, won, lost)
+- Delete: Delete lead statuses (ensure no leads use this status first)
+- List: List all lead statuses for your organization
+- Update: Rename and modify lead statuses
+
 **Opportunity**
 
 - Create: Create new opportunities for leads
 - Delete: Delete existing opportunities
 - Find: Search for opportunities by lead or status
 - Update: Update opportunity details including status, value, and notes
+
+**Opportunity Status**
+
+- Create: Create new opportunity statuses (active, won, lost) with pipeline support
+- Delete: Delete opportunity statuses (ensure no opportunities use this status first)
+- List: List all opportunity statuses for your organization
+- Update: Rename and modify opportunity statuses with pipeline management
 
 **Task**
 
@@ -391,6 +405,64 @@ Update Fields:
   - Text: "Customer contacted - follow up completed"
 ```
 
+### Create Lead Status
+
+```
+Resource: Lead Status
+Operation: Create
+Label: Hot Prospect
+Additional Fields:
+  - Type: active
+```
+
+### List Lead Statuses
+
+```
+Resource: Lead Status
+Operation: List
+```
+
+### Update Lead Status
+
+```
+Resource: Lead Status
+Operation: Update
+Status ID: stat_123
+Label: Qualified Prospect
+Additional Fields:
+  - Type: active
+```
+
+### Create Opportunity Status
+
+```
+Resource: Opportunity Status
+Operation: Create
+Label: Negotiating
+Status Type: active
+Additional Fields:
+  - Pipeline ID: pipe_123
+```
+
+### List Opportunity Statuses
+
+```
+Resource: Opportunity Status
+Operation: List
+```
+
+### Update Opportunity Status
+
+```
+Resource: Opportunity Status
+Operation: Update
+Status ID: opstat_456
+Label: Contract Review
+Additional Fields:
+  - Status Type: won
+  - Pipeline ID: pipe_789
+```
+
 ### Trigger on New Leads in SmartView
 
 ```
@@ -422,7 +494,28 @@ If you encounter any issues or have questions:
 
 ## Version History
 
-### 1.0.23 (Latest)
+### 1.0.25 (Latest)
+
+- **NEW**: Complete Opportunity Status management
+- Opportunity Status operations: Create, Delete, List, Update
+- Support for all status types (active, won, lost) with pipeline integration
+- Pipeline-specific opportunity status configuration
+- Opportunity status lifecycle management with pipeline support
+- Safe deletion with dependency checking
+- Comprehensive test coverage for all operations (144 total tests)
+- Updated documentation with practical opportunity status examples
+
+### 1.0.24
+
+- **NEW**: Complete Lead Status management
+- Lead Status operations: Create, Delete, List, Update
+- Support for all status types (active, won, lost)
+- Organizational lead status configuration
+- Lead status lifecycle management
+- Safe deletion with dependency checking
+- Updated documentation with practical lead status examples
+
+### 1.0.23
 
 - **NEW**: Complete Task management with full CRUD operations
 - Task operations: Create, Delete, Get, Update, Find, Bulk Update
@@ -431,7 +524,6 @@ If you encounter any issues or have questions:
 - Bulk update operations for efficient task management
 - Date range and completion status filtering
 - Compatible with existing task structure while adding new capabilities
-- Comprehensive test coverage for all operations (122 total tests)
 - Updated documentation with practical task management examples
 
 ### 1.0.22

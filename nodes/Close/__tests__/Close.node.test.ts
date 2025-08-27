@@ -66,7 +66,7 @@ describe('Close', () => {
 			);
 			expect(resourceProperty).toBeDefined();
 			expect(resourceProperty?.type).toBe('options');
-			expect(resourceProperty?.options).toHaveLength(10);
+			expect(resourceProperty?.options).toHaveLength(12);
 		});
 
 		it('should have all lead operations', () => {
@@ -82,6 +82,21 @@ describe('Close', () => {
 			expect(operationValues).toContain('delete');
 			expect(operationValues).toContain('find');
 			expect(operationValues).toContain('merge');
+			expect(operationValues).toContain('update');
+		});
+
+		it('should have all lead status operations', () => {
+			const operationProperty = close.description.properties.find(
+				(prop) =>
+					prop.name === 'operation' && prop.displayOptions?.show?.resource?.includes('leadStatus'),
+			);
+			expect(operationProperty).toBeDefined();
+			expect(operationProperty?.options).toHaveLength(4);
+
+			const operationValues = operationProperty?.options?.map((op: any) => op.value);
+			expect(operationValues).toContain('create');
+			expect(operationValues).toContain('delete');
+			expect(operationValues).toContain('list');
 			expect(operationValues).toContain('update');
 		});
 
@@ -175,6 +190,22 @@ describe('Close', () => {
 			expect(operationValues).toContain('delete');
 			expect(operationValues).toContain('find');
 			expect(operationValues).toContain('get');
+			expect(operationValues).toContain('update');
+		});
+
+		it('should have all opportunity status operations', () => {
+			const operationProperty = close.description.properties.find(
+				(prop) =>
+					prop.name === 'operation' &&
+					prop.displayOptions?.show?.resource?.includes('opportunityStatus'),
+			);
+			expect(operationProperty).toBeDefined();
+			expect(operationProperty?.options).toHaveLength(4);
+
+			const operationValues = operationProperty?.options?.map((op: any) => op.value);
+			expect(operationValues).toContain('create');
+			expect(operationValues).toContain('delete');
+			expect(operationValues).toContain('list');
 			expect(operationValues).toContain('update');
 		});
 
@@ -518,6 +549,404 @@ describe('Close', () => {
 
 				await expect(close.execute.call(mockExecuteFunctions)).rejects.toThrow(
 					'Lead ID is required for update operation',
+				);
+			});
+		});
+	});
+
+	describe('Lead Status Operations', () => {
+		beforeEach(() => {
+			mockExecuteFunctions.getInputData.mockReturnValue([{ json: {} }]);
+		});
+
+		describe('List Lead Statuses', () => {
+			it('should list all lead statuses', async () => {
+				const mockResponse = {
+					data: [
+						{ id: 'stat_1', label: 'New Lead', type: 'active' },
+						{ id: 'stat_2', label: 'Qualified', type: 'active' },
+						{ id: 'stat_3', label: 'Won', type: 'won' },
+						{ id: 'stat_4', label: 'Lost', type: 'lost' },
+					],
+				};
+
+				mockExecuteFunctions.getNodeParameter
+					.mockReturnValueOnce('leadStatus') // resource
+					.mockReturnValueOnce('list'); // operation
+
+				(closeApiRequest as jest.Mock).mockResolvedValue(mockResponse);
+
+				const result = await close.execute.call(mockExecuteFunctions);
+
+				expect(closeApiRequest).toHaveBeenCalledWith('GET', '/status/lead/');
+				expect(result[0]).toHaveLength(1);
+				expect(result[0][0]).toHaveLength(4);
+			});
+		});
+
+		describe('Create Lead Status', () => {
+			it('should create a lead status with minimum required fields', async () => {
+				const mockResponse = {
+					id: 'stat_new123',
+					label: 'Hot Prospect',
+					type: 'active',
+				};
+
+				mockExecuteFunctions.getNodeParameter
+					.mockReturnValueOnce('leadStatus') // resource
+					.mockReturnValueOnce('create') // operation
+					.mockReturnValueOnce('Hot Prospect') // label
+					.mockReturnValueOnce({}); // additionalFields
+
+				(closeApiRequest as jest.Mock).mockResolvedValue(mockResponse);
+
+				const result = await close.execute.call(mockExecuteFunctions);
+
+				expect(closeApiRequest).toHaveBeenCalledWith('POST', '/status/lead/', {
+					label: 'Hot Prospect',
+				});
+				expect(result[0]).toHaveLength(1);
+			});
+
+			it('should create a lead status with type', async () => {
+				const mockResponse = {
+					id: 'stat_new123',
+					label: 'Closed Won',
+					type: 'won',
+				};
+
+				mockExecuteFunctions.getNodeParameter
+					.mockReturnValueOnce('leadStatus') // resource
+					.mockReturnValueOnce('create') // operation
+					.mockReturnValueOnce('Closed Won') // label
+					.mockReturnValueOnce({ type: 'won' }); // additionalFields
+
+				(closeApiRequest as jest.Mock).mockResolvedValue(mockResponse);
+
+				await close.execute.call(mockExecuteFunctions);
+
+				expect(closeApiRequest).toHaveBeenCalledWith('POST', '/status/lead/', {
+					label: 'Closed Won',
+					type: 'won',
+				});
+			});
+
+			it('should throw error when label is missing', async () => {
+				mockExecuteFunctions.getNodeParameter
+					.mockReturnValueOnce('leadStatus') // resource
+					.mockReturnValueOnce('create') // operation
+					.mockReturnValueOnce(''); // label (empty)
+
+				mockExecuteFunctions.getNode.mockReturnValue({ name: 'Close CRM' } as any);
+
+				await expect(close.execute.call(mockExecuteFunctions)).rejects.toThrow(
+					'Label is required for lead status creation',
+				);
+			});
+		});
+
+		describe('Update Lead Status', () => {
+			it('should update a lead status', async () => {
+				const mockResponse = {
+					id: 'stat_123',
+					label: 'Updated Prospect',
+					type: 'active',
+				};
+
+				mockExecuteFunctions.getNodeParameter
+					.mockReturnValueOnce('leadStatus') // resource
+					.mockReturnValueOnce('update') // operation
+					.mockReturnValueOnce('stat_123') // statusId
+					.mockReturnValueOnce('Updated Prospect') // label
+					.mockReturnValueOnce({ type: 'active' }); // additionalFields
+
+				(closeApiRequest as jest.Mock).mockResolvedValue(mockResponse);
+
+				await close.execute.call(mockExecuteFunctions);
+
+				expect(closeApiRequest).toHaveBeenCalledWith('PUT', '/status/lead/stat_123/', {
+					label: 'Updated Prospect',
+					type: 'active',
+				});
+			});
+
+			it('should throw error when status ID is missing', async () => {
+				mockExecuteFunctions.getNodeParameter
+					.mockReturnValueOnce('leadStatus') // resource
+					.mockReturnValueOnce('update') // operation
+					.mockReturnValueOnce(''); // statusId (empty)
+
+				mockExecuteFunctions.getNode.mockReturnValue({ name: 'Close CRM' } as any);
+
+				await expect(close.execute.call(mockExecuteFunctions)).rejects.toThrow(
+					'Status ID is required for update operation',
+				);
+			});
+
+			it('should throw error when label is missing', async () => {
+				mockExecuteFunctions.getNodeParameter
+					.mockReturnValueOnce('leadStatus') // resource
+					.mockReturnValueOnce('update') // operation
+					.mockReturnValueOnce('stat_123') // statusId
+					.mockReturnValueOnce(''); // label (empty)
+
+				mockExecuteFunctions.getNode.mockReturnValue({ name: 'Close CRM' } as any);
+
+				await expect(close.execute.call(mockExecuteFunctions)).rejects.toThrow(
+					'Label is required for update operation',
+				);
+			});
+		});
+
+		describe('Delete Lead Status', () => {
+			it('should delete a lead status successfully', async () => {
+				const mockResponse = {};
+
+				mockExecuteFunctions.getNodeParameter
+					.mockReturnValueOnce('leadStatus') // resource
+					.mockReturnValueOnce('delete') // operation
+					.mockReturnValueOnce('stat_123'); // statusId
+
+				(closeApiRequest as jest.Mock).mockResolvedValue(mockResponse);
+
+				await close.execute.call(mockExecuteFunctions);
+
+				expect(closeApiRequest).toHaveBeenCalledWith('DELETE', '/status/lead/stat_123/');
+			});
+
+			it('should throw error when status ID is missing', async () => {
+				mockExecuteFunctions.getNodeParameter
+					.mockReturnValueOnce('leadStatus') // resource
+					.mockReturnValueOnce('delete') // operation
+					.mockReturnValueOnce(''); // statusId (empty)
+
+				mockExecuteFunctions.getNode.mockReturnValue({ name: 'Close CRM' } as any);
+
+				await expect(close.execute.call(mockExecuteFunctions)).rejects.toThrow(
+					'Status ID is required for delete operation',
+				);
+			});
+		});
+	});
+
+	describe('Opportunity Status Operations', () => {
+		beforeEach(() => {
+			mockExecuteFunctions.getInputData.mockReturnValue([{ json: {} }]);
+		});
+
+		describe('List Opportunity Statuses', () => {
+			it('should list all opportunity statuses', async () => {
+				const mockResponse = {
+					data: [
+						{ id: 'opstat_1', label: 'Qualified', status_type: 'active' },
+						{ id: 'opstat_2', label: 'Proposal Sent', status_type: 'active' },
+						{ id: 'opstat_3', label: 'Closed Won', status_type: 'won' },
+						{ id: 'opstat_4', label: 'Closed Lost', status_type: 'lost' },
+					],
+				};
+
+				mockExecuteFunctions.getNodeParameter
+					.mockReturnValueOnce('opportunityStatus') // resource
+					.mockReturnValueOnce('list'); // operation
+
+				(closeApiRequest as jest.Mock).mockResolvedValue(mockResponse);
+
+				const result = await close.execute.call(mockExecuteFunctions);
+
+				expect(closeApiRequest).toHaveBeenCalledWith('GET', '/status/opportunity/');
+				expect(result[0]).toHaveLength(1);
+				expect(result[0][0]).toHaveLength(4);
+			});
+		});
+
+		describe('Create Opportunity Status', () => {
+			it('should create an opportunity status with minimum required fields', async () => {
+				const mockResponse = {
+					id: 'opstat_new123',
+					label: 'Negotiating',
+					status_type: 'active',
+				};
+
+				mockExecuteFunctions.getNodeParameter
+					.mockReturnValueOnce('opportunityStatus') // resource
+					.mockReturnValueOnce('create') // operation
+					.mockReturnValueOnce('Negotiating') // label
+					.mockReturnValueOnce('active') // statusType
+					.mockReturnValueOnce({}); // additionalFields
+
+				(closeApiRequest as jest.Mock).mockResolvedValue(mockResponse);
+
+				const result = await close.execute.call(mockExecuteFunctions);
+
+				expect(closeApiRequest).toHaveBeenCalledWith('POST', '/status/opportunity/', {
+					label: 'Negotiating',
+					status_type: 'active',
+				});
+				expect(result[0]).toHaveLength(1);
+			});
+
+			it('should create an opportunity status with pipeline ID', async () => {
+				const mockResponse = {
+					id: 'opstat_new123',
+					label: 'Contract Review',
+					status_type: 'active',
+					pipeline_id: 'pipe_123',
+				};
+
+				mockExecuteFunctions.getNodeParameter
+					.mockReturnValueOnce('opportunityStatus') // resource
+					.mockReturnValueOnce('create') // operation
+					.mockReturnValueOnce('Contract Review') // label
+					.mockReturnValueOnce('active') // statusType
+					.mockReturnValueOnce({ pipelineId: 'pipe_123' }); // additionalFields
+
+				(closeApiRequest as jest.Mock).mockResolvedValue(mockResponse);
+
+				await close.execute.call(mockExecuteFunctions);
+
+				expect(closeApiRequest).toHaveBeenCalledWith('POST', '/status/opportunity/', {
+					label: 'Contract Review',
+					status_type: 'active',
+					pipeline_id: 'pipe_123',
+				});
+			});
+
+			it('should throw error when label is missing', async () => {
+				mockExecuteFunctions.getNodeParameter
+					.mockReturnValueOnce('opportunityStatus') // resource
+					.mockReturnValueOnce('create') // operation
+					.mockReturnValueOnce(''); // label (empty)
+
+				mockExecuteFunctions.getNode.mockReturnValue({ name: 'Close CRM' } as any);
+
+				await expect(close.execute.call(mockExecuteFunctions)).rejects.toThrow(
+					'Label is required for opportunity status creation',
+				);
+			});
+
+			it('should throw error when status type is missing', async () => {
+				mockExecuteFunctions.getNodeParameter
+					.mockReturnValueOnce('opportunityStatus') // resource
+					.mockReturnValueOnce('create') // operation
+					.mockReturnValueOnce('Negotiating') // label
+					.mockReturnValueOnce(''); // statusType (empty)
+
+				mockExecuteFunctions.getNode.mockReturnValue({ name: 'Close CRM' } as any);
+
+				await expect(close.execute.call(mockExecuteFunctions)).rejects.toThrow(
+					'Status Type is required for opportunity status creation',
+				);
+			});
+		});
+
+		describe('Update Opportunity Status', () => {
+			it('should update an opportunity status', async () => {
+				const mockResponse = {
+					id: 'opstat_123',
+					label: 'Updated Negotiating',
+					status_type: 'active',
+				};
+
+				mockExecuteFunctions.getNodeParameter
+					.mockReturnValueOnce('opportunityStatus') // resource
+					.mockReturnValueOnce('update') // operation
+					.mockReturnValueOnce('opstat_123') // statusId
+					.mockReturnValueOnce('Updated Negotiating') // label
+					.mockReturnValueOnce({ statusType: 'active' }); // additionalFields
+
+				(closeApiRequest as jest.Mock).mockResolvedValue(mockResponse);
+
+				await close.execute.call(mockExecuteFunctions);
+
+				expect(closeApiRequest).toHaveBeenCalledWith('PUT', '/status/opportunity/opstat_123/', {
+					label: 'Updated Negotiating',
+					status_type: 'active',
+				});
+			});
+
+			it('should update an opportunity status with pipeline', async () => {
+				const mockResponse = {
+					id: 'opstat_123',
+					label: 'Updated Status',
+					status_type: 'won',
+					pipeline_id: 'pipe_456',
+				};
+
+				mockExecuteFunctions.getNodeParameter
+					.mockReturnValueOnce('opportunityStatus') // resource
+					.mockReturnValueOnce('update') // operation
+					.mockReturnValueOnce('opstat_123') // statusId
+					.mockReturnValueOnce('Updated Status') // label
+					.mockReturnValueOnce({
+						statusType: 'won',
+						pipelineId: 'pipe_456',
+					}); // additionalFields
+
+				(closeApiRequest as jest.Mock).mockResolvedValue(mockResponse);
+
+				await close.execute.call(mockExecuteFunctions);
+
+				expect(closeApiRequest).toHaveBeenCalledWith('PUT', '/status/opportunity/opstat_123/', {
+					label: 'Updated Status',
+					status_type: 'won',
+					pipeline_id: 'pipe_456',
+				});
+			});
+
+			it('should throw error when status ID is missing', async () => {
+				mockExecuteFunctions.getNodeParameter
+					.mockReturnValueOnce('opportunityStatus') // resource
+					.mockReturnValueOnce('update') // operation
+					.mockReturnValueOnce(''); // statusId (empty)
+
+				mockExecuteFunctions.getNode.mockReturnValue({ name: 'Close CRM' } as any);
+
+				await expect(close.execute.call(mockExecuteFunctions)).rejects.toThrow(
+					'Status ID is required for update operation',
+				);
+			});
+
+			it('should throw error when label is missing', async () => {
+				mockExecuteFunctions.getNodeParameter
+					.mockReturnValueOnce('opportunityStatus') // resource
+					.mockReturnValueOnce('update') // operation
+					.mockReturnValueOnce('opstat_123') // statusId
+					.mockReturnValueOnce(''); // label (empty)
+
+				mockExecuteFunctions.getNode.mockReturnValue({ name: 'Close CRM' } as any);
+
+				await expect(close.execute.call(mockExecuteFunctions)).rejects.toThrow(
+					'Label is required for update operation',
+				);
+			});
+		});
+
+		describe('Delete Opportunity Status', () => {
+			it('should delete an opportunity status successfully', async () => {
+				const mockResponse = {};
+
+				mockExecuteFunctions.getNodeParameter
+					.mockReturnValueOnce('opportunityStatus') // resource
+					.mockReturnValueOnce('delete') // operation
+					.mockReturnValueOnce('opstat_123'); // statusId
+
+				(closeApiRequest as jest.Mock).mockResolvedValue(mockResponse);
+
+				await close.execute.call(mockExecuteFunctions);
+
+				expect(closeApiRequest).toHaveBeenCalledWith('DELETE', '/status/opportunity/opstat_123/');
+			});
+
+			it('should throw error when status ID is missing', async () => {
+				mockExecuteFunctions.getNodeParameter
+					.mockReturnValueOnce('opportunityStatus') // resource
+					.mockReturnValueOnce('delete') // operation
+					.mockReturnValueOnce(''); // statusId (empty)
+
+				mockExecuteFunctions.getNode.mockReturnValue({ name: 'Close CRM' } as any);
+
+				await expect(close.execute.call(mockExecuteFunctions)).rejects.toThrow(
+					'Status ID is required for delete operation',
 				);
 			});
 		});

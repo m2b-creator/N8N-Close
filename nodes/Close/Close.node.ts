@@ -15,7 +15,14 @@ import { closeApiRequest, closeApiRequestAllItems } from './GenericFunctions';
 
 import { leadFields, leadOperations } from './descriptions/LeadDescription';
 
+import { leadStatusFields, leadStatusOperations } from './descriptions/LeadStatusDescription';
+
 import { opportunityFields, opportunityOperations } from './descriptions/OpportunityDescription';
+
+import {
+	opportunityStatusFields,
+	opportunityStatusOperations,
+} from './descriptions/OpportunityStatusDescription';
 
 import { taskFields, taskOperations } from './descriptions/TaskDescription';
 
@@ -66,8 +73,16 @@ export class Close implements INodeType {
 						value: 'lead',
 					},
 					{
+						name: 'Lead Status',
+						value: 'leadStatus',
+					},
+					{
 						name: 'Opportunity',
 						value: 'opportunity',
+					},
+					{
+						name: 'Opportunity Status',
+						value: 'opportunityStatus',
 					},
 					{
 						name: 'Task',
@@ -106,8 +121,12 @@ export class Close implements INodeType {
 			},
 			...leadOperations,
 			...leadFields,
+			...leadStatusOperations,
+			...leadStatusFields,
 			...opportunityOperations,
 			...opportunityFields,
+			...opportunityStatusOperations,
+			...opportunityStatusFields,
 			...taskOperations,
 			...taskFields,
 			...noteOperations,
@@ -418,6 +437,84 @@ export class Close implements INodeType {
 					}
 				}
 
+				if (resource === 'leadStatus') {
+					if (operation === 'list') {
+						responseData = await closeApiRequest.call(this, 'GET', '/status/lead/');
+						responseData = responseData.data || responseData;
+					}
+
+					if (operation === 'create') {
+						const label = this.getNodeParameter('label', i) as string;
+
+						if (!label) {
+							throw new NodeOperationError(
+								this.getNode(),
+								'Label is required for lead status creation',
+							);
+						}
+
+						const body: JsonObject = {
+							label,
+						};
+
+						// Add additional fields if provided
+						const additionalFields = this.getNodeParameter('additionalFields', i) as JsonObject;
+						if (additionalFields.type) {
+							body.type = additionalFields.type;
+						}
+
+						responseData = await closeApiRequest.call(this, 'POST', '/status/lead/', body);
+					}
+
+					if (operation === 'update') {
+						const statusId = this.getNodeParameter('statusId', i) as string;
+						const label = this.getNodeParameter('label', i) as string;
+
+						if (!statusId) {
+							throw new NodeOperationError(
+								this.getNode(),
+								'Status ID is required for update operation',
+							);
+						}
+						if (!label) {
+							throw new NodeOperationError(
+								this.getNode(),
+								'Label is required for update operation',
+							);
+						}
+
+						const body: JsonObject = {
+							label,
+						};
+
+						// Add additional fields if provided
+						const additionalFields = this.getNodeParameter('additionalFields', i) as JsonObject;
+						if (additionalFields.type) {
+							body.type = additionalFields.type;
+						}
+
+						responseData = await closeApiRequest.call(
+							this,
+							'PUT',
+							`/status/lead/${statusId}/`,
+							body,
+						);
+					}
+
+					if (operation === 'delete') {
+						const statusId = this.getNodeParameter('statusId', i) as string;
+
+						if (!statusId) {
+							throw new NodeOperationError(
+								this.getNode(),
+								'Status ID is required for delete operation',
+							);
+						}
+
+						responseData = await closeApiRequest.call(this, 'DELETE', `/status/lead/${statusId}/`);
+					}
+				}
+
 				if (resource === 'opportunity') {
 					if (operation === 'create') {
 						const leadId = this.getNodeParameter('leadId', i) as string;
@@ -525,6 +622,99 @@ export class Close implements INodeType {
 							'PUT',
 							`/opportunity/${opportunityId}/`,
 							body,
+						);
+					}
+				}
+
+				if (resource === 'opportunityStatus') {
+					if (operation === 'list') {
+						responseData = await closeApiRequest.call(this, 'GET', '/status/opportunity/');
+						responseData = responseData.data || responseData;
+					}
+
+					if (operation === 'create') {
+						const label = this.getNodeParameter('label', i) as string;
+						const statusType = this.getNodeParameter('statusType', i) as string;
+
+						if (!label) {
+							throw new NodeOperationError(
+								this.getNode(),
+								'Label is required for opportunity status creation',
+							);
+						}
+						if (!statusType) {
+							throw new NodeOperationError(
+								this.getNode(),
+								'Status Type is required for opportunity status creation',
+							);
+						}
+
+						const body: JsonObject = {
+							label,
+							status_type: statusType,
+						};
+
+						// Add additional fields if provided
+						const additionalFields = this.getNodeParameter('additionalFields', i) as JsonObject;
+						if (additionalFields.pipelineId) {
+							body.pipeline_id = additionalFields.pipelineId;
+						}
+
+						responseData = await closeApiRequest.call(this, 'POST', '/status/opportunity/', body);
+					}
+
+					if (operation === 'update') {
+						const statusId = this.getNodeParameter('statusId', i) as string;
+						const label = this.getNodeParameter('label', i) as string;
+
+						if (!statusId) {
+							throw new NodeOperationError(
+								this.getNode(),
+								'Status ID is required for update operation',
+							);
+						}
+						if (!label) {
+							throw new NodeOperationError(
+								this.getNode(),
+								'Label is required for update operation',
+							);
+						}
+
+						const body: JsonObject = {
+							label,
+						};
+
+						// Add additional fields if provided
+						const additionalFields = this.getNodeParameter('additionalFields', i) as JsonObject;
+						if (additionalFields.statusType) {
+							body.status_type = additionalFields.statusType;
+						}
+						if (additionalFields.pipelineId) {
+							body.pipeline_id = additionalFields.pipelineId;
+						}
+
+						responseData = await closeApiRequest.call(
+							this,
+							'PUT',
+							`/status/opportunity/${statusId}/`,
+							body,
+						);
+					}
+
+					if (operation === 'delete') {
+						const statusId = this.getNodeParameter('statusId', i) as string;
+
+						if (!statusId) {
+							throw new NodeOperationError(
+								this.getNode(),
+								'Status ID is required for delete operation',
+							);
+						}
+
+						responseData = await closeApiRequest.call(
+							this,
+							'DELETE',
+							`/status/opportunity/${statusId}/`,
 						);
 					}
 				}

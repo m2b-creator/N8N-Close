@@ -4,7 +4,9 @@ exports.Close = void 0;
 const n8n_workflow_1 = require("n8n-workflow");
 const GenericFunctions_1 = require("./GenericFunctions");
 const LeadDescription_1 = require("./descriptions/LeadDescription");
+const LeadStatusDescription_1 = require("./descriptions/LeadStatusDescription");
 const OpportunityDescription_1 = require("./descriptions/OpportunityDescription");
+const OpportunityStatusDescription_1 = require("./descriptions/OpportunityStatusDescription");
 const TaskDescription_1 = require("./descriptions/TaskDescription");
 const NoteDescription_1 = require("./descriptions/NoteDescription");
 const CallDescription_1 = require("./descriptions/CallDescription");
@@ -45,8 +47,16 @@ class Close {
                             value: 'lead',
                         },
                         {
+                            name: 'Lead Status',
+                            value: 'leadStatus',
+                        },
+                        {
                             name: 'Opportunity',
                             value: 'opportunity',
+                        },
+                        {
+                            name: 'Opportunity Status',
+                            value: 'opportunityStatus',
                         },
                         {
                             name: 'Task',
@@ -85,8 +95,12 @@ class Close {
                 },
                 ...LeadDescription_1.leadOperations,
                 ...LeadDescription_1.leadFields,
+                ...LeadStatusDescription_1.leadStatusOperations,
+                ...LeadStatusDescription_1.leadStatusFields,
                 ...OpportunityDescription_1.opportunityOperations,
                 ...OpportunityDescription_1.opportunityFields,
+                ...OpportunityStatusDescription_1.opportunityStatusOperations,
+                ...OpportunityStatusDescription_1.opportunityStatusFields,
                 ...TaskDescription_1.taskOperations,
                 ...TaskDescription_1.taskFields,
                 ...NoteDescription_1.noteOperations,
@@ -325,6 +339,53 @@ class Close {
                         responseData = await GenericFunctions_1.closeApiRequest.call(this, 'PUT', `/lead/${leadId}/`, body);
                     }
                 }
+                if (resource === 'leadStatus') {
+                    if (operation === 'list') {
+                        responseData = await GenericFunctions_1.closeApiRequest.call(this, 'GET', '/status/lead/');
+                        responseData = responseData.data || responseData;
+                    }
+                    if (operation === 'create') {
+                        const label = this.getNodeParameter('label', i);
+                        if (!label) {
+                            throw new n8n_workflow_1.NodeOperationError(this.getNode(), 'Label is required for lead status creation');
+                        }
+                        const body = {
+                            label,
+                        };
+                        // Add additional fields if provided
+                        const additionalFields = this.getNodeParameter('additionalFields', i);
+                        if (additionalFields.type) {
+                            body.type = additionalFields.type;
+                        }
+                        responseData = await GenericFunctions_1.closeApiRequest.call(this, 'POST', '/status/lead/', body);
+                    }
+                    if (operation === 'update') {
+                        const statusId = this.getNodeParameter('statusId', i);
+                        const label = this.getNodeParameter('label', i);
+                        if (!statusId) {
+                            throw new n8n_workflow_1.NodeOperationError(this.getNode(), 'Status ID is required for update operation');
+                        }
+                        if (!label) {
+                            throw new n8n_workflow_1.NodeOperationError(this.getNode(), 'Label is required for update operation');
+                        }
+                        const body = {
+                            label,
+                        };
+                        // Add additional fields if provided
+                        const additionalFields = this.getNodeParameter('additionalFields', i);
+                        if (additionalFields.type) {
+                            body.type = additionalFields.type;
+                        }
+                        responseData = await GenericFunctions_1.closeApiRequest.call(this, 'PUT', `/status/lead/${statusId}/`, body);
+                    }
+                    if (operation === 'delete') {
+                        const statusId = this.getNodeParameter('statusId', i);
+                        if (!statusId) {
+                            throw new n8n_workflow_1.NodeOperationError(this.getNode(), 'Status ID is required for delete operation');
+                        }
+                        responseData = await GenericFunctions_1.closeApiRequest.call(this, 'DELETE', `/status/lead/${statusId}/`);
+                    }
+                }
                 if (resource === 'opportunity') {
                     if (operation === 'create') {
                         const leadId = this.getNodeParameter('leadId', i);
@@ -397,6 +458,61 @@ class Close {
                             body.value_formatted = updateFields.valueFormatted;
                         }
                         responseData = await GenericFunctions_1.closeApiRequest.call(this, 'PUT', `/opportunity/${opportunityId}/`, body);
+                    }
+                }
+                if (resource === 'opportunityStatus') {
+                    if (operation === 'list') {
+                        responseData = await GenericFunctions_1.closeApiRequest.call(this, 'GET', '/status/opportunity/');
+                        responseData = responseData.data || responseData;
+                    }
+                    if (operation === 'create') {
+                        const label = this.getNodeParameter('label', i);
+                        const statusType = this.getNodeParameter('statusType', i);
+                        if (!label) {
+                            throw new n8n_workflow_1.NodeOperationError(this.getNode(), 'Label is required for opportunity status creation');
+                        }
+                        if (!statusType) {
+                            throw new n8n_workflow_1.NodeOperationError(this.getNode(), 'Status Type is required for opportunity status creation');
+                        }
+                        const body = {
+                            label,
+                            status_type: statusType,
+                        };
+                        // Add additional fields if provided
+                        const additionalFields = this.getNodeParameter('additionalFields', i);
+                        if (additionalFields.pipelineId) {
+                            body.pipeline_id = additionalFields.pipelineId;
+                        }
+                        responseData = await GenericFunctions_1.closeApiRequest.call(this, 'POST', '/status/opportunity/', body);
+                    }
+                    if (operation === 'update') {
+                        const statusId = this.getNodeParameter('statusId', i);
+                        const label = this.getNodeParameter('label', i);
+                        if (!statusId) {
+                            throw new n8n_workflow_1.NodeOperationError(this.getNode(), 'Status ID is required for update operation');
+                        }
+                        if (!label) {
+                            throw new n8n_workflow_1.NodeOperationError(this.getNode(), 'Label is required for update operation');
+                        }
+                        const body = {
+                            label,
+                        };
+                        // Add additional fields if provided
+                        const additionalFields = this.getNodeParameter('additionalFields', i);
+                        if (additionalFields.statusType) {
+                            body.status_type = additionalFields.statusType;
+                        }
+                        if (additionalFields.pipelineId) {
+                            body.pipeline_id = additionalFields.pipelineId;
+                        }
+                        responseData = await GenericFunctions_1.closeApiRequest.call(this, 'PUT', `/status/opportunity/${statusId}/`, body);
+                    }
+                    if (operation === 'delete') {
+                        const statusId = this.getNodeParameter('statusId', i);
+                        if (!statusId) {
+                            throw new n8n_workflow_1.NodeOperationError(this.getNode(), 'Status ID is required for delete operation');
+                        }
+                        responseData = await GenericFunctions_1.closeApiRequest.call(this, 'DELETE', `/status/opportunity/${statusId}/`);
                     }
                 }
                 if (resource === 'task') {
