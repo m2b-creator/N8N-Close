@@ -81,11 +81,25 @@ exports.opportunityFields = [
                 description: 'The status of the opportunity. Choose from the list, or specify an ID using an <a href="https://docs.n8n.io/code-examples/expressions/">expression</a>.',
             },
             {
-                displayName: 'Note',
-                name: 'note',
-                type: 'string',
+                displayName: 'Assigned to User',
+                name: 'assignedTo',
+                type: 'options',
+                typeOptions: {
+                    loadOptionsMethod: 'getUsers',
+                },
                 default: '',
-                description: 'Note about the opportunity',
+                description: 'The user assigned to this opportunity. Choose from the list, or specify an ID using an <a href="https://docs.n8n.io/code-examples/expressions/">expression</a>.',
+            },
+            {
+                displayName: 'Confidence',
+                name: 'confidence',
+                type: 'number',
+                default: 0,
+                description: 'The confidence percentage for this opportunity (0-100)',
+                typeOptions: {
+                    minValue: 0,
+                    maxValue: 100,
+                },
             },
             {
                 displayName: 'Value',
@@ -95,11 +109,42 @@ exports.opportunityFields = [
                 description: 'The value of the opportunity in cents',
             },
             {
-                displayName: 'Value Formatted',
-                name: 'valueFormatted',
+                displayName: 'Value Period',
+                name: 'valuePeriod',
+                type: 'options',
+                options: [
+                    {
+                        name: 'One Time',
+                        value: 'one_time',
+                        description: 'One-time value',
+                    },
+                    {
+                        name: 'Monthly',
+                        value: 'monthly',
+                        description: 'Monthly recurring value',
+                    },
+                    {
+                        name: 'Annual',
+                        value: 'annual',
+                        description: 'Annual recurring value',
+                    },
+                ],
+                default: 'one_time',
+                description: 'The period for the opportunity value',
+            },
+            {
+                displayName: 'Close Date',
+                name: 'closeDate',
+                type: 'dateTime',
+                default: '',
+                description: 'The expected close date for this opportunity',
+            },
+            {
+                displayName: 'Note',
+                name: 'note',
                 type: 'string',
                 default: '',
-                description: 'The formatted value of the opportunity',
+                description: 'Note about the opportunity',
             },
         ],
     },
@@ -147,6 +192,79 @@ exports.opportunityFields = [
         },
         default: '',
         description: 'Filter opportunities by status. Choose from the list, or specify an ID using an <a href="https://docs.n8n.io/code-examples/expressions/">expression</a>.',
+    },
+    {
+        displayName: 'Assigned to User',
+        name: 'assignedTo',
+        type: 'options',
+        typeOptions: {
+            loadOptionsMethod: 'getUsers',
+        },
+        displayOptions: {
+            show: {
+                resource: ['opportunity'],
+                operation: ['find'],
+            },
+        },
+        default: '',
+        description: 'Filter by user assigned to opportunities. Choose from the list, or specify an ID using an <a href="https://docs.n8n.io/code-examples/expressions/">expression</a>.',
+    },
+    {
+        displayName: 'Additional Filters',
+        name: 'additionalFilters',
+        type: 'collection',
+        placeholder: 'Add Filter',
+        default: {},
+        displayOptions: {
+            show: {
+                resource: ['opportunity'],
+                operation: ['find'],
+            },
+        },
+        options: [
+            {
+                displayName: 'Confidence',
+                name: 'confidence',
+                type: 'number',
+                default: '',
+                description: 'Filter by confidence percentage (0-100)',
+                typeOptions: {
+                    minValue: 0,
+                    maxValue: 100,
+                },
+            },
+            {
+                displayName: 'Value Period',
+                name: 'valuePeriod',
+                type: 'options',
+                options: [
+                    {
+                        name: 'One Time',
+                        value: 'one_time',
+                        description: 'One-time value',
+                    },
+                    {
+                        name: 'Monthly',
+                        value: 'monthly',
+                        description: 'Monthly recurring value',
+                    },
+                    {
+                        name: 'Annual',
+                        value: 'annual',
+                        description: 'Annual recurring value',
+                    },
+                ],
+                default: '',
+                description: 'Filter by value period',
+            },
+            {
+                displayName: 'Close Date',
+                name: 'closeDate',
+                type: 'dateTime',
+                default: '',
+                description: 'Filter by close date',
+            },
+        ],
     },
     {
         displayName: 'Return All',
@@ -229,13 +347,6 @@ exports.opportunityFields = [
                 type: 'number',
                 default: 0,
                 description: 'The value of the opportunity in cents',
-            },
-            {
-                displayName: 'Value Formatted',
-                name: 'valueFormatted',
-                type: 'string',
-                default: '',
-                description: 'The formatted value of the opportunity',
             },
         ],
     },

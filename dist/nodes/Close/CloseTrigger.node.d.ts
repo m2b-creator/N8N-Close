@@ -5,6 +5,7 @@ export declare class CloseTrigger implements INodeType {
         loadOptions: {
             getLeadStatuses(this: ILoadOptionsFunctions): Promise<INodePropertyOptions[]>;
             getSmartViews(this: ILoadOptionsFunctions): Promise<INodePropertyOptions[]>;
+            getOpportunityStatuses(this: ILoadOptionsFunctions): Promise<INodePropertyOptions[]>;
         };
     };
     poll(this: IPollFunctions): Promise<INodeExecutionData[][] | null>;

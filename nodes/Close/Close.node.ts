@@ -46,7 +46,7 @@ export class Close implements INodeType {
 		displayName: 'Close CRM',
 		name: 'close',
 		icon: 'file:close.svg',
-		group: ['trigger'],
+		group: ['transform'],
 		version: 1,
 		subtitle: '={{$parameter["operation"] + ": " + $parameter["resource"]}}',
 		description: 'Consume Close CRM API',
@@ -107,10 +107,6 @@ export class Close implements INodeType {
 					{
 						name: 'SMS',
 						value: 'sms',
-					},
-					{
-						name: 'Task',
-						value: 'task',
 					},
 					{
 						name: 'Custom Activity',
@@ -226,6 +222,18 @@ export class Close implements INodeType {
 				}
 				return returnData;
 			},
+
+			async getUsers(this: ILoadOptionsFunctions): Promise<INodePropertyOptions[]> {
+				const returnData: INodePropertyOptions[] = [];
+				const users = await closeApiRequest.call(this, 'GET', '/user/');
+				for (const user of users.data) {
+					returnData.push({
+						name: `${user.first_name} ${user.last_name} (${user.email})`,
+						value: user.id,
+					});
+				}
+				return returnData;
+			},
 		},
 	};
 
@@ -280,6 +288,7 @@ export class Close implements INodeType {
 								name?: string;
 								email?: string;
 								phone?: string;
+								mobilePhone?: string;
 								title?: string;
 							}>;
 						};
@@ -289,14 +298,49 @@ export class Close implements INodeType {
 								const contactObj: JsonObject = {};
 								if (contact.name) contactObj.name = contact.name;
 								if (contact.email) contactObj.emails = [{ type: 'office', email: contact.email }];
-								if (contact.phone) contactObj.phones = [{ type: 'office', phone: contact.phone }];
+								
+								// Handle phones array with both office and mobile numbers
+								const phones: Array<{ type: string; phone: string }> = [];
+								if (contact.phone) {
+									phones.push({ type: 'office', phone: contact.phone });
+								}
+								if (contact.mobilePhone) {
+									phones.push({ type: 'mobile', phone: contact.mobilePhone });
+								}
+								if (phones.length > 0) {
+									contactObj.phones = phones;
+								}
+								
 								if (contact.title) contactObj.title = contact.title;
 								return contactObj;
 							});
 						}
 
+						// Add address if provided
+						const address = this.getNodeParameter('addressUi', i) as {
+							street?: string;
+							city?: string;
+							state?: string;
+							zipcode?: string;
+							country?: string;
+						};
+
+						if (address && (address.street || address.city || address.state || address.zipcode || address.country)) {
+							const addressesArray: JsonObject[] = [];
+							const addressObj: JsonObject = { type: 'office' };
+							
+							if (address.street) addressObj.address_1 = address.street;
+							if (address.city) addressObj.city = address.city;
+							if (address.state) addressObj.state = address.state;
+							if (address.zipcode) addressObj.zipcode = address.zipcode;
+							if (address.country) addressObj.country = address.country;
+							
+							addressesArray.push(addressObj);
+							body.addresses = addressesArray;
+						}
+
 						// Add custom fields if provided
-						const customFields = this.getNodeParameter('customFieldsUi', i) as {
+						const customFields = this.getNodeParameter('customFieldsUi', i, {}) as {
 							customFieldsValues?: Array<{
 								fieldId: string;
 								fieldValue?: string;
@@ -333,36 +377,17 @@ export class Close implements INodeType {
 					}
 
 					if (operation === 'find') {
-						const query = this.getNodeParameter('query', i) as string;
-						const returnAll = this.getNodeParameter('returnAll', i);
-						const smartViewId = this.getNodeParameter('smartViewId', i, '') as string;
-						const statusId = this.getNodeParameter('statusId', i, '') as string;
+						const leadId = this.getNodeParameter('leadId', i) as string;
 
-						if (query) {
-							qs.query = query;
-						}
-						if (smartViewId) {
-							qs.saved_search_id = smartViewId;
-						}
-						if (statusId) {
-							qs.status_id = statusId;
-						}
-
-						if (returnAll) {
-							responseData = await closeApiRequestAllItems.call(
-								this,
-								'data',
-								'GET',
-								'/lead/',
-								{},
-								qs,
+						if (!leadId) {
+							throw new NodeOperationError(
+								this.getNode(),
+								'Lead ID is required for find operation',
 							);
-						} else {
-							const limit = this.getNodeParameter('limit', i);
-							qs._limit = limit;
-							responseData = await closeApiRequest.call(this, 'GET', '/lead/', {}, qs);
-							responseData = responseData.data;
 						}
+
+						// For finding a specific lead by ID, we use the specific endpoint
+						responseData = await closeApiRequest.call(this, 'GET', `/lead/${leadId}/`);
 					}
 
 					if (operation === 'merge') {
@@ -411,8 +436,11 @@ export class Close implements INodeType {
 						if (updateFields.statusId) {
 							body.status_id = updateFields.statusId;
 						}
+						if (updateFields.url) {
+							body.url = updateFields.url;
+						}
 
-						const customFields = this.getNodeParameter('customFieldsUi', i) as {
+						const customFields = this.getNodeParameter('customFieldsUi', i, {}) as {
 							customFieldsValues?: Array<{
 								fieldId: string;
 								fieldValue?: string;
@@ -534,14 +562,23 @@ export class Close implements INodeType {
 						if (additionalFields.statusId) {
 							body.status_id = additionalFields.statusId;
 						}
-						if (additionalFields.note) {
-							body.note = additionalFields.note;
+						if (additionalFields.assignedTo) {
+							body.user_id = additionalFields.assignedTo;
+						}
+						if (additionalFields.confidence !== undefined) {
+							body.confidence = additionalFields.confidence;
 						}
 						if (additionalFields.value) {
 							body.value = additionalFields.value;
 						}
-						if (additionalFields.valueFormatted) {
-							body.value_formatted = additionalFields.valueFormatted;
+						if (additionalFields.valuePeriod) {
+							body.value_period = additionalFields.valuePeriod;
+						}
+						if (additionalFields.closeDate) {
+							body.date_won = additionalFields.closeDate;
+						}
+						if (additionalFields.note) {
+							body.note = additionalFields.note;
 						}
 
 						responseData = await closeApiRequest.call(this, 'POST', '/opportunity/', body);
@@ -566,6 +603,8 @@ export class Close implements INodeType {
 					if (operation === 'find') {
 						const leadId = this.getNodeParameter('leadId', i, '') as string;
 						const statusId = this.getNodeParameter('statusId', i, '') as string;
+						const assignedTo = this.getNodeParameter('assignedTo', i, '') as string;
+						const additionalFilters = this.getNodeParameter('additionalFilters', i) as JsonObject;
 						const returnAll = this.getNodeParameter('returnAll', i);
 
 						if (leadId) {
@@ -573,6 +612,18 @@ export class Close implements INodeType {
 						}
 						if (statusId) {
 							qs.status_id = statusId;
+						}
+						if (assignedTo) {
+							qs.user_id = assignedTo;
+						}
+						if (additionalFilters.confidence !== undefined) {
+							qs.confidence = additionalFilters.confidence;
+						}
+						if (additionalFilters.valuePeriod) {
+							qs.value_period = additionalFilters.valuePeriod;
+						}
+						if (additionalFilters.closeDate) {
+							qs.date_won = additionalFilters.closeDate;
 						}
 
 						if (returnAll) {
@@ -612,9 +663,6 @@ export class Close implements INodeType {
 						}
 						if (updateFields.value) {
 							body.value = updateFields.value;
-						}
-						if (updateFields.valueFormatted) {
-							body.value_formatted = updateFields.valueFormatted;
 						}
 
 						responseData = await closeApiRequest.call(
@@ -1582,11 +1630,27 @@ export class Close implements INodeType {
 				}
 
 				if (resource === 'customActivity') {
-					if (operation === 'getPublished') {
+					if (operation === 'find') {
+						const leadId = this.getNodeParameter('leadId', i, '') as string;
+						const customActivityId = this.getNodeParameter('customActivityId', i, '') as string;
 						const returnAll = this.getNodeParameter('returnAll', i);
 						const dateCreated = this.getNodeParameter('dateCreated', i, '') as string;
 
+						// If searching for a specific custom activity by ID, use the specific endpoint
+						if (customActivityId) {
+							responseData = await closeApiRequest.call(this, 'GET', `/activity/custom/${customActivityId}/`);
+							const executionData = this.helpers.constructExecutionMetaData(
+								this.helpers.returnJsonArray([responseData] as JsonObject[]),
+								{ itemData: { item: i } },
+							);
+							returnData.push(...executionData);
+							continue;
+						}
+
 						qs._type = 'Custom';
+						if (leadId) {
+							qs.lead_id = leadId;
+						}
 						if (dateCreated) {
 							qs.date_created__gte = dateCreated;
 						}

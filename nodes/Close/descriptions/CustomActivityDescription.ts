@@ -13,17 +13,43 @@ export const customActivityOperations: INodeProperties[] = [
 		},
 		options: [
 			{
-				name: 'Get Published',
-				value: 'getPublished',
-				description: 'Get published custom activities',
-				action: 'Get published custom activities',
+				name: 'Find',
+				value: 'find',
+				description: 'Find custom activities',
+				action: 'Find custom activities',
 			},
 		],
-		default: 'getPublished',
+		default: 'find',
 	},
 ];
 
 export const customActivityFields: INodeProperties[] = [
+	{
+		displayName: 'Lead ID',
+		name: 'leadId',
+		type: 'string',
+		displayOptions: {
+			show: {
+				resource: ['customActivity'],
+				operation: ['find'],
+			},
+		},
+		default: '',
+		description: 'Filter activities by lead ID',
+	},
+	{
+		displayName: 'Search by Custom Activity ID',
+		name: 'customActivityId',
+		type: 'string',
+		displayOptions: {
+			show: {
+				resource: ['customActivity'],
+				operation: ['find'],
+			},
+		},
+		default: '',
+		description: 'Search for a specific custom activity by ID',
+	},
 	{
 		displayName: 'Date Created (Optional)',
 		name: 'dateCreated',
@@ -31,7 +57,7 @@ export const customActivityFields: INodeProperties[] = [
 		displayOptions: {
 			show: {
 				resource: ['customActivity'],
-				operation: ['getPublished'],
+				operation: ['find'],
 			},
 		},
 		default: '',
@@ -44,7 +70,7 @@ export const customActivityFields: INodeProperties[] = [
 		displayOptions: {
 			show: {
 				resource: ['customActivity'],
-				operation: ['getPublished'],
+				operation: ['find'],
 			},
 		},
 		default: false,
