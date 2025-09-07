@@ -52,6 +52,16 @@ export class CloseTrigger implements INodeType {
 						description: 'Triggers when a new lead is created with a specific status',
 					},
 					{
+						name: 'Opportunity in new Status',
+						value: 'opportunityInNewStatus',
+						description: 'Triggers when an opportunity enters a new status',
+					},
+					{
+						name: 'New Task',
+						value: 'newTask',
+						description: 'Triggers when a new task is created or completed',
+					},
+					{
 						name: 'Published Custom Activity',
 						value: 'publishedCustomActivity',
 						description: 'Triggers when a custom activity is published',
@@ -91,6 +101,52 @@ export class CloseTrigger implements INodeType {
 				default: '',
 				required: true,
 				description: 'The status to monitor for new leads. Choose from the list, or specify an ID using an <a href="https://docs.n8n.io/code-examples/expressions/">expression</a>.',
+			},
+			{
+				displayName: 'Opportunity Status Name or ID',
+				name: 'opportunityStatusId',
+				type: 'options',
+				typeOptions: {
+					loadOptionsMethod: 'getOpportunityStatuses',
+				},
+				displayOptions: {
+					show: {
+						event: ['opportunityInNewStatus'],
+					},
+				},
+				default: '',
+				required: false,
+				description: 'Monitor opportunities entering this specific status. Leave empty to monitor all status changes. Choose from the list, or specify an ID using an <a href="https://docs.n8n.io/code-examples/expressions/">expression</a>.',
+			},
+			{
+				displayName: 'Task Type',
+				name: 'taskType',
+				type: 'options',
+				options: [
+					{
+						name: 'All Tasks',
+						value: 'all',
+						description: 'Monitor all tasks',
+					},
+					{
+						name: 'New Tasks Only',
+						value: 'new',
+						description: 'Monitor only newly created tasks',
+					},
+					{
+						name: 'Completed Tasks Only',
+						value: 'completed',
+						description: 'Monitor only completed tasks',
+					},
+				],
+				displayOptions: {
+					show: {
+						event: ['newTask'],
+					},
+				},
+				default: 'all',
+				required: true,
+				description: 'Type of task events to monitor',
 			},
 			{
 				displayName: 'Custom Activity Type ID (Optional)',
@@ -156,6 +212,18 @@ export class CloseTrigger implements INodeType {
 				}
 				return returnData;
 			},
+
+			async getOpportunityStatuses(this: ILoadOptionsFunctions): Promise<INodePropertyOptions[]> {
+				const returnData: INodePropertyOptions[] = [];
+				const statuses = await closeApiRequest.call(this, 'GET', '/status/opportunity/');
+				for (const status of statuses.data) {
+					returnData.push({
+						name: status.label,
+						value: status.id,
+					});
+				}
+				return returnData;
+			},
 		},
 	};
 
@@ -194,6 +262,50 @@ export class CloseTrigger implements INodeType {
 
 			try {
 				const response = await closeApiRequest.call(this, 'GET', '/lead/', {}, qs);
+				responseData = response.data || [];
+			} catch (error) {
+				throw new NodeApiError(this.getNode(), error as JsonObject);
+			}
+		}
+
+		if (event === 'opportunityInNewStatus') {
+			const opportunityStatusId = this.getNodeParameter('opportunityStatusId') as string;
+			
+			if (startDate) {
+				// For opportunity status changes, we need to monitor when opportunities were last updated
+				// rather than when they were created
+				qs.date_updated__gte = startDate;
+			}
+
+			if (opportunityStatusId) {
+				qs.status_id = opportunityStatusId;
+			}
+
+			try {
+				const response = await closeApiRequest.call(this, 'GET', '/opportunity/', {}, qs);
+				responseData = response.data || [];
+			} catch (error) {
+				throw new NodeApiError(this.getNode(), error as JsonObject);
+			}
+		}
+
+		if (event === 'newTask') {
+			const taskType = this.getNodeParameter('taskType') as string;
+			
+			if (startDate) {
+				qs.date_created__gte = startDate;
+			}
+
+			// Filter by task completion status based on taskType
+			if (taskType === 'new') {
+				qs.is_complete = false;
+			} else if (taskType === 'completed') {
+				qs.is_complete = true;
+			}
+			// For 'all', we don't add the is_complete filter
+
+			try {
+				const response = await closeApiRequest.call(this, 'GET', '/task/', {}, qs);
 				responseData = response.data || [];
 			} catch (error) {
 				throw new NodeApiError(this.getNode(), error as JsonObject);
@@ -256,6 +368,27 @@ export class CloseTrigger implements INodeType {
 					// We filter out any activities that might be in draft state
 					return activity.status !== 'draft' && activity.date_created;
 				});
+
+				// Enhance activities with custom activity type names
+				for (const activity of activities) {
+					if (activity.custom_activity_type_id) {
+						try {
+							// Try to fetch the custom activity type definition to get the name
+							const activityType = await closeApiRequest.call(
+								this, 
+								'GET', 
+								`/custom_activity_type/${activity.custom_activity_type_id}/`
+							);
+							if (activityType && activityType.name) {
+								activity.custom_activity_name = activityType.name;
+							}
+						} catch (error) {
+							// If we can't fetch the activity type name, we'll just continue without it
+							// This ensures the trigger still works even if there are API issues
+							activity.custom_activity_name = 'Unknown Activity Type';
+						}
+					}
+				}
 
 				responseData = activities;
 			} catch (error) {

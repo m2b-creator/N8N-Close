@@ -124,25 +124,32 @@ export const leadFields: INodeProperties[] = [
 				displayName: 'Contact',
 				values: [
 					{
-						displayName: 'Name',
+						displayName: 'Contact Name',
 						name: 'name',
 						type: 'string',
 						default: '',
 						description: 'The name of the contact',
 					},
 					{
-						displayName: 'Email',
+						displayName: 'Contact Office Email',
 						name: 'email',
 						type: 'string',
 						default: '',
-						description: 'The email of the contact',
+						description: 'The office email of the contact',
 					},
 					{
-						displayName: 'Phone',
+						displayName: 'Contact Office Phone',
 						name: 'phone',
 						type: 'string',
 						default: '',
-						description: 'The phone number of the contact',
+						description: 'The office phone number of the contact',
+					},
+					{
+						displayName: 'Contact Mobile Phone',
+						name: 'mobilePhone',
+						type: 'string',
+						default: '',
+						description: 'The mobile phone number of the contact',
 					},
 					{
 						displayName: 'Title',
@@ -152,6 +159,56 @@ export const leadFields: INodeProperties[] = [
 						description: 'The job title of the contact',
 					},
 				],
+			},
+		],
+	},
+	{
+		displayName: 'Address',
+		name: 'addressUi',
+		type: 'collection',
+		placeholder: 'Add Address Field',
+		default: {},
+		displayOptions: {
+			show: {
+				resource: ['lead'],
+				operation: ['create'],
+			},
+		},
+		options: [
+			{
+				displayName: 'Address Street',
+				name: 'street',
+				type: 'string',
+				default: '',
+				description: 'The street address',
+			},
+			{
+				displayName: 'Address City',
+				name: 'city',
+				type: 'string',
+				default: '',
+				description: 'The city',
+			},
+			{
+				displayName: 'Address State',
+				name: 'state',
+				type: 'string',
+				default: '',
+				description: 'The state or province',
+			},
+			{
+				displayName: 'Address ZIP Code',
+				name: 'zipcode',
+				type: 'string',
+				default: '',
+				description: 'The ZIP or postal code',
+			},
+			{
+				displayName: 'Address Country',
+				name: 'country',
+				type: 'string',
+				default: '',
+				description: 'The country',
 			},
 		],
 	},
@@ -267,8 +324,8 @@ export const leadFields: INodeProperties[] = [
 
 	// FIND OPERATION FIELDS
 	{
-		displayName: 'Query',
-		name: 'query',
+		displayName: 'Lead ID',
+		name: 'leadId',
 		type: 'string',
 		displayOptions: {
 			show: {
@@ -277,24 +334,8 @@ export const leadFields: INodeProperties[] = [
 			},
 		},
 		default: '',
-		description: 'Search query to filter leads',
-	},
-	{
-		displayName: 'Smart View Name or ID',
-		name: 'smartViewId',
-		type: 'options',
-		typeOptions: {
-			loadOptionsMethod: 'getSmartViews',
-		},
-		displayOptions: {
-			show: {
-				resource: ['lead'],
-				operation: ['find'],
-			},
-		},
-		default: '',
-		description:
-			'Filter leads by SmartView. Choose from the list, or specify an ID using an <a href="https://docs.n8n.io/code-examples/expressions/">expression</a>.',
+		required: true,
+		description: 'The ID of the lead to retrieve information for',
 	},
 	{
 		displayName: 'Status Name or ID',
@@ -395,6 +436,13 @@ export const leadFields: INodeProperties[] = [
 				default: '',
 				description:
 					'The status of the lead. Choose from the list, or specify an ID using an <a href="https://docs.n8n.io/code-examples/expressions/">expression</a>.',
+			},
+			{
+				displayName: 'URL',
+				name: 'url',
+				type: 'string',
+				default: '',
+				description: 'The website URL of the lead',
 			},
 		],
 	},
