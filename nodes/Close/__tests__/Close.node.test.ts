@@ -66,7 +66,7 @@ describe('Close', () => {
 			);
 			expect(resourceProperty).toBeDefined();
 			expect(resourceProperty?.type).toBe('options');
-			expect(resourceProperty?.options).toHaveLength(12);
+			expect(resourceProperty?.options).toHaveLength(11);
 		});
 
 		it('should have all lead operations', () => {
@@ -246,6 +246,7 @@ describe('Close', () => {
 					.mockReturnValueOnce('Test Company') // name
 					.mockReturnValueOnce({}) // additionalFields
 					.mockReturnValueOnce({}) // contactsUi
+					.mockReturnValueOnce({}) // addressUi
 					.mockReturnValueOnce({}); // customFieldsUi
 
 				(closeApiRequest as jest.Mock).mockResolvedValue(mockResponse);
@@ -277,6 +278,7 @@ describe('Close', () => {
 						url: 'https://test.com',
 					}) // additionalFields
 					.mockReturnValueOnce({}) // contactsUi
+					.mockReturnValueOnce({}) // addressUi
 					.mockReturnValueOnce({}); // customFieldsUi
 
 				(closeApiRequest as jest.Mock).mockResolvedValue(mockResponse);
@@ -313,6 +315,7 @@ describe('Close', () => {
 							},
 						],
 					}) // contactsUi
+					.mockReturnValueOnce({}) // addressUi
 					.mockReturnValueOnce({}); // customFieldsUi
 
 				(closeApiRequest as jest.Mock).mockResolvedValue(mockResponse);
@@ -345,6 +348,7 @@ describe('Close', () => {
 					.mockReturnValueOnce('Test Company') // name
 					.mockReturnValueOnce({}) // additionalFields
 					.mockReturnValueOnce({}) // contactsUi
+					.mockReturnValueOnce({}) // addressUi
 					.mockReturnValueOnce({
 						customFieldsValues: [
 							{
@@ -459,55 +463,31 @@ describe('Close', () => {
 			});
 		});
 
-		describe('Find Leads', () => {
-			it('should find leads with query parameter', async () => {
-				const mockResponse = {
-					data: [
-						{ id: 'lead_1', name: 'Company 1' },
-						{ id: 'lead_2', name: 'Company 2' },
-					],
-				};
+		describe('Find Lead', () => {
+			it('should find a specific lead by ID', async () => {
+				const mockResponse = { id: 'lead_123', name: 'Company 1' };
 
 				mockExecuteFunctions.getNodeParameter
 					.mockReturnValueOnce('lead') // resource
 					.mockReturnValueOnce('find') // operation
-					.mockReturnValueOnce('test query') // query
-					.mockReturnValueOnce(false) // returnAll
-					.mockReturnValueOnce('') // smartViewId
-					.mockReturnValueOnce('') // statusId
-					.mockReturnValueOnce(10); // limit
+					.mockReturnValueOnce('lead_123'); // leadId
 
 				(closeApiRequest as jest.Mock).mockResolvedValue(mockResponse);
 
 				await close.execute.call(mockExecuteFunctions);
 
-				expect(closeApiRequest).toHaveBeenCalledWith(
-					'GET',
-					'/lead/',
-					{},
-					{ query: 'test query', _limit: 10 },
-				);
+				expect(closeApiRequest).toHaveBeenCalledWith('GET', '/lead/lead_123/');
 			});
 
-			it('should find all leads when returnAll is true', async () => {
-				const mockLeads = [
-					{ id: 'lead_1', name: 'Company 1' },
-					{ id: 'lead_2', name: 'Company 2' },
-				];
-
+			it('should throw error when lead ID is missing', async () => {
 				mockExecuteFunctions.getNodeParameter
 					.mockReturnValueOnce('lead') // resource
 					.mockReturnValueOnce('find') // operation
-					.mockReturnValueOnce('') // query
-					.mockReturnValueOnce(true) // returnAll
-					.mockReturnValueOnce('') // smartViewId
-					.mockReturnValueOnce(''); // statusId
+					.mockReturnValueOnce(''); // leadId (empty)
 
-				(closeApiRequestAllItems as jest.Mock).mockResolvedValue(mockLeads);
-
-				await close.execute.call(mockExecuteFunctions);
-
-				expect(closeApiRequestAllItems).toHaveBeenCalledWith('data', 'GET', '/lead/', {}, {});
+				await expect(close.execute.call(mockExecuteFunctions)).rejects.toThrow(
+					'Lead ID is required for find operation',
+				);
 			});
 		});
 
@@ -999,7 +979,6 @@ describe('Close', () => {
 						statusId: 'stat_qualified',
 						note: 'Test opportunity',
 						value: 10000,
-						valueFormatted: '$100.00',
 					}); // additionalFields
 
 				(closeApiRequest as jest.Mock).mockResolvedValue(mockResponse);
@@ -1011,7 +990,6 @@ describe('Close', () => {
 					status_id: 'stat_qualified',
 					note: 'Test opportunity',
 					value: 10000,
-					value_formatted: '$100.00',
 				});
 			});
 
@@ -1073,6 +1051,8 @@ describe('Close', () => {
 					.mockReturnValueOnce('find') // operation
 					.mockReturnValueOnce('lead_xyz789') // leadId
 					.mockReturnValueOnce('') // statusId
+					.mockReturnValueOnce('') // assignedTo
+					.mockReturnValueOnce({}) // additionalFilters
 					.mockReturnValueOnce(false) // returnAll
 					.mockReturnValueOnce(10); // limit
 
@@ -1099,6 +1079,8 @@ describe('Close', () => {
 					.mockReturnValueOnce('find') // operation
 					.mockReturnValueOnce('') // leadId
 					.mockReturnValueOnce('') // statusId
+					.mockReturnValueOnce('') // assignedTo
+					.mockReturnValueOnce({}) // additionalFilters
 					.mockReturnValueOnce(true); // returnAll
 
 				(closeApiRequestAllItems as jest.Mock).mockResolvedValue(mockOpportunities);

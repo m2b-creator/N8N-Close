@@ -283,7 +283,7 @@ export class Close implements INodeType {
 						}
 
 						// Add contacts if provided
-						const contacts = this.getNodeParameter('contactsUi', i) as {
+						const contacts = this.getNodeParameter('contactsUi', i, {}) as {
 							contactsValues?: Array<{
 								name?: string;
 								email?: string;
@@ -317,7 +317,7 @@ export class Close implements INodeType {
 						}
 
 						// Add address if provided
-						const address = this.getNodeParameter('addressUi', i) as {
+						const address = this.getNodeParameter('addressUi', i, {}) as {
 							street?: string;
 							city?: string;
 							state?: string;
@@ -604,7 +604,7 @@ export class Close implements INodeType {
 						const leadId = this.getNodeParameter('leadId', i, '') as string;
 						const statusId = this.getNodeParameter('statusId', i, '') as string;
 						const assignedTo = this.getNodeParameter('assignedTo', i, '') as string;
-						const additionalFilters = this.getNodeParameter('additionalFilters', i) as JsonObject;
+						const additionalFilters = this.getNodeParameter('additionalFilters', i, {}) as JsonObject;
 						const returnAll = this.getNodeParameter('returnAll', i);
 
 						if (leadId) {

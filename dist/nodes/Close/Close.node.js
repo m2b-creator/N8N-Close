@@ -239,7 +239,7 @@ class Close {
                             body.url = additionalFields.url;
                         }
                         // Add contacts if provided
-                        const contacts = this.getNodeParameter('contactsUi', i);
+                        const contacts = this.getNodeParameter('contactsUi', i, {});
                         if ((_a = contacts.contactsValues) === null || _a === void 0 ? void 0 : _a.length) {
                             body.contacts = contacts.contactsValues.map((contact) => {
                                 const contactObj = {};
@@ -264,7 +264,7 @@ class Close {
                             });
                         }
                         // Add address if provided
-                        const address = this.getNodeParameter('addressUi', i);
+                        const address = this.getNodeParameter('addressUi', i, {});
                         if (address && (address.street || address.city || address.state || address.zipcode || address.country)) {
                             const addressesArray = [];
                             const addressObj = { type: 'office' };
@@ -282,7 +282,7 @@ class Close {
                             body.addresses = addressesArray;
                         }
                         // Add custom fields if provided
-                        const customFields = this.getNodeParameter('customFieldsUi', i);
+                        const customFields = this.getNodeParameter('customFieldsUi', i, {});
                         if ((_b = customFields.customFieldsValues) === null || _b === void 0 ? void 0 : _b.length) {
                             for (const field of customFields.customFieldsValues) {
                                 // Parse the encoded field ID and type
@@ -345,7 +345,7 @@ class Close {
                         if (updateFields.url) {
                             body.url = updateFields.url;
                         }
-                        const customFields = this.getNodeParameter('customFieldsUi', i);
+                        const customFields = this.getNodeParameter('customFieldsUi', i, {});
                         if ((_c = customFields.customFieldsValues) === null || _c === void 0 ? void 0 : _c.length) {
                             for (const field of customFields.customFieldsValues) {
                                 // Parse the encoded field ID and type
@@ -452,7 +452,7 @@ class Close {
                         const leadId = this.getNodeParameter('leadId', i, '');
                         const statusId = this.getNodeParameter('statusId', i, '');
                         const assignedTo = this.getNodeParameter('assignedTo', i, '');
-                        const additionalFilters = this.getNodeParameter('additionalFilters', i);
+                        const additionalFilters = this.getNodeParameter('additionalFilters', i, {});
                         const returnAll = this.getNodeParameter('returnAll', i);
                         if (leadId) {
                             qs.lead_id = leadId;
