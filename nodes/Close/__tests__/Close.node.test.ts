@@ -479,15 +479,34 @@ describe('Close', () => {
 				expect(closeApiRequest).toHaveBeenCalledWith('GET', '/lead/lead_123/');
 			});
 
-			it('should throw error when lead ID is missing', async () => {
+			it('should search leads when no specific lead ID is provided', async () => {
+				const mockResponse = {
+					data: [
+						{
+							id: 'lead_abc123',
+							name: 'Test Company',
+							status_id: 'stat_abc123'
+						}
+					]
+				};
+
 				mockExecuteFunctions.getNodeParameter
 					.mockReturnValueOnce('lead') // resource
 					.mockReturnValueOnce('find') // operation
-					.mockReturnValueOnce(''); // leadId (empty)
+					.mockReturnValueOnce('') // leadId (empty)
+					.mockReturnValueOnce('') // companyName (empty)
+					.mockReturnValueOnce('') // companyUrl (empty)
+					.mockReturnValueOnce('') // email (empty)
+					.mockReturnValueOnce('') // phone (empty)
+					.mockReturnValueOnce('') // statusId (empty)
+					.mockReturnValueOnce(false) // returnAll
+					.mockReturnValueOnce(50); // limit
 
-				await expect(close.execute.call(mockExecuteFunctions)).rejects.toThrow(
-					'Lead ID is required for find operation',
-				);
+				(closeApiRequest as jest.Mock).mockResolvedValueOnce(mockResponse);
+
+				await close.execute.call(mockExecuteFunctions);
+
+				expect(closeApiRequest).toHaveBeenCalledWith('GET', '/lead/', {}, { _limit: 50 });
 			});
 		});
 

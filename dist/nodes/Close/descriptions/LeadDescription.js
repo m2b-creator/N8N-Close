@@ -329,8 +329,60 @@ exports.leadFields = [
             },
         },
         default: '',
-        required: true,
-        description: 'The ID of the lead to retrieve information for',
+        required: false,
+        description: 'The ID of the lead to retrieve information for. If provided, will search for this specific lead.',
+    },
+    {
+        displayName: 'Company Name',
+        name: 'companyName',
+        type: 'string',
+        displayOptions: {
+            show: {
+                resource: ['lead'],
+                operation: ['find'],
+            },
+        },
+        default: '',
+        description: 'Search for leads by company name',
+    },
+    {
+        displayName: 'Company URL',
+        name: 'companyUrl',
+        type: 'string',
+        displayOptions: {
+            show: {
+                resource: ['lead'],
+                operation: ['find'],
+            },
+        },
+        default: '',
+        description: 'Search for leads by company website URL',
+    },
+    {
+        displayName: 'Email',
+        name: 'email',
+        type: 'string',
+        displayOptions: {
+            show: {
+                resource: ['lead'],
+                operation: ['find'],
+            },
+        },
+        default: '',
+        description: 'Search for leads by contact email address',
+    },
+    {
+        displayName: 'Phone',
+        name: 'phone',
+        type: 'string',
+        displayOptions: {
+            show: {
+                resource: ['lead'],
+                operation: ['find'],
+            },
+        },
+        default: '',
+        description: 'Search for leads by contact phone number',
     },
     {
         displayName: 'Status Name or ID',

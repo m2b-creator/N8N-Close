@@ -305,11 +305,44 @@ class Close {
                     }
                     if (operation === 'find') {
                         const leadId = this.getNodeParameter('leadId', i);
-                        if (!leadId) {
-                            throw new n8n_workflow_1.NodeOperationError(this.getNode(), 'Lead ID is required for find operation');
+                        const companyName = this.getNodeParameter('companyName', i);
+                        const companyUrl = this.getNodeParameter('companyUrl', i);
+                        const email = this.getNodeParameter('email', i);
+                        const phone = this.getNodeParameter('phone', i);
+                        const statusId = this.getNodeParameter('statusId', i);
+                        const returnAll = this.getNodeParameter('returnAll', i);
+                        // If Lead ID is provided, get specific lead
+                        if (leadId) {
+                            responseData = await GenericFunctions_1.closeApiRequest.call(this, 'GET', `/lead/${leadId}/`);
                         }
-                        // For finding a specific lead by ID, we use the specific endpoint
-                        responseData = await GenericFunctions_1.closeApiRequest.call(this, 'GET', `/lead/${leadId}/`);
+                        else {
+                            // Search for leads using query parameters
+                            const searchQs = {};
+                            if (companyName) {
+                                searchQs.query = companyName;
+                            }
+                            if (companyUrl) {
+                                searchQs.url = companyUrl;
+                            }
+                            if (email) {
+                                searchQs.email = email;
+                            }
+                            if (phone) {
+                                searchQs.phone = phone;
+                            }
+                            if (statusId) {
+                                searchQs.status_id = statusId;
+                            }
+                            if (returnAll) {
+                                responseData = await GenericFunctions_1.closeApiRequestAllItems.call(this, 'data', 'GET', '/lead/', {}, searchQs);
+                            }
+                            else {
+                                const limit = this.getNodeParameter('limit', i);
+                                searchQs._limit = limit;
+                                responseData = await GenericFunctions_1.closeApiRequest.call(this, 'GET', '/lead/', {}, searchQs);
+                                responseData = responseData.data;
+                            }
+                        }
                     }
                     if (operation === 'merge') {
                         const sourceLeadId = this.getNodeParameter('sourceLeadId', i);
@@ -464,13 +497,15 @@ class Close {
                             qs.user_id = assignedTo;
                         }
                         if (additionalFilters.confidence !== undefined) {
-                            qs.confidence = additionalFilters.confidence;
+                            // Note: Close API doesn't directly support confidence filtering
+                            // We'll filter client-side after fetching results
                         }
                         if (additionalFilters.valuePeriod) {
                             qs.value_period = additionalFilters.valuePeriod;
                         }
                         if (additionalFilters.closeDate) {
-                            qs.date_won = additionalFilters.closeDate;
+                            // For date filtering, use date_won__gte to filter from the specified date
+                            qs.date_won__gte = additionalFilters.closeDate;
                         }
                         if (returnAll) {
                             responseData = await GenericFunctions_1.closeApiRequestAllItems.call(this, 'data', 'GET', '/opportunity/', {}, qs);
@@ -480,6 +515,10 @@ class Close {
                             qs._limit = limit;
                             responseData = await GenericFunctions_1.closeApiRequest.call(this, 'GET', '/opportunity/', {}, qs);
                             responseData = responseData.data;
+                        }
+                        // Apply client-side confidence filtering if specified
+                        if (additionalFilters.confidence !== undefined && Array.isArray(responseData)) {
+                            responseData = responseData.filter((opportunity) => opportunity.confidence === additionalFilters.confidence);
                         }
                     }
                     if (operation === 'update') {
@@ -1196,6 +1235,7 @@ class Close {
                             returnData.push(...executionData);
                             continue;
                         }
+                        // Use _type=Custom to filter for custom activities
                         qs._type = 'Custom';
                         if (leadId) {
                             qs.lead_id = leadId;
