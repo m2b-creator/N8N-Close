@@ -83,7 +83,7 @@ exports.customActivityFields = [
         displayOptions: {
             show: {
                 resource: ['customActivity'],
-                operation: ['getPublished'],
+                operation: ['find'],
                 returnAll: [false],
             },
         },
