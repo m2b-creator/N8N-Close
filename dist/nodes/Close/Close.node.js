@@ -217,6 +217,222 @@ class Close {
             },
         };
     }
+    /**
+     * Validates required parameters for the given resource and operation
+     */
+    static validateParametersForItem(resource, operation, context, itemIndex) {
+        if (resource === 'lead') {
+            if (operation === 'create') {
+                const name = context.getNodeParameter('name', itemIndex);
+                if (!name) {
+                    throw new n8n_workflow_1.NodeOperationError(context.getNode(), 'Lead name is required for create operation');
+                }
+            }
+            if (operation === 'delete' || operation === 'update') {
+                const leadId = context.getNodeParameter('leadId', itemIndex);
+                if (!leadId) {
+                    throw new n8n_workflow_1.NodeOperationError(context.getNode(), `Lead ID is required for ${operation} operation`);
+                }
+            }
+            if (operation === 'merge') {
+                const sourceLeadId = context.getNodeParameter('sourceLeadId', itemIndex);
+                const destinationLeadId = context.getNodeParameter('destinationLeadId', itemIndex);
+                if (!sourceLeadId) {
+                    throw new n8n_workflow_1.NodeOperationError(context.getNode(), 'Source Lead ID is required for merge operation');
+                }
+                if (!destinationLeadId) {
+                    throw new n8n_workflow_1.NodeOperationError(context.getNode(), 'Destination Lead ID is required for merge operation');
+                }
+            }
+        }
+        if (resource === 'leadStatus') {
+            if (operation === 'create') {
+                const label = context.getNodeParameter('label', itemIndex);
+                if (!label) {
+                    throw new n8n_workflow_1.NodeOperationError(context.getNode(), 'Label is required for lead status creation');
+                }
+            }
+            if (operation === 'update') {
+                const statusId = context.getNodeParameter('statusId', itemIndex);
+                const label = context.getNodeParameter('label', itemIndex);
+                if (!statusId) {
+                    throw new n8n_workflow_1.NodeOperationError(context.getNode(), 'Status ID is required for update operation');
+                }
+                if (!label) {
+                    throw new n8n_workflow_1.NodeOperationError(context.getNode(), 'Label is required for update operation');
+                }
+            }
+            if (operation === 'delete') {
+                const statusId = context.getNodeParameter('statusId', itemIndex);
+                if (!statusId) {
+                    throw new n8n_workflow_1.NodeOperationError(context.getNode(), 'Status ID is required for delete operation');
+                }
+            }
+        }
+        if (resource === 'opportunity') {
+            if (operation === 'create') {
+                const leadId = context.getNodeParameter('leadId', itemIndex);
+                if (!leadId) {
+                    throw new n8n_workflow_1.NodeOperationError(context.getNode(), 'Lead ID is required for opportunity creation');
+                }
+            }
+            if (operation === 'delete' || operation === 'update') {
+                const opportunityId = context.getNodeParameter('opportunityId', itemIndex);
+                if (!opportunityId) {
+                    throw new n8n_workflow_1.NodeOperationError(context.getNode(), `Opportunity ID is required for ${operation} operation`);
+                }
+            }
+        }
+        if (resource === 'opportunityStatus') {
+            if (operation === 'create') {
+                const label = context.getNodeParameter('label', itemIndex);
+                const statusType = context.getNodeParameter('statusType', itemIndex);
+                if (!label) {
+                    throw new n8n_workflow_1.NodeOperationError(context.getNode(), 'Label is required for opportunity status creation');
+                }
+                if (!statusType) {
+                    throw new n8n_workflow_1.NodeOperationError(context.getNode(), 'Status Type is required for opportunity status creation');
+                }
+            }
+            if (operation === 'update') {
+                const statusId = context.getNodeParameter('statusId', itemIndex);
+                const label = context.getNodeParameter('label', itemIndex);
+                if (!statusId) {
+                    throw new n8n_workflow_1.NodeOperationError(context.getNode(), 'Status ID is required for update operation');
+                }
+                if (!label) {
+                    throw new n8n_workflow_1.NodeOperationError(context.getNode(), 'Label is required for update operation');
+                }
+            }
+            if (operation === 'delete') {
+                const statusId = context.getNodeParameter('statusId', itemIndex);
+                if (!statusId) {
+                    throw new n8n_workflow_1.NodeOperationError(context.getNode(), 'Status ID is required for delete operation');
+                }
+            }
+        }
+        if (resource === 'task') {
+            if (operation === 'create') {
+                const leadId = context.getNodeParameter('leadId', itemIndex);
+                const text = context.getNodeParameter('text', itemIndex);
+                const date = context.getNodeParameter('date', itemIndex);
+                if (!leadId) {
+                    throw new n8n_workflow_1.NodeOperationError(context.getNode(), 'Lead ID is required for task creation');
+                }
+                if (!text) {
+                    throw new n8n_workflow_1.NodeOperationError(context.getNode(), 'Task text is required');
+                }
+                if (!date) {
+                    throw new n8n_workflow_1.NodeOperationError(context.getNode(), 'Task date is required');
+                }
+            }
+            if (operation === 'delete' || operation === 'get' || operation === 'update') {
+                const taskId = context.getNodeParameter('taskId', itemIndex);
+                if (!taskId) {
+                    throw new n8n_workflow_1.NodeOperationError(context.getNode(), `Task ID is required for ${operation} operation`);
+                }
+            }
+        }
+        if (resource === 'note') {
+            if (operation === 'create') {
+                const leadId = context.getNodeParameter('leadId', itemIndex);
+                const noteContentType = context.getNodeParameter('noteContentType', itemIndex);
+                if (!leadId) {
+                    throw new n8n_workflow_1.NodeOperationError(context.getNode(), 'Lead ID is required for note creation');
+                }
+                if (noteContentType === 'html') {
+                    const noteHtml = context.getNodeParameter('noteHtml', itemIndex);
+                    if (!noteHtml) {
+                        throw new n8n_workflow_1.NodeOperationError(context.getNode(), 'Note HTML content is required');
+                    }
+                }
+                else {
+                    const note = context.getNodeParameter('note', itemIndex);
+                    if (!note) {
+                        throw new n8n_workflow_1.NodeOperationError(context.getNode(), 'Note content is required');
+                    }
+                }
+            }
+            if (operation === 'delete' || operation === 'get') {
+                const noteId = context.getNodeParameter('noteId', itemIndex);
+                if (!noteId) {
+                    throw new n8n_workflow_1.NodeOperationError(context.getNode(), `Note ID is required for ${operation} operation`);
+                }
+            }
+            if (operation === 'update') {
+                const noteId = context.getNodeParameter('noteId', itemIndex);
+                if (!noteId) {
+                    throw new n8n_workflow_1.NodeOperationError(context.getNode(), 'Note ID is required for update operation');
+                }
+            }
+        }
+        if (resource === 'call') {
+            if (operation === 'create') {
+                const leadId = context.getNodeParameter('leadId', itemIndex);
+                if (!leadId) {
+                    throw new n8n_workflow_1.NodeOperationError(context.getNode(), 'Lead ID is required for call creation');
+                }
+            }
+            if (operation === 'delete' || operation === 'get' || operation === 'update') {
+                const callId = context.getNodeParameter('callId', itemIndex);
+                if (!callId) {
+                    throw new n8n_workflow_1.NodeOperationError(context.getNode(), `Call ID is required for ${operation} operation`);
+                }
+            }
+        }
+        if (resource === 'email') {
+            if (operation === 'create') {
+                const leadId = context.getNodeParameter('leadId', itemIndex);
+                const to = context.getNodeParameter('to', itemIndex);
+                const subject = context.getNodeParameter('subject', itemIndex);
+                if (!leadId) {
+                    throw new n8n_workflow_1.NodeOperationError(context.getNode(), 'Lead ID is required for email creation');
+                }
+                if (!to) {
+                    throw new n8n_workflow_1.NodeOperationError(context.getNode(), 'To field is required for email creation');
+                }
+                if (!subject) {
+                    throw new n8n_workflow_1.NodeOperationError(context.getNode(), 'Subject is required for email creation');
+                }
+            }
+            if (operation === 'delete' || operation === 'get' || operation === 'update') {
+                const emailId = context.getNodeParameter('emailId', itemIndex);
+                if (!emailId) {
+                    throw new n8n_workflow_1.NodeOperationError(context.getNode(), `Email ID is required for ${operation} operation`);
+                }
+            }
+        }
+        if (resource === 'meeting') {
+            if (operation === 'delete' || operation === 'get' || operation === 'update') {
+                const meetingId = context.getNodeParameter('meetingId', itemIndex);
+                if (!meetingId) {
+                    throw new n8n_workflow_1.NodeOperationError(context.getNode(), `Meeting ID is required for ${operation} operation`);
+                }
+            }
+        }
+        if (resource === 'sms') {
+            if (operation === 'create') {
+                const leadId = context.getNodeParameter('leadId', itemIndex);
+                const to = context.getNodeParameter('to', itemIndex);
+                const localPhone = context.getNodeParameter('localPhone', itemIndex);
+                if (!leadId) {
+                    throw new n8n_workflow_1.NodeOperationError(context.getNode(), 'Lead ID is required for SMS creation');
+                }
+                if (!to) {
+                    throw new n8n_workflow_1.NodeOperationError(context.getNode(), 'To phone is required for SMS creation');
+                }
+                if (!localPhone) {
+                    throw new n8n_workflow_1.NodeOperationError(context.getNode(), 'Local phone is required for SMS creation');
+                }
+            }
+            if (operation === 'delete' || operation === 'get' || operation === 'update') {
+                const smsId = context.getNodeParameter('smsId', itemIndex);
+                if (!smsId) {
+                    throw new n8n_workflow_1.NodeOperationError(context.getNode(), `SMS ID is required for ${operation} operation`);
+                }
+            }
+        }
+    }
     async execute() {
         var _a, _b, _c;
         const items = this.getInputData();
@@ -226,21 +442,20 @@ class Close {
         let responseData;
         const resource = this.getNodeParameter('resource', 0);
         const operation = this.getNodeParameter('operation', 0);
+        // Global validation that applies to all items
+        if (!resource) {
+            throw new n8n_workflow_1.NodeOperationError(this.getNode(), 'Resource is required');
+        }
+        if (!operation) {
+            throw new n8n_workflow_1.NodeOperationError(this.getNode(), 'Operation is required');
+        }
         for (let i = 0; i < length; i++) {
+            // Validate parameters outside try-catch so validation errors propagate immediately
+            Close.validateParametersForItem(resource, operation, this, i);
             try {
-                // Input validation
-                if (!resource) {
-                    throw new n8n_workflow_1.NodeOperationError(this.getNode(), 'Resource is required');
-                }
-                if (!operation) {
-                    throw new n8n_workflow_1.NodeOperationError(this.getNode(), 'Operation is required');
-                }
                 if (resource === 'lead') {
                     if (operation === 'create') {
                         const name = this.getNodeParameter('name', i);
-                        if (!name) {
-                            throw new n8n_workflow_1.NodeOperationError(this.getNode(), 'Lead name is required for create operation');
-                        }
                         const body = {
                             name,
                         };
@@ -330,9 +545,6 @@ class Close {
                     }
                     if (operation === 'delete') {
                         const leadId = this.getNodeParameter('leadId', i);
-                        if (!leadId) {
-                            throw new n8n_workflow_1.NodeOperationError(this.getNode(), 'Lead ID is required for delete operation');
-                        }
                         responseData = await GenericFunctions_1.closeApiRequest.call(this, 'DELETE', `/lead/${leadId}/`);
                     }
                     if (operation === 'find') {
@@ -379,12 +591,6 @@ class Close {
                     if (operation === 'merge') {
                         const sourceLeadId = this.getNodeParameter('sourceLeadId', i);
                         const destinationLeadId = this.getNodeParameter('destinationLeadId', i);
-                        if (!sourceLeadId) {
-                            throw new n8n_workflow_1.NodeOperationError(this.getNode(), 'Source Lead ID is required for merge operation');
-                        }
-                        if (!destinationLeadId) {
-                            throw new n8n_workflow_1.NodeOperationError(this.getNode(), 'Destination Lead ID is required for merge operation');
-                        }
                         const body = {
                             source: sourceLeadId,
                             destination: destinationLeadId,
@@ -393,9 +599,6 @@ class Close {
                     }
                     if (operation === 'update') {
                         const leadId = this.getNodeParameter('leadId', i);
-                        if (!leadId) {
-                            throw new n8n_workflow_1.NodeOperationError(this.getNode(), 'Lead ID is required for update operation');
-                        }
                         const updateFields = this.getNodeParameter('updateFields', i);
                         const body = {};
                         if (updateFields.name) {
