@@ -38,9 +38,12 @@ exports.customActivityFields = [
         description: 'Filter activities by lead ID',
     },
     {
-        displayName: 'Search by Custom Activity ID',
+        displayName: 'Search by Custom Activity',
         name: 'customActivityId',
-        type: 'string',
+        type: 'options',
+        typeOptions: {
+            loadOptionsMethod: 'getCustomActivityTypes',
+        },
         displayOptions: {
             show: {
                 resource: ['customActivity'],
@@ -48,7 +51,7 @@ exports.customActivityFields = [
             },
         },
         default: '',
-        description: 'Search for a specific custom activity by ID',
+        description: 'Search for activities by custom activity type. Choose from the list, or specify an ID using an <a href="https://docs.n8n.io/code-examples/expressions/">expression</a>.',
     },
     {
         displayName: 'Date Created (Optional)',
