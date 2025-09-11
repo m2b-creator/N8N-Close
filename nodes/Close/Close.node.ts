@@ -234,6 +234,23 @@ export class Close implements INodeType {
 				}
 				return returnData;
 			},
+
+			async getCustomActivityTypes(this: ILoadOptionsFunctions): Promise<INodePropertyOptions[]> {
+				const returnData: INodePropertyOptions[] = [];
+				try {
+					const activityTypes = await closeApiRequest.call(this, 'GET', '/custom_activity_type/');
+					for (const activityType of activityTypes.data) {
+						returnData.push({
+							name: activityType.name,
+							value: activityType.id,
+						});
+					}
+				} catch (error) {
+					// If we can't fetch activity types, return empty array
+					// This ensures the node still works even if there are API issues
+				}
+				return returnData;
+			},
 		},
 	};
 
@@ -350,12 +367,31 @@ export class Close implements INodeType {
 
 						if (customFields.customFieldsValues?.length) {
 							for (const field of customFields.customFieldsValues) {
+								if (!field.fieldId) {
+									continue; // Skip if no field ID
+								}
+
 								// Parse the encoded field ID and type
-								const [actualFieldId, fieldType] = field.fieldId.split('|');
+								const fieldParts = field.fieldId.split('|');
+								const actualFieldId = fieldParts[0];
+								const fieldType = fieldParts[1] || 'text'; // Default to text if no type
 
 								// Use the appropriate value based on field type
-								const value = fieldType === 'choices' ? field.fieldValueChoice : field.fieldValue;
-								if (value) {
+								let value: string | undefined;
+								if (fieldType === 'choices') {
+									value = field.fieldValueChoice;
+									// Ensure we have a value for dropdown fields
+									if (!value) {
+										throw new NodeOperationError(
+											this.getNode(),
+											`Dropdown custom field "${actualFieldId}" requires a selection from available options`,
+										);
+									}
+								} else {
+									value = field.fieldValue;
+								}
+
+								if (value !== undefined && value !== '') {
 									body[`custom.${actualFieldId}`] = value;
 								}
 							}
@@ -486,12 +522,31 @@ export class Close implements INodeType {
 
 						if (customFields.customFieldsValues?.length) {
 							for (const field of customFields.customFieldsValues) {
+								if (!field.fieldId) {
+									continue; // Skip if no field ID
+								}
+
 								// Parse the encoded field ID and type
-								const [actualFieldId, fieldType] = field.fieldId.split('|');
+								const fieldParts = field.fieldId.split('|');
+								const actualFieldId = fieldParts[0];
+								const fieldType = fieldParts[1] || 'text'; // Default to text if no type
 
 								// Use the appropriate value based on field type
-								const value = fieldType === 'choices' ? field.fieldValueChoice : field.fieldValue;
-								if (value) {
+								let value: string | undefined;
+								if (fieldType === 'choices') {
+									value = field.fieldValueChoice;
+									// Ensure we have a value for dropdown fields
+									if (!value) {
+										throw new NodeOperationError(
+											this.getNode(),
+											`Dropdown custom field "${actualFieldId}" requires a selection from available options`,
+										);
+									}
+								} else {
+									value = field.fieldValue;
+								}
+
+								if (value !== undefined && value !== '') {
 									body[`custom.${actualFieldId}`] = value;
 								}
 							}
