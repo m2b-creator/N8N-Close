@@ -12,9 +12,5 @@ export declare class Close implements INodeType {
             getCustomActivityTypes(this: ILoadOptionsFunctions): Promise<INodePropertyOptions[]>;
         };
     };
-    /**
-     * Validates required parameters for the given resource and operation
-     */
-    private static validateParametersForItem;
     execute(this: IExecuteFunctions): Promise<INodeExecutionData[][]>;
 }

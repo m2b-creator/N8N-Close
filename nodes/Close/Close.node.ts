@@ -8,6 +8,7 @@ import type {
 	JsonObject,
 	NodeConnectionType,
 } from 'n8n-workflow';
+
 import { NodeOperationError } from 'n8n-workflow';
 
 import { closeApiRequest, closeApiRequestAllItems } from './GenericFunctions';
@@ -18,7 +19,10 @@ import { leadStatusFields, leadStatusOperations } from './descriptions/LeadStatu
 
 import { opportunityFields, opportunityOperations } from './descriptions/OpportunityDescription';
 
-import { opportunityStatusFields, opportunityStatusOperations } from './descriptions/OpportunityStatusDescription';
+import {
+	opportunityStatusFields,
+	opportunityStatusOperations,
+} from './descriptions/OpportunityStatusDescription';
 
 import { taskFields, taskOperations } from './descriptions/TaskDescription';
 
@@ -32,7 +36,10 @@ import { meetingFields, meetingOperations } from './descriptions/MeetingDescript
 
 import { smsFields, smsOperations } from './descriptions/SmsDescription';
 
-import { customActivityFields, customActivityOperations } from './descriptions/CustomActivityDescription';
+import {
+	customActivityFields,
+	customActivityOperations,
+} from './descriptions/CustomActivityDescription';
 
 export class Close implements INodeType {
 	description: INodeTypeDescription = {
@@ -247,365 +254,6 @@ export class Close implements INodeType {
 		},
 	};
 
-	/**
-	 * Validates required parameters for the given resource and operation
-	 */
-	private static validateParametersForItem(
-		resource: string,
-		operation: string,
-		context: IExecuteFunctions,
-		itemIndex: number,
-	): void {
-		if (resource === 'lead') {
-			if (operation === 'create') {
-				const name = context.getNodeParameter('name', itemIndex) as string;
-				if (!name) {
-					throw new NodeOperationError(
-						context.getNode(),
-						'Lead name is required for create operation',
-					);
-				}
-			}
-			if (operation === 'delete' || operation === 'update') {
-				const leadId = context.getNodeParameter('leadId', itemIndex) as string;
-				if (!leadId) {
-					throw new NodeOperationError(
-						context.getNode(),
-						`Lead ID is required for ${operation} operation`,
-					);
-				}
-			}
-			if (operation === 'merge') {
-				const sourceLeadId = context.getNodeParameter('sourceLeadId', itemIndex) as string;
-				const destinationLeadId = context.getNodeParameter('destinationLeadId', itemIndex) as string;
-				if (!sourceLeadId) {
-					throw new NodeOperationError(
-						context.getNode(),
-						'Source Lead ID is required for merge operation',
-					);
-				}
-				if (!destinationLeadId) {
-					throw new NodeOperationError(
-						context.getNode(),
-						'Destination Lead ID is required for merge operation',
-					);
-				}
-			}
-		}
-
-		if (resource === 'leadStatus') {
-			if (operation === 'create') {
-				const label = context.getNodeParameter('label', itemIndex) as string;
-				if (!label) {
-					throw new NodeOperationError(
-						context.getNode(),
-						'Label is required for lead status creation',
-					);
-				}
-			}
-			if (operation === 'update') {
-				const statusId = context.getNodeParameter('statusId', itemIndex) as string;
-				const label = context.getNodeParameter('label', itemIndex) as string;
-				if (!statusId) {
-					throw new NodeOperationError(
-						context.getNode(),
-						'Status ID is required for update operation',
-					);
-				}
-				if (!label) {
-					throw new NodeOperationError(
-						context.getNode(),
-						'Label is required for update operation',
-					);
-				}
-			}
-			if (operation === 'delete') {
-				const statusId = context.getNodeParameter('statusId', itemIndex) as string;
-				if (!statusId) {
-					throw new NodeOperationError(
-						context.getNode(),
-						'Status ID is required for delete operation',
-					);
-				}
-			}
-		}
-
-		if (resource === 'opportunity') {
-			if (operation === 'create') {
-				const leadId = context.getNodeParameter('leadId', itemIndex) as string;
-				if (!leadId) {
-					throw new NodeOperationError(
-						context.getNode(),
-						'Lead ID is required for opportunity creation',
-					);
-				}
-			}
-			if (operation === 'delete' || operation === 'update') {
-				const opportunityId = context.getNodeParameter('opportunityId', itemIndex) as string;
-				if (!opportunityId) {
-					throw new NodeOperationError(
-						context.getNode(),
-						`Opportunity ID is required for ${operation} operation`,
-					);
-				}
-			}
-		}
-
-		if (resource === 'opportunityStatus') {
-			if (operation === 'create') {
-				const label = context.getNodeParameter('label', itemIndex) as string;
-				const statusType = context.getNodeParameter('statusType', itemIndex) as string;
-				if (!label) {
-					throw new NodeOperationError(
-						context.getNode(),
-						'Label is required for opportunity status creation',
-					);
-				}
-				if (!statusType) {
-					throw new NodeOperationError(
-						context.getNode(),
-						'Status Type is required for opportunity status creation',
-					);
-				}
-			}
-			if (operation === 'update') {
-				const statusId = context.getNodeParameter('statusId', itemIndex) as string;
-				const label = context.getNodeParameter('label', itemIndex) as string;
-				if (!statusId) {
-					throw new NodeOperationError(
-						context.getNode(),
-						'Status ID is required for update operation',
-					);
-				}
-				if (!label) {
-					throw new NodeOperationError(
-						context.getNode(),
-						'Label is required for update operation',
-					);
-				}
-			}
-			if (operation === 'delete') {
-				const statusId = context.getNodeParameter('statusId', itemIndex) as string;
-				if (!statusId) {
-					throw new NodeOperationError(
-						context.getNode(),
-						'Status ID is required for delete operation',
-					);
-				}
-			}
-		}
-
-		if (resource === 'task') {
-			if (operation === 'create') {
-				const leadId = context.getNodeParameter('leadId', itemIndex) as string;
-				const text = context.getNodeParameter('text', itemIndex) as string;
-				const date = context.getNodeParameter('date', itemIndex) as string;
-				if (!leadId) {
-					throw new NodeOperationError(context.getNode(), 'Lead ID is required for task creation');
-				}
-				if (!text) {
-					throw new NodeOperationError(context.getNode(), 'Task text is required');
-				}
-				if (!date) {
-					throw new NodeOperationError(context.getNode(), 'Task date is required');
-				}
-			}
-			if (operation === 'delete' || operation === 'get' || operation === 'update') {
-				const taskId = context.getNodeParameter('taskId', itemIndex) as string;
-				if (!taskId) {
-					throw new NodeOperationError(
-						context.getNode(),
-						`Task ID is required for ${operation} operation`,
-					);
-				}
-			}
-			if (operation === 'bulkUpdate') {
-				const bulkUpdateData = context.getNodeParameter('bulkUpdateData', itemIndex) as JsonObject;
-				if (Object.keys(bulkUpdateData).length === 0) {
-					throw new NodeOperationError(
-						context.getNode(),
-						'At least one update field must be provided for bulk update',
-					);
-				}
-			}
-		}
-
-		if (resource === 'note') {
-			if (operation === 'create') {
-				const leadId = context.getNodeParameter('leadId', itemIndex) as string;
-				const noteContentType = context.getNodeParameter('noteContentType', itemIndex) as string;
-				if (!leadId) {
-					throw new NodeOperationError(context.getNode(), 'Lead ID is required for note creation');
-				}
-				if (noteContentType === 'html') {
-					const noteHtml = context.getNodeParameter('noteHtml', itemIndex) as string;
-					if (!noteHtml) {
-						throw new NodeOperationError(context.getNode(), 'Note HTML content is required');
-					}
-				} else {
-					const note = context.getNodeParameter('note', itemIndex) as string;
-					if (!note) {
-						throw new NodeOperationError(context.getNode(), 'Note content is required');
-					}
-				}
-			}
-			if (operation === 'delete' || operation === 'get') {
-				const noteId = context.getNodeParameter('noteId', itemIndex) as string;
-				if (!noteId) {
-					throw new NodeOperationError(
-						context.getNode(),
-						`Note ID is required for ${operation} operation`,
-					);
-				}
-			}
-			if (operation === 'update') {
-				const noteId = context.getNodeParameter('noteId', itemIndex) as string;
-				if (!noteId) {
-					throw new NodeOperationError(
-						context.getNode(),
-						'Note ID is required for update operation',
-					);
-				}
-			}
-		}
-
-		if (resource === 'call') {
-			if (operation === 'create') {
-				const leadId = context.getNodeParameter('leadId', itemIndex) as string;
-				if (!leadId) {
-					throw new NodeOperationError(context.getNode(), 'Lead ID is required for call creation');
-				}
-			}
-			if (operation === 'delete' || operation === 'get' || operation === 'update') {
-				const callId = context.getNodeParameter('callId', itemIndex) as string;
-				if (!callId) {
-					throw new NodeOperationError(
-						context.getNode(),
-						`Call ID is required for ${operation} operation`,
-					);
-				}
-			}
-		}
-
-		if (resource === 'email') {
-			if (operation === 'create') {
-				const leadId = context.getNodeParameter('leadId', itemIndex) as string;
-				const to = context.getNodeParameter('to', itemIndex) as string;
-				const subject = context.getNodeParameter('subject', itemIndex) as string;
-				if (!leadId) {
-					throw new NodeOperationError(
-						context.getNode(),
-						'Lead ID is required for email creation',
-					);
-				}
-				if (!to) {
-					throw new NodeOperationError(
-						context.getNode(),
-						'To field is required for email creation',
-					);
-				}
-				if (!subject) {
-					throw new NodeOperationError(
-						context.getNode(),
-						'Subject is required for email creation',
-					);
-				}
-			}
-			if (operation === 'delete' || operation === 'get' || operation === 'update') {
-				const emailId = context.getNodeParameter('emailId', itemIndex) as string;
-				if (!emailId) {
-					throw new NodeOperationError(
-						context.getNode(),
-						`Email ID is required for ${operation} operation`,
-					);
-				}
-			}
-		}
-
-		if (resource === 'meeting') {
-			if (operation === 'delete' || operation === 'get' || operation === 'update') {
-				const meetingId = context.getNodeParameter('meetingId', itemIndex) as string;
-				if (!meetingId) {
-					throw new NodeOperationError(
-						context.getNode(),
-						`Meeting ID is required for ${operation} operation`,
-					);
-				}
-			}
-		}
-
-		if (resource === 'sms') {
-			if (operation === 'create') {
-				const leadId = context.getNodeParameter('leadId', itemIndex) as string;
-				const to = context.getNodeParameter('to', itemIndex) as string;
-				const localPhone = context.getNodeParameter('localPhone', itemIndex) as string;
-				if (!leadId) {
-					throw new NodeOperationError(context.getNode(), 'Lead ID is required for SMS creation');
-				}
-				if (!to) {
-					throw new NodeOperationError(context.getNode(), 'To phone is required for SMS creation');
-				}
-				if (!localPhone) {
-					throw new NodeOperationError(
-						context.getNode(),
-						'Local phone is required for SMS creation',
-					);
-				}
-			}
-			if (operation === 'delete' || operation === 'get' || operation === 'update') {
-				const smsId = context.getNodeParameter('smsId', itemIndex) as string;
-				if (!smsId) {
-					throw new NodeOperationError(
-						context.getNode(),
-						`SMS ID is required for ${operation} operation`,
-					);
-				}
-			}
-		}
-	}
-
-	/**
-	 * Validates custom field parameters for create and update operations
-	 */
-	private static validateCustomFields(
-		customFields: {
-			customFieldsValues?: Array<{
-				fieldId: string;
-				fieldValue?: string;
-				fieldValueChoice?: string;
-			}>;
-		},
-		node: any,
-	): void {
-		if (customFields.customFieldsValues?.length) {
-			for (const field of customFields.customFieldsValues) {
-				if (!field.fieldId) {
-					continue; // Skip if no field ID
-				}
-
-				// Parse the encoded field ID and type
-				const fieldParts = field.fieldId.split('|');
-				const actualFieldId = fieldParts[0];
-				const fieldType = fieldParts[1] || 'text'; // Default to text if no type
-
-				// Use the appropriate value based on field type
-				let value: string | undefined;
-				if (fieldType === 'choices') {
-					value = field.fieldValueChoice;
-					// Ensure we have a value for dropdown fields
-					if (!value) {
-						throw new NodeOperationError(
-							node,
-							`Dropdown custom field "${actualFieldId}" requires a selection from available options`,
-						);
-					}
-				} else {
-					value = field.fieldValue;
-				}
-			}
-		}
-	}
-
 	async execute(this: IExecuteFunctions): Promise<INodeExecutionData[][]> {
 		const items = this.getInputData();
 		const returnData: INodeExecutionData[] = [];
@@ -616,34 +264,24 @@ export class Close implements INodeType {
 		const resource = this.getNodeParameter('resource', 0);
 		const operation = this.getNodeParameter('operation', 0);
 
-		// Global validation that applies to all items
-		if (!resource) {
-			throw new NodeOperationError(this.getNode(), 'Resource is required');
-		}
-		if (!operation) {
-			throw new NodeOperationError(this.getNode(), 'Operation is required');
-		}
-
 		for (let i = 0; i < length; i++) {
-			// Validate parameters outside try-catch so validation errors propagate immediately
-			Close.validateParametersForItem(resource, operation, this, i);
-			
-			// Additional validation for custom fields on create and update operations
-			if ((resource === 'lead' && (operation === 'create' || operation === 'update'))) {
-				const customFields = this.getNodeParameter('customFieldsUi', i, {}) as {
-					customFieldsValues?: Array<{
-						fieldId: string;
-						fieldValue?: string;
-						fieldValueChoice?: string;
-					}>;
-				};
-				Close.validateCustomFields(customFields, this.getNode());
-			}
-
 			try {
+				// Input validation
+				if (!resource) {
+					throw new NodeOperationError(this.getNode(), 'Resource is required');
+				}
+				if (!operation) {
+					throw new NodeOperationError(this.getNode(), 'Operation is required');
+				}
 				if (resource === 'lead') {
 					if (operation === 'create') {
 						const name = this.getNodeParameter('name', i) as string;
+						if (!name) {
+							throw new NodeOperationError(
+								this.getNode(),
+								'Lead name is required for create operation',
+							);
+						}
 
 						const body: JsonObject = {
 							name,
@@ -677,7 +315,7 @@ export class Close implements INodeType {
 								const contactObj: JsonObject = {};
 								if (contact.name) contactObj.name = contact.name;
 								if (contact.email) contactObj.emails = [{ type: 'office', email: contact.email }];
-								
+
 								// Handle phones array with both office and mobile numbers
 								const phones: Array<{ type: string; phone: string }> = [];
 								if (contact.phone) {
@@ -689,7 +327,7 @@ export class Close implements INodeType {
 								if (phones.length > 0) {
 									contactObj.phones = phones;
 								}
-								
+
 								if (contact.title) contactObj.title = contact.title;
 								return contactObj;
 							});
@@ -707,13 +345,13 @@ export class Close implements INodeType {
 						if (address && (address.street || address.city || address.state || address.zipcode || address.country)) {
 							const addressesArray: JsonObject[] = [];
 							const addressObj: JsonObject = { type: 'office' };
-							
+
 							if (address.street) addressObj.address_1 = address.street;
 							if (address.city) addressObj.city = address.city;
 							if (address.state) addressObj.state = address.state;
 							if (address.zipcode) addressObj.zipcode = address.zipcode;
 							if (address.country) addressObj.country = address.country;
-							
+
 							addressesArray.push(addressObj);
 							body.addresses = addressesArray;
 						}
@@ -742,6 +380,13 @@ export class Close implements INodeType {
 								let value: string | undefined;
 								if (fieldType === 'choices') {
 									value = field.fieldValueChoice;
+									// Ensure we have a value for dropdown fields
+									if (!value) {
+										throw new NodeOperationError(
+											this.getNode(),
+											`Dropdown custom field "${actualFieldId}" requires a selection from available options`,
+										);
+									}
 								} else {
 									value = field.fieldValue;
 								}
@@ -757,6 +402,13 @@ export class Close implements INodeType {
 
 					if (operation === 'delete') {
 						const leadId = this.getNodeParameter('leadId', i) as string;
+						if (!leadId) {
+							throw new NodeOperationError(
+								this.getNode(),
+								'Lead ID is required for delete operation',
+							);
+						}
+
 						responseData = await closeApiRequest.call(this, 'DELETE', `/lead/${leadId}/`);
 					}
 
@@ -802,7 +454,8 @@ export class Close implements INodeType {
 									searchQs,
 								);
 							} else {
-								searchQs._limit = this.getNodeParameter('limit', i);
+								const limit = this.getNodeParameter('limit', i);
+								searchQs._limit = limit;
 								responseData = await closeApiRequest.call(this, 'GET', '/lead/', {}, searchQs);
 								responseData = responseData.data;
 							}
@@ -812,6 +465,19 @@ export class Close implements INodeType {
 					if (operation === 'merge') {
 						const sourceLeadId = this.getNodeParameter('sourceLeadId', i) as string;
 						const destinationLeadId = this.getNodeParameter('destinationLeadId', i) as string;
+
+						if (!sourceLeadId) {
+							throw new NodeOperationError(
+								this.getNode(),
+								'Source Lead ID is required for merge operation',
+							);
+						}
+						if (!destinationLeadId) {
+							throw new NodeOperationError(
+								this.getNode(),
+								'Destination Lead ID is required for merge operation',
+							);
+						}
 
 						const body: JsonObject = {
 							source: sourceLeadId,
@@ -823,6 +489,12 @@ export class Close implements INodeType {
 
 					if (operation === 'update') {
 						const leadId = this.getNodeParameter('leadId', i) as string;
+						if (!leadId) {
+							throw new NodeOperationError(
+								this.getNode(),
+								'Lead ID is required for update operation',
+							);
+						}
 						const updateFields = this.getNodeParameter('updateFields', i) as JsonObject;
 
 						const body: JsonObject = {};
@@ -863,6 +535,13 @@ export class Close implements INodeType {
 								let value: string | undefined;
 								if (fieldType === 'choices') {
 									value = field.fieldValueChoice;
+									// Ensure we have a value for dropdown fields
+									if (!value) {
+										throw new NodeOperationError(
+											this.getNode(),
+											`Dropdown custom field "${actualFieldId}" requires a selection from available options`,
+										);
+									}
 								} else {
 									value = field.fieldValue;
 								}
@@ -886,7 +565,12 @@ export class Close implements INodeType {
 					if (operation === 'create') {
 						const label = this.getNodeParameter('label', i) as string;
 
-						// Label validation is handled outside try-catch
+						if (!label) {
+							throw new NodeOperationError(
+								this.getNode(),
+								'Label is required for lead status creation',
+							);
+						}
 
 						const body: JsonObject = {
 							label,
@@ -905,7 +589,18 @@ export class Close implements INodeType {
 						const statusId = this.getNodeParameter('statusId', i) as string;
 						const label = this.getNodeParameter('label', i) as string;
 
-						// Status ID and label validation is handled outside try-catch
+						if (!statusId) {
+							throw new NodeOperationError(
+								this.getNode(),
+								'Status ID is required for update operation',
+							);
+						}
+						if (!label) {
+							throw new NodeOperationError(
+								this.getNode(),
+								'Label is required for update operation',
+							);
+						}
 
 						const body: JsonObject = {
 							label,
@@ -928,7 +623,12 @@ export class Close implements INodeType {
 					if (operation === 'delete') {
 						const statusId = this.getNodeParameter('statusId', i) as string;
 
-						// Status ID validation is handled outside try-catch
+						if (!statusId) {
+							throw new NodeOperationError(
+								this.getNode(),
+								'Status ID is required for delete operation',
+							);
+						}
 
 						responseData = await closeApiRequest.call(this, 'DELETE', `/status/lead/${statusId}/`);
 					}
@@ -937,7 +637,12 @@ export class Close implements INodeType {
 				if (resource === 'opportunity') {
 					if (operation === 'create') {
 						const leadId = this.getNodeParameter('leadId', i) as string;
-						// Lead ID validation is handled outside try-catch
+						if (!leadId) {
+							throw new NodeOperationError(
+								this.getNode(),
+								'Lead ID is required for opportunity creation',
+							);
+						}
 
 						const body: JsonObject = {
 							lead_id: leadId,
@@ -972,7 +677,12 @@ export class Close implements INodeType {
 
 					if (operation === 'delete') {
 						const opportunityId = this.getNodeParameter('opportunityId', i) as string;
-						// Opportunity ID validation is handled outside try-catch
+						if (!opportunityId) {
+							throw new NodeOperationError(
+								this.getNode(),
+								'Opportunity ID is required for delete operation',
+							);
+						}
 
 						responseData = await closeApiRequest.call(
 							this,
@@ -1019,14 +729,15 @@ export class Close implements INodeType {
 								qs,
 							);
 						} else {
-							qs._limit = this.getNodeParameter('limit', i);
+							const limit = this.getNodeParameter('limit', i);
+							qs._limit = limit;
 							responseData = await closeApiRequest.call(this, 'GET', '/opportunity/', {}, qs);
 							responseData = responseData.data;
 						}
 
 						// Apply client-side confidence filtering if specified
 						if (additionalFilters.confidence !== undefined && Array.isArray(responseData)) {
-							responseData = responseData.filter((opportunity: JsonObject) => 
+							responseData = responseData.filter((opportunity: JsonObject) =>
 								opportunity.confidence === additionalFilters.confidence
 							);
 						}
@@ -1034,7 +745,12 @@ export class Close implements INodeType {
 
 					if (operation === 'update') {
 						const opportunityId = this.getNodeParameter('opportunityId', i) as string;
-						// Opportunity ID validation is handled outside try-catch
+						if (!opportunityId) {
+							throw new NodeOperationError(
+								this.getNode(),
+								'Opportunity ID is required for update operation',
+							);
+						}
 						const updateFields = this.getNodeParameter('updateFields', i) as JsonObject;
 
 						const body: JsonObject = {};
@@ -1068,7 +784,18 @@ export class Close implements INodeType {
 						const label = this.getNodeParameter('label', i) as string;
 						const statusType = this.getNodeParameter('statusType', i) as string;
 
-						// Label and status type validation is handled outside try-catch
+						if (!label) {
+							throw new NodeOperationError(
+								this.getNode(),
+								'Label is required for opportunity status creation',
+							);
+						}
+						if (!statusType) {
+							throw new NodeOperationError(
+								this.getNode(),
+								'Status Type is required for opportunity status creation',
+							);
+						}
 
 						const body: JsonObject = {
 							label,
@@ -1088,7 +815,18 @@ export class Close implements INodeType {
 						const statusId = this.getNodeParameter('statusId', i) as string;
 						const label = this.getNodeParameter('label', i) as string;
 
-						// Status ID and label validation is handled outside try-catch
+						if (!statusId) {
+							throw new NodeOperationError(
+								this.getNode(),
+								'Status ID is required for update operation',
+							);
+						}
+						if (!label) {
+							throw new NodeOperationError(
+								this.getNode(),
+								'Label is required for update operation',
+							);
+						}
 
 						const body: JsonObject = {
 							label,
@@ -1114,7 +852,12 @@ export class Close implements INodeType {
 					if (operation === 'delete') {
 						const statusId = this.getNodeParameter('statusId', i) as string;
 
-						// Status ID validation is handled outside try-catch
+						if (!statusId) {
+							throw new NodeOperationError(
+								this.getNode(),
+								'Status ID is required for delete operation',
+							);
+						}
 
 						responseData = await closeApiRequest.call(
 							this,
@@ -1131,7 +874,15 @@ export class Close implements INodeType {
 						const date = this.getNodeParameter('date', i) as string;
 						const assignedTo = this.getNodeParameter('assignedTo', i, '') as string;
 
-						// Lead ID, text, and date validation is handled outside try-catch
+						if (!leadId) {
+							throw new NodeOperationError(this.getNode(), 'Lead ID is required for task creation');
+						}
+						if (!text) {
+							throw new NodeOperationError(this.getNode(), 'Task text is required');
+						}
+						if (!date) {
+							throw new NodeOperationError(this.getNode(), 'Task date is required');
+						}
 
 						const body: JsonObject = {
 							lead_id: leadId,
@@ -1148,21 +899,33 @@ export class Close implements INodeType {
 
 					if (operation === 'delete') {
 						const taskId = this.getNodeParameter('taskId', i) as string;
-						// Task ID validation is handled outside try-catch
+						if (!taskId) {
+							throw new NodeOperationError(
+								this.getNode(),
+								'Task ID is required for delete operation',
+							);
+						}
 
 						responseData = await closeApiRequest.call(this, 'DELETE', `/task/${taskId}/`);
 					}
 
 					if (operation === 'get') {
 						const taskId = this.getNodeParameter('taskId', i) as string;
-						// Task ID validation is handled outside try-catch
+						if (!taskId) {
+							throw new NodeOperationError(this.getNode(), 'Task ID is required for get operation');
+						}
 
 						responseData = await closeApiRequest.call(this, 'GET', `/task/${taskId}/`);
 					}
 
 					if (operation === 'update') {
 						const taskId = this.getNodeParameter('taskId', i) as string;
-						// Task ID validation is handled outside try-catch
+						if (!taskId) {
+							throw new NodeOperationError(
+								this.getNode(),
+								'Task ID is required for update operation',
+							);
+						}
 						const updateFields = this.getNodeParameter('updateFields', i) as JsonObject;
 
 						const body: JsonObject = {};
@@ -1257,7 +1020,8 @@ export class Close implements INodeType {
 								qs,
 							);
 						} else {
-							qs._limit = this.getNodeParameter('limit', i);
+							const limit = this.getNodeParameter('limit', i);
+							qs._limit = limit;
 							responseData = await closeApiRequest.call(this, 'GET', '/task/', {}, qs);
 							responseData = responseData.data;
 						}
@@ -1299,7 +1063,12 @@ export class Close implements INodeType {
 							body.is_complete = bulkUpdateData.isComplete;
 						}
 
-						// Bulk update validation is handled outside try-catch
+						if (Object.keys(body).length === 0) {
+							throw new NodeOperationError(
+								this.getNode(),
+								'At least one update field must be provided for bulk update',
+							);
+						}
 
 						responseData = await closeApiRequest.call(this, 'PUT', '/task/', body, queryParams);
 					}
@@ -1310,7 +1079,9 @@ export class Close implements INodeType {
 						const leadId = this.getNodeParameter('leadId', i) as string;
 						const noteContentType = this.getNodeParameter('noteContentType', i) as string;
 
-						// Lead ID validation is handled outside try-catch
+						if (!leadId) {
+							throw new NodeOperationError(this.getNode(), 'Lead ID is required for note creation');
+						}
 
 						const body: JsonObject = {
 							lead_id: leadId,
@@ -1319,11 +1090,17 @@ export class Close implements INodeType {
 
 						// Handle note content based on type
 						if (noteContentType === 'html') {
-							// Note HTML validation is handled outside try-catch
-							body.note_html = this.getNodeParameter('noteHtml', i) as string;
+							const noteHtml = this.getNodeParameter('noteHtml', i) as string;
+							if (!noteHtml) {
+								throw new NodeOperationError(this.getNode(), 'Note HTML content is required');
+							}
+							body.note_html = noteHtml;
 						} else {
-							// Note content validation is handled outside try-catch
-							body.note = this.getNodeParameter('note', i) as string;
+							const note = this.getNodeParameter('note', i) as string;
+							if (!note) {
+								throw new NodeOperationError(this.getNode(), 'Note content is required');
+							}
+							body.note = note;
 						}
 
 						responseData = await closeApiRequest.call(this, 'POST', '/activity/note/', body);
@@ -1331,14 +1108,21 @@ export class Close implements INodeType {
 
 					if (operation === 'delete') {
 						const noteId = this.getNodeParameter('noteId', i) as string;
-						// Note ID validation is handled outside try-catch
+						if (!noteId) {
+							throw new NodeOperationError(
+								this.getNode(),
+								'Note ID is required for delete operation',
+							);
+						}
 
 						responseData = await closeApiRequest.call(this, 'DELETE', `/activity/note/${noteId}/`);
 					}
 
 					if (operation === 'get') {
 						const noteId = this.getNodeParameter('noteId', i) as string;
-						// Note ID validation is handled outside try-catch
+						if (!noteId) {
+							throw new NodeOperationError(this.getNode(), 'Note ID is required for get operation');
+						}
 
 						responseData = await closeApiRequest.call(this, 'GET', `/activity/note/${noteId}/`);
 					}
@@ -1347,7 +1131,12 @@ export class Close implements INodeType {
 						const noteId = this.getNodeParameter('noteId', i) as string;
 						const updateContentType = this.getNodeParameter('updateContentType', i) as string;
 
-						// Note ID validation is handled outside try-catch
+						if (!noteId) {
+							throw new NodeOperationError(
+								this.getNode(),
+								'Note ID is required for update operation',
+							);
+						}
 
 						const body: JsonObject = {};
 
@@ -1401,7 +1190,8 @@ export class Close implements INodeType {
 								qs,
 							);
 						} else {
-							qs._limit = this.getNodeParameter('limit', i);
+							const limit = this.getNodeParameter('limit', i);
+							qs._limit = limit;
 							responseData = await closeApiRequest.call(this, 'GET', '/activity/note/', {}, qs);
 							responseData = responseData.data;
 						}
@@ -1411,7 +1201,9 @@ export class Close implements INodeType {
 				if (resource === 'call') {
 					if (operation === 'create') {
 						const leadId = this.getNodeParameter('leadId', i) as string;
-						// Lead ID validation is handled outside try-catch
+						if (!leadId) {
+							throw new NodeOperationError(this.getNode(), 'Lead ID is required for call creation');
+						}
 
 						const body: JsonObject = {
 							lead_id: leadId,
@@ -1447,21 +1239,33 @@ export class Close implements INodeType {
 
 					if (operation === 'delete') {
 						const callId = this.getNodeParameter('callId', i) as string;
-						// Call ID validation is handled outside try-catch
+						if (!callId) {
+							throw new NodeOperationError(
+								this.getNode(),
+								'Call ID is required for delete operation',
+							);
+						}
 
 						responseData = await closeApiRequest.call(this, 'DELETE', `/activity/call/${callId}/`);
 					}
 
 					if (operation === 'get') {
 						const callId = this.getNodeParameter('callId', i) as string;
-						// Call ID validation is handled outside try-catch
+						if (!callId) {
+							throw new NodeOperationError(this.getNode(), 'Call ID is required for get operation');
+						}
 
 						responseData = await closeApiRequest.call(this, 'GET', `/activity/call/${callId}/`);
 					}
 
 					if (operation === 'update') {
 						const callId = this.getNodeParameter('callId', i) as string;
-						// Call ID validation is handled outside try-catch
+						if (!callId) {
+							throw new NodeOperationError(
+								this.getNode(),
+								'Call ID is required for update operation',
+							);
+						}
 						const updateFields = this.getNodeParameter('updateFields', i) as JsonObject;
 
 						const body: JsonObject = {};
@@ -1503,7 +1307,8 @@ export class Close implements INodeType {
 								qs,
 							);
 						} else {
-							qs._limit = this.getNodeParameter('limit', i);
+							const limit = this.getNodeParameter('limit', i);
+							qs._limit = limit;
 							responseData = await closeApiRequest.call(this, 'GET', '/activity/', {}, qs);
 							responseData = responseData.data;
 						}
@@ -1517,7 +1322,24 @@ export class Close implements INodeType {
 						const subject = this.getNodeParameter('subject', i) as string;
 						const status = this.getNodeParameter('status', i) as string;
 
-						// Lead ID, to, and subject validation is handled outside try-catch
+						if (!leadId) {
+							throw new NodeOperationError(
+								this.getNode(),
+								'Lead ID is required for email creation',
+							);
+						}
+						if (!to) {
+							throw new NodeOperationError(
+								this.getNode(),
+								'To field is required for email creation',
+							);
+						}
+						if (!subject) {
+							throw new NodeOperationError(
+								this.getNode(),
+								'Subject is required for email creation',
+							);
+						}
 
 						const body: JsonObject = {
 							lead_id: leadId,
@@ -1565,7 +1387,12 @@ export class Close implements INodeType {
 
 					if (operation === 'delete') {
 						const emailId = this.getNodeParameter('emailId', i) as string;
-						// Email ID validation is handled outside try-catch
+						if (!emailId) {
+							throw new NodeOperationError(
+								this.getNode(),
+								'Email ID is required for delete operation',
+							);
+						}
 
 						responseData = await closeApiRequest.call(
 							this,
@@ -1576,14 +1403,24 @@ export class Close implements INodeType {
 
 					if (operation === 'get') {
 						const emailId = this.getNodeParameter('emailId', i) as string;
-						// Email ID validation is handled outside try-catch
+						if (!emailId) {
+							throw new NodeOperationError(
+								this.getNode(),
+								'Email ID is required for get operation',
+							);
+						}
 
 						responseData = await closeApiRequest.call(this, 'GET', `/activity/email/${emailId}/`);
 					}
 
 					if (operation === 'update') {
 						const emailId = this.getNodeParameter('emailId', i) as string;
-						// Email ID validation is handled outside try-catch
+						if (!emailId) {
+							throw new NodeOperationError(
+								this.getNode(),
+								'Email ID is required for update operation',
+							);
+						}
 						const updateFields = this.getNodeParameter('updateFields', i) as JsonObject;
 
 						const body: JsonObject = {};
@@ -1630,7 +1467,8 @@ export class Close implements INodeType {
 								qs,
 							);
 						} else {
-							qs._limit = this.getNodeParameter('limit', i);
+							const limit = this.getNodeParameter('limit', i);
+							qs._limit = limit;
 							responseData = await closeApiRequest.call(this, 'GET', '/activity/email/', {}, qs);
 							responseData = responseData.data;
 						}
@@ -1640,7 +1478,12 @@ export class Close implements INodeType {
 				if (resource === 'meeting') {
 					if (operation === 'delete') {
 						const meetingId = this.getNodeParameter('meetingId', i) as string;
-						// Meeting ID validation is handled outside try-catch
+						if (!meetingId) {
+							throw new NodeOperationError(
+								this.getNode(),
+								'Meeting ID is required for delete operation',
+							);
+						}
 
 						responseData = await closeApiRequest.call(
 							this,
@@ -1651,7 +1494,12 @@ export class Close implements INodeType {
 
 					if (operation === 'get') {
 						const meetingId = this.getNodeParameter('meetingId', i) as string;
-						// Meeting ID validation is handled outside try-catch
+						if (!meetingId) {
+							throw new NodeOperationError(
+								this.getNode(),
+								'Meeting ID is required for get operation',
+							);
+						}
 
 						const additionalOptions = this.getNodeParameter('additionalOptions', i) as JsonObject;
 						const params: JsonObject = {};
@@ -1671,7 +1519,12 @@ export class Close implements INodeType {
 
 					if (operation === 'update') {
 						const meetingId = this.getNodeParameter('meetingId', i) as string;
-						// Meeting ID validation is handled outside try-catch
+						if (!meetingId) {
+							throw new NodeOperationError(
+								this.getNode(),
+								'Meeting ID is required for update operation',
+							);
+						}
 						const updateFields = this.getNodeParameter('updateFields', i) as JsonObject;
 
 						const body: JsonObject = {};
@@ -1720,7 +1573,8 @@ export class Close implements INodeType {
 								qs,
 							);
 						} else {
-							qs._limit = this.getNodeParameter('limit', i);
+							const limit = this.getNodeParameter('limit', i);
+							qs._limit = limit;
 							responseData = await closeApiRequest.call(this, 'GET', '/activity/meeting/', {}, qs);
 							responseData = responseData.data;
 						}
@@ -1735,7 +1589,18 @@ export class Close implements INodeType {
 						const status = this.getNodeParameter('status', i) as string;
 						const text = this.getNodeParameter('text', i) as string;
 
-						// Lead ID, to, and local phone validation is handled outside try-catch
+						if (!leadId) {
+							throw new NodeOperationError(this.getNode(), 'Lead ID is required for SMS creation');
+						}
+						if (!to) {
+							throw new NodeOperationError(this.getNode(), 'To phone is required for SMS creation');
+						}
+						if (!localPhone) {
+							throw new NodeOperationError(
+								this.getNode(),
+								'Local phone is required for SMS creation',
+							);
+						}
 
 						const body: JsonObject = {
 							lead_id: leadId,
@@ -1783,21 +1648,33 @@ export class Close implements INodeType {
 
 					if (operation === 'delete') {
 						const smsId = this.getNodeParameter('smsId', i) as string;
-						// SMS ID validation is handled outside try-catch
+						if (!smsId) {
+							throw new NodeOperationError(
+								this.getNode(),
+								'SMS ID is required for delete operation',
+							);
+						}
 
 						responseData = await closeApiRequest.call(this, 'DELETE', `/activity/sms/${smsId}/`);
 					}
 
 					if (operation === 'get') {
 						const smsId = this.getNodeParameter('smsId', i) as string;
-						// SMS ID validation is handled outside try-catch
+						if (!smsId) {
+							throw new NodeOperationError(this.getNode(), 'SMS ID is required for get operation');
+						}
 
 						responseData = await closeApiRequest.call(this, 'GET', `/activity/sms/${smsId}/`);
 					}
 
 					if (operation === 'update') {
 						const smsId = this.getNodeParameter('smsId', i) as string;
-						// SMS ID validation is handled outside try-catch
+						if (!smsId) {
+							throw new NodeOperationError(
+								this.getNode(),
+								'SMS ID is required for update operation',
+							);
+						}
 						const updateFields = this.getNodeParameter('updateFields', i) as JsonObject;
 
 						const body: JsonObject = {};
@@ -1844,7 +1721,8 @@ export class Close implements INodeType {
 								qs,
 							);
 						} else {
-							qs._limit = this.getNodeParameter('limit', i);
+							const limit = this.getNodeParameter('limit', i);
+							qs._limit = limit;
 							responseData = await closeApiRequest.call(this, 'GET', '/activity/sms/', {}, qs);
 							responseData = responseData.data;
 						}
@@ -1888,7 +1766,8 @@ export class Close implements INodeType {
 								qs,
 							);
 						} else {
-							qs._limit = this.getNodeParameter('limit', i);
+							const limit = this.getNodeParameter('limit', i);
+							qs._limit = limit;
 							responseData = await closeApiRequest.call(this, 'GET', '/activity/', {}, qs);
 							responseData = responseData.data;
 						}
