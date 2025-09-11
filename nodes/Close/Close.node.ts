@@ -2001,8 +2001,7 @@ export class Close implements INodeType {
 								qs,
 							);
 						} else {
-							const limit = this.getNodeParameter('limit', i);
-							qs._limit = limit;
+							qs._limit = this.getNodeParameter('limit', i);
 							responseData = await closeApiRequest.call(this, 'GET', '/activity/sms/', {}, qs);
 							responseData = responseData.data;
 						}
@@ -2046,8 +2045,7 @@ export class Close implements INodeType {
 								qs,
 							);
 						} else {
-							const limit = this.getNodeParameter('limit', i);
-							qs._limit = limit;
+							qs._limit = this.getNodeParameter('limit', i);
 							responseData = await closeApiRequest.call(this, 'GET', '/activity/', {}, qs);
 							responseData = responseData.data;
 						}
