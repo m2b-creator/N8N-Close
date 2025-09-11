@@ -139,16 +139,19 @@ class CloseTrigger {
                     description: 'Type of task events to monitor',
                 },
                 {
-                    displayName: 'Custom Activity Type ID (Optional)',
+                    displayName: 'Custom Activity Type',
                     name: 'customActivityTypeId',
-                    type: 'string',
+                    type: 'options',
+                    typeOptions: {
+                        loadOptionsMethod: 'getCustomActivityTypes',
+                    },
                     displayOptions: {
                         show: {
                             event: ['publishedCustomActivity'],
                         },
                     },
                     default: '',
-                    description: 'Filter by specific custom activity type ID. Leave empty to monitor all custom activities. Note: This filter is applied after fetching the 50 newest activities to capture all published activities across all leads.',
+                    description: 'Filter by specific custom activity type. Leave empty to monitor all custom activities. Choose from the list, or specify an ID using an <a href="https://docs.n8n.io/code-examples/expressions/">expression</a>.',
                 },
                 {
                     displayName: 'User ID (Optional)',
@@ -211,6 +214,23 @@ class CloseTrigger {
                     }
                     return returnData;
                 },
+                async getCustomActivityTypes() {
+                    const returnData = [];
+                    try {
+                        const activityTypes = await GenericFunctions_1.closeApiRequest.call(this, 'GET', '/custom_activity_type/');
+                        for (const activityType of activityTypes.data) {
+                            returnData.push({
+                                name: activityType.name,
+                                value: activityType.id,
+                            });
+                        }
+                    }
+                    catch (error) {
+                        // If we can't fetch activity types, return empty array
+                        // This ensures the node still works even if there are API issues
+                    }
+                    return returnData;
+                },
             },
         };
     }
@@ -225,6 +245,7 @@ class CloseTrigger {
         if (event === 'newLeadInSmartView') {
             qs.saved_search_id = this.getNodeParameter('smartViewId');
             qs._limit = 1;
+            qs._order_by = '-date_created'; // Order by newest first
             if (startDate) {
                 qs.date_created__gte = startDate;
             }
@@ -239,6 +260,7 @@ class CloseTrigger {
         if (event === 'newLeadInStatus') {
             qs.status_id = this.getNodeParameter('statusId');
             qs._limit = 1;
+            qs._order_by = '-date_created'; // Order by newest first
             if (startDate) {
                 qs.date_created__gte = startDate;
             }
@@ -253,6 +275,7 @@ class CloseTrigger {
         if (event === 'opportunityInNewStatus') {
             const opportunityStatusId = this.getNodeParameter('opportunityStatusId');
             qs._limit = 1;
+            qs._order_by = '-date_updated'; // Order by most recently updated first
             if (startDate) {
                 // For opportunity status changes, we need to monitor when opportunities were last updated
                 // rather than when they were created
@@ -272,6 +295,7 @@ class CloseTrigger {
         if (event === 'newTask') {
             const taskType = this.getNodeParameter('taskType');
             qs._limit = 1;
+            qs._order_by = '-date_created'; // Order by newest first
             if (startDate) {
                 qs.date_created__gte = startDate;
             }
@@ -332,20 +356,27 @@ class CloseTrigger {
                     return activity.status !== 'draft' && activity.date_created;
                 });
                 // Enhance activities with custom activity type names
+                // First, get all custom activity types in a single request for efficiency
+                let customActivityTypes = {};
+                try {
+                    const activityTypesResponse = await GenericFunctions_1.closeApiRequest.call(this, 'GET', '/custom_activity_type/');
+                    if (activityTypesResponse && activityTypesResponse.data) {
+                        for (const activityType of activityTypesResponse.data) {
+                            customActivityTypes[activityType.id] = activityType.name;
+                        }
+                    }
+                }
+                catch (error) {
+                    // If we can't fetch activity types, continue without names
+                }
+                // Now enhance each activity with its type name
                 for (const activity of activities) {
                     if (activity.custom_activity_type_id) {
-                        try {
-                            // Try to fetch the custom activity type definition to get the name
-                            const activityType = await GenericFunctions_1.closeApiRequest.call(this, 'GET', `/custom_activity_type/${activity.custom_activity_type_id}/`);
-                            if (activityType && activityType.name) {
-                                activity.custom_activity_name = activityType.name;
-                            }
-                        }
-                        catch (error) {
-                            // If we can't fetch the activity type name, we'll just continue without it
-                            // This ensures the trigger still works even if there are API issues
-                            activity.custom_activity_name = 'Unknown Activity Type';
-                        }
+                        const activityName = customActivityTypes[activity.custom_activity_type_id];
+                        activity.custom_activity_name = activityName || 'Unknown Activity Type';
+                    }
+                    else {
+                        activity.custom_activity_name = 'Unknown Activity Type';
                     }
                 }
                 responseData = activities;
