@@ -276,21 +276,41 @@ export class CloseTrigger implements INodeType {
 			// Get the previous SmartView state from webhookData
 			const previousLeadIds = new Set((webhookData.previousSmartViewLeads || []) as string[]);
 			
-			// Find leads that are newly in the SmartView (transition detection)
-			// A lead is "newly in SmartView" if:
-			// 1. It's currently in the SmartView AND
-			// 2. It was NOT in the SmartView during the previous poll
-			const newlyEnteredLeads = currentLeadsInSmartView.filter((lead: IDataObject) => {
-				const leadId = lead.id as string;
-				return currentLeadIds.has(leadId) && !previousLeadIds.has(leadId);
-			});
+			// Check if this is the first poll
+			const isFirstPoll = previousLeadIds.size === 0;
+			
+			// Find leads that have genuinely entered the SmartView
+			let newlyEnteredLeads: IDataObject[] = [];
+
+			if (isFirstPoll) {
+				// On first poll, only consider leads as "newly entered" if they were very recently created/updated
+				// This prevents considering all existing leads in the SmartView as "newly entered"
+				const recentThreshold = startDate ? new Date(startDate) : new Date(now.getTime() - (15 * 60 * 1000)); // 15 minutes ago as fallback
+				
+				newlyEnteredLeads = currentLeadsInSmartView.filter((lead: IDataObject) => {
+					const dateCreated = new Date(lead.date_created as string);
+					const dateUpdated = new Date(lead.date_updated as string);
+					
+					// Only consider as "newly entered" if created or updated after the recent threshold
+					return dateCreated > recentThreshold || dateUpdated > recentThreshold;
+				});
+			} else {
+				// For subsequent polls, use proper state transition detection
+				// A lead is "newly in SmartView" if:
+				// 1. It's currently in the SmartView AND
+				// 2. It was NOT in the SmartView during the previous poll
+				newlyEnteredLeads = currentLeadsInSmartView.filter((lead: IDataObject) => {
+					const leadId = lead.id as string;
+					return currentLeadIds.has(leadId) && !previousLeadIds.has(leadId);
+				});
+			}
 
 			// Store current state for next poll comparison
 			webhookData.previousSmartViewLeads = Array.from(currentLeadIds);
 
 			// Additional filtering based on time if this is not the first run
 			let filteredNewLeads = newlyEnteredLeads;
-			if (startDate && newlyEnteredLeads.length > 0) {
+			if (startDate && newlyEnteredLeads.length > 0 && !isFirstPoll) {
 				const lastCheckTime = new Date(startDate);
 				
 				// Further filter to only include leads that were updated/created since last check
@@ -304,23 +324,27 @@ export class CloseTrigger implements INodeType {
 				});
 			}
 
-			// Enhance leads with SmartView information and transition metadata
+			// Only enhance leads with SmartView information if they have truly entered the SmartView
 			for (const lead of filteredNewLeads) {
-				lead.smartViewId = smartViewId;
-				lead.smartViewName = smartViewDefinition.name || 'Unknown SmartView';
-				lead.triggerReason = 'entered_smartview';
-				lead.triggerTimestamp = new Date().toISOString();
-				
-				// Add useful metadata for debugging and workflow context
-				lead.metadata = {
-					transitionType: previousLeadIds.size === 0 ? 'first_poll' : 'state_change',
-					wasInPreviousState: previousLeadIds.has(lead.id as string),
-					isInCurrentState: currentLeadIds.has(lead.id as string),
-					lastPollingCheck: startDate,
-					currentPollingCheck: endDate,
-					totalLeadsInSmartView: currentLeadsInSmartView.length,
-					totalNewlyEnteredLeads: filteredNewLeads.length
-				};
+				// Verify the lead has actually entered the SmartView by checking it's in the current state
+				if (currentLeadIds.has(lead.id as string)) {
+					lead.smartViewId = smartViewId;
+					lead.smartViewName = smartViewDefinition.name || 'Unknown SmartView';
+					lead.triggerReason = 'entered_smartview';
+					lead.triggerTimestamp = new Date().toISOString();
+					
+					// Add useful metadata for debugging and workflow context
+					lead.metadata = {
+						transitionType: isFirstPoll ? 'first_poll' : 'state_change',
+						wasInPreviousState: previousLeadIds.has(lead.id as string),
+						isInCurrentState: currentLeadIds.has(lead.id as string),
+						lastPollingCheck: startDate,
+						currentPollingCheck: endDate,
+						totalLeadsInSmartView: currentLeadsInSmartView.length,
+						totalNewlyEnteredLeads: filteredNewLeads.length,
+						isFirstPoll: isFirstPoll
+					};
+				}
 			}
 
 			// Return only the most recent lead to avoid overwhelming the workflow
