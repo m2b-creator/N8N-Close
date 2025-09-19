@@ -242,7 +242,7 @@ export class CloseTrigger implements INodeType {
 		const smartViewId = this.getNodeParameter('smartViewId') as string;
 
 		try {
-			// First, fetch the SmartView definition to understand its criteria
+			// First, fetch the SmartView definition to get its name
 			let smartViewDefinition: IDataObject;
 			try {
 				smartViewDefinition = await closeApiRequest.call(this, 'GET', `/saved_search/${smartViewId}/`);
@@ -253,26 +253,18 @@ export class CloseTrigger implements INodeType {
 				});
 			}
 
-			// Get recently updated leads to check for potential Smart View entries
-			const leadQs: IDataObject = {
-				_limit: 100,
-				_order_by: '-date_updated',
-			};
-
-			// Only look at leads updated since last check
-			if (startDate) {
-				leadQs.date_updated__gte = startDate;
-			}
-
-			const leadsResponse = await closeApiRequest.call(this, 'GET', '/lead/', {}, leadQs);
-			const recentlyUpdatedLeads = leadsResponse.data || [];
-
-			// Now check which of these leads are currently in the Smart View
+			// Get leads currently in the Smart View, filtered by update time if available
 			const smartViewQs: IDataObject = {
 				_limit: 100,
 				_order_by: '-date_updated',
 			};
 
+			// Only get leads updated since last check to avoid processing unchanged leads
+			if (startDate) {
+				smartViewQs.date_updated__gte = startDate;
+			}
+
+			// Get leads directly from the Smart View with time filtering
 			const smartViewResponse = await closeApiRequest.call(
 				this,
 				'GET',
@@ -281,44 +273,33 @@ export class CloseTrigger implements INodeType {
 				{ ...smartViewQs, saved_search_id: smartViewId }
 			);
 
-			const currentLeadsInSmartView = smartViewResponse.data || [];
-			const smartViewLeadIds = new Set(currentLeadsInSmartView.map((lead: IDataObject) => lead.id as string));
+			const leadsInSmartView = smartViewResponse.data || [];
 
-			// Find leads that are both recently updated AND currently in the Smart View
-			const validLeads = recentlyUpdatedLeads.filter((lead: IDataObject) => {
-				const leadId = lead.id as string;
-				return smartViewLeadIds.has(leadId);
-			});
-
-			// Enhance valid leads with Smart View information
-			for (const lead of validLeads) {
-				// Verify the lead is actually in the Smart View (double-check)
-				if (smartViewLeadIds.has(lead.id as string)) {
-					lead.smartViewId = smartViewId;
-					lead.smartViewName = smartViewDefinition.name || 'Unknown SmartView';
-					lead.triggerReason = 'entered_smartview';
-					lead.triggerTimestamp = new Date().toISOString();
-
-					// Add metadata for debugging
-					lead.metadata = {
-						verificationMethod: 'direct_smartview_check',
-						isInSmartView: true,
-						lastPollingCheck: startDate,
-						currentPollingCheck: endDate,
-						totalLeadsInSmartView: currentLeadsInSmartView.length,
-						totalValidLeads: validLeads.length
-					};
-				}
+			// Enhance each lead with Smart View information since they're all verified to be in the Smart View
+			for (const lead of leadsInSmartView) {
+				lead.smartViewId = smartViewId;
+				lead.smartViewName = smartViewDefinition.name || 'Unknown SmartView';
+				lead.triggerReason = 'entered_smartview';
+				lead.triggerTimestamp = new Date().toISOString();
+				
+				// Add metadata for debugging
+				lead.metadata = {
+					verificationMethod: 'direct_smartview_query',
+					isInSmartView: true,
+					lastPollingCheck: startDate,
+					currentPollingCheck: endDate,
+					totalLeadsFound: leadsInSmartView.length
+				};
 			}
 
-			// Return only the most recent valid lead
-			if (validLeads.length > 0) {
-				validLeads.sort((a: IDataObject, b: IDataObject) => {
+			// Return only the most recent lead if any
+			if (leadsInSmartView.length > 0) {
+				leadsInSmartView.sort((a: IDataObject, b: IDataObject) => {
 					const dateA = new Date(a.date_updated as string);
 					const dateB = new Date(b.date_updated as string);
 					return dateB.getTime() - dateA.getTime();
 				});
-				responseData = [validLeads[0]];
+				responseData = [leadsInSmartView[0]];
 			} else {
 				responseData = [];
 			}
