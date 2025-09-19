@@ -44,7 +44,7 @@ export class CloseTrigger implements INodeType {
 					{
 						name: 'New Lead in SmartView',
 						value: 'newLeadInSmartView',
-						description: 'Triggers when a new lead is added to a specific SmartView',
+						description: 'Triggers when a lead becomes new to a specific SmartView (either newly created or updated to match SmartView criteria)',
 					},
 					{
 						name: 'New Lead in Status',
@@ -84,7 +84,7 @@ export class CloseTrigger implements INodeType {
 				},
 				default: '',
 				required: true,
-				description: 'The SmartView to monitor for new leads. Choose from the list, or specify an ID using an <a href="https://docs.n8n.io/code-examples/expressions/">expression</a>.',
+				description: 'The SmartView to monitor for new leads. Only triggers when leads become new to this SmartView (not on every update). Choose from the list, or specify an ID using an <a href="https://docs.n8n.io/code-examples/expressions/">expression</a>.',
 			},
 			{
 				displayName: 'Status Name ',
@@ -239,16 +239,99 @@ export class CloseTrigger implements INodeType {
 		const endDate = now.toISOString();
 
 		if (event === 'newLeadInSmartView') {
-			qs.saved_search_id = this.getNodeParameter('smartViewId') as string;
-			qs._limit = 1;
-			
-			if (startDate) {
-				qs.date_created__gte = startDate;
-			}
+			const smartViewId = this.getNodeParameter('smartViewId') as string;
 
 			try {
-				const response = await closeApiRequest.call(this, 'GET', '/lead/', {}, qs);
-				responseData = response.data || [];
+				// First, fetch the SmartView definition to understand its criteria
+				let smartViewDefinition: IDataObject;
+				try {
+					smartViewDefinition = await closeApiRequest.call(this, 'GET', `/saved_search/${smartViewId}/`);
+				} catch (error) {
+					throw new NodeApiError(this.getNode(), {
+						message: `Failed to fetch SmartView definition: ${error}`,
+						description: 'Please verify the SmartView ID is correct and accessible.'
+					});
+				}
+
+				// Get leads from the SmartView using the saved search API
+				// This ensures we only get leads that currently match the SmartView criteria
+				const smartViewQs: IDataObject = {
+					_limit: 50, // Get more leads to properly filter for new ones
+					_order_by: '-date_updated', // Order by most recently updated
+				};
+
+				// Use the SmartView query to get leads that match its criteria
+				const smartViewResponse = await closeApiRequest.call(
+					this,
+					'GET',
+					'/lead/',
+					{},
+					{ ...smartViewQs, saved_search_id: smartViewId }
+				);
+
+				let leadsInSmartView = smartViewResponse.data || [];
+
+				// Filter leads based on when they were last checked
+				if (startDate && leadsInSmartView.length > 0) {
+					const lastCheckTime = new Date(startDate);
+
+					// Filter for leads that are genuinely new to the SmartView
+					// A lead is considered "new" to a SmartView if:
+					// 1. It was created after the last check, OR
+					// 2. It was updated after the last check AND now matches SmartView criteria
+					leadsInSmartView = leadsInSmartView.filter((lead: IDataObject) => {
+						const dateCreated = new Date(lead.date_created as string);
+						const dateUpdated = new Date(lead.date_updated as string);
+
+						// Lead is new if created after last check
+						if (dateCreated > lastCheckTime) {
+							return true;
+						}
+
+						// Lead is "new to SmartView" if updated after last check
+						// This covers cases where an existing lead was modified to match SmartView criteria
+						if (dateUpdated > lastCheckTime) {
+							return true;
+						}
+
+						return false;
+					});
+				}
+
+				// Store processed lead IDs to avoid duplicate triggers
+				const processedLeadIds = (webhookData.processedLeadIds as string[]) || [];
+
+				// Filter out already processed leads
+				leadsInSmartView = leadsInSmartView.filter((lead: IDataObject) => {
+					return !processedLeadIds.includes(lead.id as string);
+				});
+
+				// Update processed lead IDs (keep only recent ones to prevent memory bloat)
+				const newProcessedIds = leadsInSmartView.map((lead: IDataObject) => lead.id as string);
+				const allProcessedIds = [...processedLeadIds, ...newProcessedIds];
+
+				// Keep only the last 1000 processed IDs to prevent memory issues
+				webhookData.processedLeadIds = allProcessedIds.slice(-1000);
+
+				// Enhance leads with SmartView information for better debugging and workflow context
+				for (const lead of leadsInSmartView) {
+					lead.smartViewId = smartViewId;
+					lead.smartViewName = smartViewDefinition.name || 'Unknown SmartView';
+					lead.triggerReason = 'new_in_smartview';
+					lead.triggerTimestamp = new Date().toISOString();
+
+					// Add useful metadata for debugging
+					lead.metadata = {
+						wasCreatedAfterLastCheck: startDate ? new Date(lead.date_created as string) > new Date(startDate) : true,
+						wasUpdatedAfterLastCheck: startDate ? new Date(lead.date_updated as string) > new Date(startDate) : true,
+						lastPollingCheck: startDate,
+						currentPollingCheck: endDate
+					};
+				}
+
+				// Return only the most recent lead to avoid overwhelming the workflow
+				responseData = leadsInSmartView.slice(0, 1);
+
 			} catch (error) {
 				throw new NodeApiError(this.getNode(), error as JsonObject);
 			}
