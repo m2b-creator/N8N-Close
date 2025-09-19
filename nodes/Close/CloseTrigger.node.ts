@@ -240,6 +240,7 @@ export class CloseTrigger implements INodeType {
 
 		if (event === 'newLeadInSmartView') {
 			qs.saved_search_id = this.getNodeParameter('smartViewId') as string;
+			qs._limit = 1;
 			
 			if (startDate) {
 				qs.date_created__gte = startDate;
@@ -255,6 +256,7 @@ export class CloseTrigger implements INodeType {
 
 		if (event === 'newLeadInStatus') {
 			qs.status_id = this.getNodeParameter('statusId') as string;
+			qs._limit = 1;
 			
 			if (startDate) {
 				qs.date_created__gte = startDate;
@@ -270,6 +272,7 @@ export class CloseTrigger implements INodeType {
 
 		if (event === 'opportunityInNewStatus') {
 			const opportunityStatusId = this.getNodeParameter('opportunityStatusId') as string;
+			qs._limit = 1;
 			
 			if (startDate) {
 				// For opportunity status changes, we need to monitor when opportunities were last updated
@@ -291,6 +294,7 @@ export class CloseTrigger implements INodeType {
 
 		if (event === 'newTask') {
 			const taskType = this.getNodeParameter('taskType') as string;
+			qs._limit = 1;
 			
 			if (startDate) {
 				qs.date_created__gte = startDate;

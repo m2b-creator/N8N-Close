@@ -83,7 +83,7 @@ export const customActivityFields: INodeProperties[] = [
 		displayOptions: {
 			show: {
 				resource: ['customActivity'],
-				operation: ['getPublished'],
+				operation: ['find'],
 				returnAll: [false],
 			},
 		},

@@ -378,16 +378,52 @@ export class Close implements INodeType {
 
 					if (operation === 'find') {
 						const leadId = this.getNodeParameter('leadId', i) as string;
+						const companyName = this.getNodeParameter('companyName', i) as string;
+						const companyUrl = this.getNodeParameter('companyUrl', i) as string;
+						const email = this.getNodeParameter('email', i) as string;
+						const phone = this.getNodeParameter('phone', i) as string;
+						const statusId = this.getNodeParameter('statusId', i) as string;
+						const returnAll = this.getNodeParameter('returnAll', i);
 
-						if (!leadId) {
-							throw new NodeOperationError(
-								this.getNode(),
-								'Lead ID is required for find operation',
-							);
+						// If Lead ID is provided, get specific lead
+						if (leadId) {
+							responseData = await closeApiRequest.call(this, 'GET', `/lead/${leadId}/`);
+						} else {
+							// Search for leads using query parameters
+							const searchQs: JsonObject = {};
+
+							if (companyName) {
+								searchQs.query = companyName;
+							}
+							if (companyUrl) {
+								searchQs.url = companyUrl;
+							}
+							if (email) {
+								searchQs.email = email;
+							}
+							if (phone) {
+								searchQs.phone = phone;
+							}
+							if (statusId) {
+								searchQs.status_id = statusId;
+							}
+
+							if (returnAll) {
+								responseData = await closeApiRequestAllItems.call(
+									this,
+									'data',
+									'GET',
+									'/lead/',
+									{},
+									searchQs,
+								);
+							} else {
+								const limit = this.getNodeParameter('limit', i);
+								searchQs._limit = limit;
+								responseData = await closeApiRequest.call(this, 'GET', '/lead/', {}, searchQs);
+								responseData = responseData.data;
+							}
 						}
-
-						// For finding a specific lead by ID, we use the specific endpoint
-						responseData = await closeApiRequest.call(this, 'GET', `/lead/${leadId}/`);
 					}
 
 					if (operation === 'merge') {
@@ -617,13 +653,15 @@ export class Close implements INodeType {
 							qs.user_id = assignedTo;
 						}
 						if (additionalFilters.confidence !== undefined) {
-							qs.confidence = additionalFilters.confidence;
+							// Note: Close API doesn't directly support confidence filtering
+							// We'll filter client-side after fetching results
 						}
 						if (additionalFilters.valuePeriod) {
 							qs.value_period = additionalFilters.valuePeriod;
 						}
 						if (additionalFilters.closeDate) {
-							qs.date_won = additionalFilters.closeDate;
+							// For date filtering, use date_won__gte to filter from the specified date
+							qs.date_won__gte = additionalFilters.closeDate;
 						}
 
 						if (returnAll) {
@@ -640,6 +678,13 @@ export class Close implements INodeType {
 							qs._limit = limit;
 							responseData = await closeApiRequest.call(this, 'GET', '/opportunity/', {}, qs);
 							responseData = responseData.data;
+						}
+
+						// Apply client-side confidence filtering if specified
+						if (additionalFilters.confidence !== undefined && Array.isArray(responseData)) {
+							responseData = responseData.filter((opportunity: JsonObject) => 
+								opportunity.confidence === additionalFilters.confidence
+							);
 						}
 					}
 
@@ -1647,6 +1692,7 @@ export class Close implements INodeType {
 							continue;
 						}
 
+						// Use _type=Custom to filter for custom activities
 						qs._type = 'Custom';
 						if (leadId) {
 							qs.lead_id = leadId;
