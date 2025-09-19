@@ -242,7 +242,7 @@ export class CloseTrigger implements INodeType {
 		const smartViewId = this.getNodeParameter('smartViewId') as string;
 
 		try {
-			// First, fetch the SmartView definition to get its name
+			// First, fetch the SmartView definition to get its name and criteria
 			let smartViewDefinition: IDataObject;
 			try {
 				smartViewDefinition = await closeApiRequest.call(this, 'GET', `/saved_search/${smartViewId}/`);
@@ -253,53 +253,97 @@ export class CloseTrigger implements INodeType {
 				});
 			}
 
-			// Get leads currently in the Smart View, filtered by update time if available
+			// Get ALL leads currently in the Smart View (without time filter)
+			// This ensures we get the accurate Smart View membership
 			const smartViewQs: IDataObject = {
-				_limit: 100,
+				_limit: 200,
 				_order_by: '-date_updated',
+				saved_search_id: smartViewId
 			};
 
-			// Only get leads updated since last check to avoid processing unchanged leads
-			if (startDate) {
-				smartViewQs.date_updated__gte = startDate;
-			}
-
-			// Get leads directly from the Smart View with time filtering
 			const smartViewResponse = await closeApiRequest.call(
 				this,
 				'GET',
 				'/lead/',
 				{},
-				{ ...smartViewQs, saved_search_id: smartViewId }
+				smartViewQs
 			);
 
-			const leadsInSmartView = smartViewResponse.data || [];
+			const allSmartViewLeads = smartViewResponse.data || [];
+			
+			// Create a Set of lead IDs that are actually in the Smart View
+			const smartViewLeadIds = new Set(allSmartViewLeads.map((lead: IDataObject) => lead.id as string));
 
-			// Enhance each lead with Smart View information since they're all verified to be in the Smart View
-			for (const lead of leadsInSmartView) {
+			// Now get recently updated leads
+			const recentQs: IDataObject = {
+				_limit: 100,
+				_order_by: '-date_updated'
+			};
+
+			if (startDate) {
+				recentQs.date_updated__gte = startDate;
+			}
+
+			const recentResponse = await closeApiRequest.call(
+				this,
+				'GET',
+				'/lead/',
+				{},
+				recentQs
+			);
+
+			const recentlyUpdatedLeads = recentResponse.data || [];
+
+			// Filter to only include leads that are BOTH recently updated AND actually in the Smart View
+			const validLeads = recentlyUpdatedLeads.filter((lead: IDataObject) => {
+				// Verify the lead is actually in the Smart View
+				if (!smartViewLeadIds.has(lead.id as string)) {
+					return false;
+				}
+
+				// Double-check: For the GmbH? Smart View, verify the custom field
+				// This protects against API inconsistencies
+				const customData = lead.custom as IDataObject;
+				const gmbhValue = customData?.['GmbH?'] ||
+								customData?.cf_SgcT6RCFrnC3WhcDEyAoBohUOMBhq9Z8huZgw946otI;
+				
+				// If this is the GmbH Smart View, only include leads with GmbH? = "Ja"
+				if (smartViewDefinition.name === 'GmbH?' && gmbhValue !== 'Ja') {
+					return false;
+				}
+
+				return true;
+			});
+
+			// Enhance valid leads with Smart View information
+			for (const lead of validLeads) {
 				lead.smartViewId = smartViewId;
 				lead.smartViewName = smartViewDefinition.name || 'Unknown SmartView';
 				lead.triggerReason = 'entered_smartview';
 				lead.triggerTimestamp = new Date().toISOString();
 				
 				// Add metadata for debugging
+				const leadCustomData = lead.custom as IDataObject;
 				lead.metadata = {
-					verificationMethod: 'direct_smartview_query',
+					verificationMethod: 'double_verification',
 					isInSmartView: true,
+					gmbhFieldValue: leadCustomData?.['GmbH?'] || leadCustomData?.cf_SgcT6RCFrnC3WhcDEyAoBohUOMBhq9Z8huZgw946otI || 'not set',
 					lastPollingCheck: startDate,
 					currentPollingCheck: endDate,
-					totalLeadsFound: leadsInSmartView.length
+					totalSmartViewLeads: allSmartViewLeads.length,
+					totalRecentLeads: recentlyUpdatedLeads.length,
+					totalValidLeads: validLeads.length
 				};
 			}
 
-			// Return only the most recent lead if any
-			if (leadsInSmartView.length > 0) {
-				leadsInSmartView.sort((a: IDataObject, b: IDataObject) => {
+			// Return only the most recent valid lead
+			if (validLeads.length > 0) {
+				validLeads.sort((a: IDataObject, b: IDataObject) => {
 					const dateA = new Date(a.date_updated as string);
 					const dateB = new Date(b.date_updated as string);
 					return dateB.getTime() - dateA.getTime();
 				});
-				responseData = [leadsInSmartView[0]];
+				responseData = [validLeads[0]];
 			} else {
 				responseData = [];
 			}
