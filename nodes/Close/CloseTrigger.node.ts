@@ -255,8 +255,8 @@ export class CloseTrigger implements INodeType {
 
 			// Get current leads in the SmartView
 			const smartViewQs: IDataObject = {
-				_limit: 100, // Increase limit to capture more leads for better state tracking
-				_order_by: '-date_updated', // Order by most recently updated
+				_limit: 100,
+				_order_by: '-date_updated',
 			};
 
 			// Use the SmartView query to get leads that currently match its criteria
@@ -276,45 +276,23 @@ export class CloseTrigger implements INodeType {
 			// Get the previous SmartView state from webhookData
 			const previousLeadIds = new Set((webhookData.previousSmartViewLeads || []) as string[]);
 			
-			// Check if this is the first poll
-			const isFirstPoll = previousLeadIds.size === 0;
-			
-			// Find leads that have genuinely entered the SmartView
-			let newlyEnteredLeads: IDataObject[] = [];
-
-			if (isFirstPoll) {
-				// On first poll, only consider leads as "newly entered" if they were very recently created/updated
-				// This prevents considering all existing leads in the SmartView as "newly entered"
-				const recentThreshold = startDate ? new Date(startDate) : new Date(now.getTime() - (15 * 60 * 1000)); // 15 minutes ago as fallback
-				
-				newlyEnteredLeads = currentLeadsInSmartView.filter((lead: IDataObject) => {
-					const dateCreated = new Date(lead.date_created as string);
-					const dateUpdated = new Date(lead.date_updated as string);
-					
-					// Only consider as "newly entered" if created or updated after the recent threshold
-					return dateCreated > recentThreshold || dateUpdated > recentThreshold;
-				});
-			} else {
-				// For subsequent polls, use proper state transition detection
-				// A lead is "newly in SmartView" if:
-				// 1. It's currently in the SmartView AND
-				// 2. It was NOT in the SmartView during the previous poll
-				newlyEnteredLeads = currentLeadsInSmartView.filter((lead: IDataObject) => {
-					const leadId = lead.id as string;
-					return currentLeadIds.has(leadId) && !previousLeadIds.has(leadId);
-				});
-			}
+			// Find leads that have entered the SmartView (transition detection)
+			// A lead is "newly in SmartView" if:
+			// 1. It's currently in the SmartView AND
+			// 2. It was NOT in the SmartView during the previous poll
+			const newlyEnteredLeads = currentLeadsInSmartView.filter((lead: IDataObject) => {
+				const leadId = lead.id as string;
+				return currentLeadIds.has(leadId) && !previousLeadIds.has(leadId);
+			});
 
 			// Store current state for next poll comparison
 			webhookData.previousSmartViewLeads = Array.from(currentLeadIds);
 
-			// Additional filtering based on time if this is not the first run
+			// Filter by time if we have a start date
 			let filteredNewLeads = newlyEnteredLeads;
-			if (startDate && newlyEnteredLeads.length > 0 && !isFirstPoll) {
+			if (startDate && newlyEnteredLeads.length > 0) {
 				const lastCheckTime = new Date(startDate);
 				
-				// Further filter to only include leads that were updated/created since last check
-				// This helps ensure we don't miss leads that entered the SmartView due to recent changes
 				filteredNewLeads = newlyEnteredLeads.filter((lead: IDataObject) => {
 					const dateCreated = new Date(lead.date_created as string);
 					const dateUpdated = new Date(lead.date_updated as string);
@@ -324,31 +302,28 @@ export class CloseTrigger implements INodeType {
 				});
 			}
 
-			// Only enhance leads with SmartView information if they have truly entered the SmartView
+			// Only set trigger information for leads that are actually in the SmartView
 			for (const lead of filteredNewLeads) {
-				// Verify the lead has actually entered the SmartView by checking it's in the current state
+				// Double-check: only trigger if lead is actually in the current SmartView
 				if (currentLeadIds.has(lead.id as string)) {
 					lead.smartViewId = smartViewId;
 					lead.smartViewName = smartViewDefinition.name || 'Unknown SmartView';
 					lead.triggerReason = 'entered_smartview';
 					lead.triggerTimestamp = new Date().toISOString();
 					
-					// Add useful metadata for debugging and workflow context
+					// Add metadata for debugging
 					lead.metadata = {
-						transitionType: isFirstPoll ? 'first_poll' : 'state_change',
 						wasInPreviousState: previousLeadIds.has(lead.id as string),
 						isInCurrentState: currentLeadIds.has(lead.id as string),
 						lastPollingCheck: startDate,
 						currentPollingCheck: endDate,
 						totalLeadsInSmartView: currentLeadsInSmartView.length,
-						totalNewlyEnteredLeads: filteredNewLeads.length,
-						isFirstPoll: isFirstPoll
+						totalNewlyEnteredLeads: filteredNewLeads.length
 					};
 				}
 			}
 
-			// Return only the most recent lead to avoid overwhelming the workflow
-			// Sort by date_updated to get the most recently changed lead
+			// Return only the most recent lead
 			if (filteredNewLeads.length > 0) {
 				filteredNewLeads.sort((a: IDataObject, b: IDataObject) => {
 					const dateA = new Date(a.date_updated as string);
@@ -386,8 +361,6 @@ export class CloseTrigger implements INodeType {
 		qs._limit = 1;
 		
 		if (startDate) {
-			// For opportunity status changes, we need to monitor when opportunities were last updated
-			// rather than when they were created
 			qs.date_updated__gte = startDate;
 		}
 
@@ -411,13 +384,11 @@ export class CloseTrigger implements INodeType {
 			qs.date_created__gte = startDate;
 		}
 
-		// Filter by task completion status based on taskType
 		if (taskType === 'new') {
 			qs.is_complete = false;
 		} else if (taskType === 'completed') {
 			qs.is_complete = true;
 		}
-		// For 'all', we don't add the is_complete filter
 
 		try {
 			const response = await closeApiRequest.call(this, 'GET', '/task/', {}, qs);
@@ -432,31 +403,17 @@ export class CloseTrigger implements INodeType {
 			qs.date_created__gte = startDate;
 		}
 
-		// Get optional filter parameters
 		const customActivityTypeId = this.getNodeParameter('customActivityTypeId') as string;
 		const userId = this.getNodeParameter('userId') as string;
 		const contactId = this.getNodeParameter('contactId') as string;
 
-		// Note: Close CRM API requires lead_id when filtering by custom_activity_type_id
-		// To capture activities from ALL leads, we fetch all activities and filter client-side
-		
-		// Only add user_id and contact_id filters if they don't require lead_id
-		// According to Close API docs, user_id and contact_id filters require lead_id too
-		// So we'll fetch all activities and filter client-side for maximum compatibility
-
-		// Order by creation date to get newest activities first
 		qs._order_by = '-date_created';
-		
-		// Set a reasonable limit to optimize performance while ensuring we don't miss activities
-		// This balances between API efficiency and completeness
-		// 50 activities should be sufficient for most polling intervals
 		qs._limit = 1;
 
 		try {
 			const response = await closeApiRequest.call(this, 'GET', '/activity/custom/', {}, qs);
 			let activities = response.data || [];
 
-			// Apply client-side filtering to overcome API limitations
 			if (customActivityTypeId) {
 				activities = activities.filter((activity: IDataObject) => 
 					activity.custom_activity_type_id === customActivityTypeId
@@ -475,20 +432,13 @@ export class CloseTrigger implements INodeType {
 				);
 			}
 
-			// Filter for published activities only
-			// Published activities should have a status of 'published' or be completed
 			activities = activities.filter((activity: IDataObject) => {
-				// Check if activity is published/completed
-				// Close CRM custom activities are considered "published" when they're created and visible
-				// We filter out any activities that might be in draft state
 				return activity.status !== 'draft' && activity.date_created;
 			});
 
-			// Enhance activities with custom activity type names
 			for (const activity of activities) {
 				if (activity.custom_activity_type_id) {
 					try {
-						// Try to fetch the custom activity type definition to get the name
 						const activityType = await closeApiRequest.call(
 							this, 
 							'GET', 
@@ -498,8 +448,6 @@ export class CloseTrigger implements INodeType {
 							activity.custom_activity_name = activityType.name;
 						}
 					} catch (error) {
-						// If we can't fetch the activity type name, we'll just continue without it
-						// This ensures the trigger still works even if there are API issues
 						activity.custom_activity_name = 'Unknown Activity Type';
 					}
 				}
