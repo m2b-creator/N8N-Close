@@ -253,13 +253,26 @@ export class CloseTrigger implements INodeType {
 				});
 			}
 
-			// Get current leads in the SmartView
+			// Get recently updated leads to check for potential Smart View entries
+			const leadQs: IDataObject = {
+				_limit: 100,
+				_order_by: '-date_updated',
+			};
+
+			// Only look at leads updated since last check
+			if (startDate) {
+				leadQs.date_updated__gte = startDate;
+			}
+
+			const leadsResponse = await closeApiRequest.call(this, 'GET', '/lead/', {}, leadQs);
+			const recentlyUpdatedLeads = leadsResponse.data || [];
+
+			// Now check which of these leads are currently in the Smart View
 			const smartViewQs: IDataObject = {
 				_limit: 100,
 				_order_by: '-date_updated',
 			};
 
-			// Use the SmartView query to get leads that currently match its criteria
 			const smartViewResponse = await closeApiRequest.call(
 				this,
 				'GET',
@@ -269,68 +282,43 @@ export class CloseTrigger implements INodeType {
 			);
 
 			const currentLeadsInSmartView = smartViewResponse.data || [];
-			
-			// Create a Set of current lead IDs for efficient lookup
-			const currentLeadIds = new Set(currentLeadsInSmartView.map((lead: IDataObject) => lead.id as string));
-			
-			// Get the previous SmartView state from webhookData
-			const previousLeadIds = new Set((webhookData.previousSmartViewLeads || []) as string[]);
-			
-			// Find leads that have entered the SmartView (transition detection)
-			// A lead is "newly in SmartView" if:
-			// 1. It's currently in the SmartView AND
-			// 2. It was NOT in the SmartView during the previous poll
-			const newlyEnteredLeads = currentLeadsInSmartView.filter((lead: IDataObject) => {
+			const smartViewLeadIds = new Set(currentLeadsInSmartView.map((lead: IDataObject) => lead.id as string));
+
+			// Find leads that are both recently updated AND currently in the Smart View
+			const validLeads = recentlyUpdatedLeads.filter((lead: IDataObject) => {
 				const leadId = lead.id as string;
-				return currentLeadIds.has(leadId) && !previousLeadIds.has(leadId);
+				return smartViewLeadIds.has(leadId);
 			});
 
-			// Store current state for next poll comparison
-			webhookData.previousSmartViewLeads = Array.from(currentLeadIds);
-
-			// Filter by time if we have a start date
-			let filteredNewLeads = newlyEnteredLeads;
-			if (startDate && newlyEnteredLeads.length > 0) {
-				const lastCheckTime = new Date(startDate);
-				
-				filteredNewLeads = newlyEnteredLeads.filter((lead: IDataObject) => {
-					const dateCreated = new Date(lead.date_created as string);
-					const dateUpdated = new Date(lead.date_updated as string);
-					
-					// Include lead if it was created or updated since last check
-					return dateCreated > lastCheckTime || dateUpdated > lastCheckTime;
-				});
-			}
-
-			// Only set trigger information for leads that are actually in the SmartView
-			for (const lead of filteredNewLeads) {
-				// Double-check: only trigger if lead is actually in the current SmartView
-				if (currentLeadIds.has(lead.id as string)) {
+			// Enhance valid leads with Smart View information
+			for (const lead of validLeads) {
+				// Verify the lead is actually in the Smart View (double-check)
+				if (smartViewLeadIds.has(lead.id as string)) {
 					lead.smartViewId = smartViewId;
 					lead.smartViewName = smartViewDefinition.name || 'Unknown SmartView';
 					lead.triggerReason = 'entered_smartview';
 					lead.triggerTimestamp = new Date().toISOString();
-					
+
 					// Add metadata for debugging
 					lead.metadata = {
-						wasInPreviousState: previousLeadIds.has(lead.id as string),
-						isInCurrentState: currentLeadIds.has(lead.id as string),
+						verificationMethod: 'direct_smartview_check',
+						isInSmartView: true,
 						lastPollingCheck: startDate,
 						currentPollingCheck: endDate,
 						totalLeadsInSmartView: currentLeadsInSmartView.length,
-						totalNewlyEnteredLeads: filteredNewLeads.length
+						totalValidLeads: validLeads.length
 					};
 				}
 			}
 
-			// Return only the most recent lead
-			if (filteredNewLeads.length > 0) {
-				filteredNewLeads.sort((a: IDataObject, b: IDataObject) => {
+			// Return only the most recent valid lead
+			if (validLeads.length > 0) {
+				validLeads.sort((a: IDataObject, b: IDataObject) => {
 					const dateA = new Date(a.date_updated as string);
 					const dateB = new Date(b.date_updated as string);
 					return dateB.getTime() - dateA.getTime();
 				});
-				responseData = [filteredNewLeads[0]];
+				responseData = [validLeads[0]];
 			} else {
 				responseData = [];
 			}
