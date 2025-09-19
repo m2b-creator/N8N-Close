@@ -84,7 +84,7 @@ export const leadFields: INodeProperties[] = [
 				description: 'The description of the lead',
 			},
 			{
-				displayName: 'Status Name or ID',
+				displayName: 'Status Name ',
 				name: 'statusId',
 				type: 'options',
 				typeOptions: {
@@ -233,7 +233,7 @@ export const leadFields: INodeProperties[] = [
 				displayName: 'Custom Field',
 				values: [
 					{
-						displayName: 'Field Name or ID',
+						displayName: 'Field Name ',
 						name: 'fieldId',
 						type: 'options',
 						typeOptions: {
@@ -390,7 +390,7 @@ export const leadFields: INodeProperties[] = [
 		description: 'Search for leads by contact phone number',
 	},
 	{
-		displayName: 'Status Name or ID',
+		displayName: 'Status Name ',
 		name: 'statusId',
 		type: 'options',
 		typeOptions: {
@@ -479,7 +479,7 @@ export const leadFields: INodeProperties[] = [
 				description: 'The description of the lead',
 			},
 			{
-				displayName: 'Status Name or ID',
+				displayName: 'Status Name ',
 				name: 'statusId',
 				type: 'options',
 				typeOptions: {
@@ -519,7 +519,7 @@ export const leadFields: INodeProperties[] = [
 				displayName: 'Custom Field',
 				values: [
 					{
-						displayName: 'Field Name or ID',
+						displayName: 'Field Name ',
 						name: 'fieldId',
 						type: 'options',
 						typeOptions: {

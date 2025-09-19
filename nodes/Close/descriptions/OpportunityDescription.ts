@@ -71,7 +71,7 @@ export const opportunityFields: INodeProperties[] = [
 		},
 		options: [
 			{
-				displayName: 'Status Name or ID',
+				displayName: 'Status Name ',
 				name: 'statusId',
 				type: 'options',
 				typeOptions: {
@@ -179,7 +179,7 @@ export const opportunityFields: INodeProperties[] = [
 		description: 'Filter opportunities by lead ID',
 	},
 	{
-		displayName: 'Status Name or ID',
+		displayName: 'Status Name ',
 		name: 'statusId',
 		type: 'options',
 		typeOptions: {
@@ -327,7 +327,7 @@ export const opportunityFields: INodeProperties[] = [
 		},
 		options: [
 			{
-				displayName: 'Status Name or ID',
+				displayName: 'Status Name ',
 				name: 'statusId',
 				type: 'options',
 				typeOptions: {

@@ -71,7 +71,7 @@ export class CloseTrigger implements INodeType {
 				required: true,
 			},
 			{
-				displayName: 'Smart View Name or ID',
+				displayName: 'Smart View Name ',
 				name: 'smartViewId',
 				type: 'options',
 				typeOptions: {
@@ -87,7 +87,7 @@ export class CloseTrigger implements INodeType {
 				description: 'The SmartView to monitor for new leads. Choose from the list, or specify an ID using an <a href="https://docs.n8n.io/code-examples/expressions/">expression</a>.',
 			},
 			{
-				displayName: 'Status Name or ID',
+				displayName: 'Status Name ',
 				name: 'statusId',
 				type: 'options',
 				typeOptions: {
@@ -103,7 +103,7 @@ export class CloseTrigger implements INodeType {
 				description: 'The status to monitor for new leads. Choose from the list, or specify an ID using an <a href="https://docs.n8n.io/code-examples/expressions/">expression</a>.',
 			},
 			{
-				displayName: 'Opportunity Status Name or ID',
+				displayName: 'Opportunity Status Name ',
 				name: 'opportunityStatusId',
 				type: 'options',
 				typeOptions: {
