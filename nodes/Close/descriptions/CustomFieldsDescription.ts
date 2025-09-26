@@ -106,10 +106,6 @@ export const customFieldsCreateSections: INodeProperties[] = [
 								fieldType: [
 									'choice_single',
 									'choice_multiple',
-									'text',
-									'number',
-									'date',
-									'datetime',
 									'user_single',
 									'user_multiple',
 									'contact_single',
