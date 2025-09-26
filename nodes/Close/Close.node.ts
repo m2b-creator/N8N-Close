@@ -326,14 +326,13 @@ export class Close implements INodeType {
 				return customFieldsLoadMethods.filterFieldsByType(fields, 'contact', true);
 			},
 
-			async getFieldChoices(this: ILoadOptionsFunctions): Promise<INodePropertyOptions[]> {
-				const fieldId = this.getCurrentNodeParameter('fieldId') as string;
-				if (!fieldId) {
-					return [];
-				}
+			// New dynamic method for field type filtering
+			async getFieldsByType(this: ILoadOptionsFunctions): Promise<INodePropertyOptions[]> {
+				return customFieldsLoadMethods.getFieldsByType(this);
+			},
 
-				const fields = await customFieldsLoadMethods.getCachedCustomFields(this);
-				return customFieldsLoadMethods.getChoicesForField(fields, fieldId);
+			async getFieldChoices(this: ILoadOptionsFunctions): Promise<INodePropertyOptions[]> {
+				return customFieldsLoadMethods.getFieldChoices(this);
 			},
 
 			async getCachedUsers(this: ILoadOptionsFunctions): Promise<INodePropertyOptions[]> {
@@ -466,35 +465,15 @@ export class Close implements INodeType {
 							}
 						}
 
-						// Add new type-specific custom fields
+						// Add custom fields
 						try {
-							const allCustomFieldsData: { [key: string]: any } = {};
+							// Collect custom fields data from the new dynamic structure
+							const customFieldsData = this.getNodeParameter('customFields', i, {}) as any;
 
-							// Collect all custom field section data
-							const customFieldSections = [
-								'singleChoiceFields',
-								'multipleChoiceFields',
-								'textFields',
-								'numberFields',
-								'dateFields',
-								'datetimeFields',
-								'singleUserFields',
-								'multipleUserFields',
-								'singleContactFields',
-								'multipleContactFields',
-							];
-
-							for (const section of customFieldSections) {
-								const sectionData = this.getNodeParameter(section, i, {}) as any;
-								if (sectionData && Object.keys(sectionData).length > 0) {
-									allCustomFieldsData[section] = sectionData;
-								}
-							}
-
-							// If we have new format custom fields, process them
-							if (Object.keys(allCustomFieldsData).length > 0) {
+							// If we have custom fields, process them
+							if (customFieldsData && customFieldsData.customFieldsValues && customFieldsData.customFieldsValues.length > 0) {
 								const fields = await customFieldsLoadMethods.getCachedCustomFields(this);
-								const customFieldsPayload = constructCustomFieldsPayload(allCustomFieldsData, fields);
+								const customFieldsPayload = constructCustomFieldsPayload({ customFields: customFieldsData }, fields);
 
 								// Merge the custom fields payload into the body
 								Object.assign(body, customFieldsPayload);
@@ -641,35 +620,15 @@ export class Close implements INodeType {
 							}
 						}
 
-						// Add new type-specific custom fields
+						// Add custom fields
 						try {
-							const allCustomFieldsData: { [key: string]: any } = {};
+							// Collect custom fields data from the new dynamic structure
+							const customFieldsData = this.getNodeParameter('customFields', i, {}) as any;
 
-							// Collect all custom field section data
-							const customFieldSections = [
-								'singleChoiceFields',
-								'multipleChoiceFields',
-								'textFields',
-								'numberFields',
-								'dateFields',
-								'datetimeFields',
-								'singleUserFields',
-								'multipleUserFields',
-								'singleContactFields',
-								'multipleContactFields',
-							];
-
-							for (const section of customFieldSections) {
-								const sectionData = this.getNodeParameter(section, i, {}) as any;
-								if (sectionData && Object.keys(sectionData).length > 0) {
-									allCustomFieldsData[section] = sectionData;
-								}
-							}
-
-							// If we have new format custom fields, process them
-							if (Object.keys(allCustomFieldsData).length > 0) {
+							// If we have custom fields, process them
+							if (customFieldsData && customFieldsData.customFieldsValues && customFieldsData.customFieldsValues.length > 0) {
 								const fields = await customFieldsLoadMethods.getCachedCustomFields(this);
-								const customFieldsPayload = constructCustomFieldsPayload(allCustomFieldsData, fields);
+								const customFieldsPayload = constructCustomFieldsPayload({ customFields: customFieldsData }, fields);
 
 								// Merge the custom fields payload into the body
 								Object.assign(body, customFieldsPayload);
