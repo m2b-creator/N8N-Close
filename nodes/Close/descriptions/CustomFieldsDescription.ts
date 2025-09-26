@@ -88,7 +88,7 @@ export const customFieldsCreateSections: INodeProperties[] = [
 							{ name: 'Contact (Single)', value: 'contact_single' },
 							{ name: 'Contact (Multiple)', value: 'contact_multiple' },
 						],
-						default: 'choice_single',
+						default: '',
 						description: 'Select the type of custom field',
 					},
 					{
@@ -115,9 +115,6 @@ export const customFieldsCreateSections: INodeProperties[] = [
 									'contact_single',
 									'contact_multiple',
 								],
-							},
-							hide: {
-								fieldType: [''],
 							},
 						},
 					},
