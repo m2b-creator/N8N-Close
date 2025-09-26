@@ -460,7 +460,7 @@ export class CloseTrigger implements INodeType {
 						if (activityType && activityType.name) {
 							activity.custom_activity_name = activityType.name;
 						}
-					} catch (error) {
+					} catch {
 						activity.custom_activity_name = 'Unknown Activity Type';
 					}
 				}

@@ -41,6 +41,13 @@ import {
 	customActivityOperations,
 } from './descriptions/CustomActivityDescription';
 
+import {
+	customFieldsCreateSections,
+	customFieldsUpdateSections,
+	customFieldsLoadMethods,
+	constructCustomFieldsPayload,
+} from './descriptions/CustomFieldsDescription';
+
 export class Close implements INodeType {
 	description: INodeTypeDescription = {
 		displayName: 'Close CRM',
@@ -137,6 +144,8 @@ export class Close implements INodeType {
 			...smsFields,
 			...customActivityOperations,
 			...customActivityFields,
+			...customFieldsCreateSections,
+			...customFieldsUpdateSections,
 		],
 	};
 
@@ -265,6 +274,71 @@ export class Close implements INodeType {
 				}
 				return returnData;
 			},
+
+			// New Custom Fields Load Methods
+			async getSingleChoiceFields(this: ILoadOptionsFunctions): Promise<INodePropertyOptions[]> {
+				const fields = await customFieldsLoadMethods.getCachedCustomFields(this);
+				return customFieldsLoadMethods.filterFieldsByType(fields, 'choices', false);
+			},
+
+			async getMultipleChoiceFields(this: ILoadOptionsFunctions): Promise<INodePropertyOptions[]> {
+				const fields = await customFieldsLoadMethods.getCachedCustomFields(this);
+				return customFieldsLoadMethods.filterFieldsByType(fields, 'choices', true);
+			},
+
+			async getTextFields(this: ILoadOptionsFunctions): Promise<INodePropertyOptions[]> {
+				const fields = await customFieldsLoadMethods.getCachedCustomFields(this);
+				return customFieldsLoadMethods.filterFieldsByType(fields, 'text');
+			},
+
+			async getNumberFields(this: ILoadOptionsFunctions): Promise<INodePropertyOptions[]> {
+				const fields = await customFieldsLoadMethods.getCachedCustomFields(this);
+				return customFieldsLoadMethods.filterFieldsByType(fields, 'number');
+			},
+
+			async getDateFields(this: ILoadOptionsFunctions): Promise<INodePropertyOptions[]> {
+				const fields = await customFieldsLoadMethods.getCachedCustomFields(this);
+				return customFieldsLoadMethods.filterFieldsByType(fields, 'date');
+			},
+
+			async getDateTimeFields(this: ILoadOptionsFunctions): Promise<INodePropertyOptions[]> {
+				const fields = await customFieldsLoadMethods.getCachedCustomFields(this);
+				return customFieldsLoadMethods.filterFieldsByType(fields, 'datetime');
+			},
+
+			async getSingleUserFields(this: ILoadOptionsFunctions): Promise<INodePropertyOptions[]> {
+				const fields = await customFieldsLoadMethods.getCachedCustomFields(this);
+				return customFieldsLoadMethods.filterFieldsByType(fields, 'user', false);
+			},
+
+			async getMultipleUserFields(this: ILoadOptionsFunctions): Promise<INodePropertyOptions[]> {
+				const fields = await customFieldsLoadMethods.getCachedCustomFields(this);
+				return customFieldsLoadMethods.filterFieldsByType(fields, 'user', true);
+			},
+
+			async getSingleContactFields(this: ILoadOptionsFunctions): Promise<INodePropertyOptions[]> {
+				const fields = await customFieldsLoadMethods.getCachedCustomFields(this);
+				return customFieldsLoadMethods.filterFieldsByType(fields, 'contact', false);
+			},
+
+			async getMultipleContactFields(this: ILoadOptionsFunctions): Promise<INodePropertyOptions[]> {
+				const fields = await customFieldsLoadMethods.getCachedCustomFields(this);
+				return customFieldsLoadMethods.filterFieldsByType(fields, 'contact', true);
+			},
+
+			async getFieldChoices(this: ILoadOptionsFunctions): Promise<INodePropertyOptions[]> {
+				const fieldId = this.getCurrentNodeParameter('fieldId') as string;
+				if (!fieldId) {
+					return [];
+				}
+
+				const fields = await customFieldsLoadMethods.getCachedCustomFields(this);
+				return customFieldsLoadMethods.getChoicesForField(fields, fieldId);
+			},
+
+			async getCachedUsers(this: ILoadOptionsFunctions): Promise<INodePropertyOptions[]> {
+				return customFieldsLoadMethods.getCachedUsers(this);
+			},
 		},
 	};
 
@@ -370,7 +444,7 @@ export class Close implements INodeType {
 							body.addresses = addressesArray;
 						}
 
-						// Add custom fields if provided
+						// Add custom fields if provided (backwards compatibility)
 						const customFields = this.getNodeParameter('customFieldsUi', i, {}) as {
 							customFieldsValues?: Array<{
 								fieldId: string;
@@ -390,6 +464,44 @@ export class Close implements INodeType {
 									body[`custom.${actualFieldId}`] = value;
 								}
 							}
+						}
+
+						// Add new type-specific custom fields
+						try {
+							const allCustomFieldsData: { [key: string]: any } = {};
+
+							// Collect all custom field section data
+							const customFieldSections = [
+								'singleChoiceFields',
+								'multipleChoiceFields',
+								'textFields',
+								'numberFields',
+								'dateFields',
+								'datetimeFields',
+								'singleUserFields',
+								'multipleUserFields',
+								'singleContactFields',
+								'multipleContactFields',
+							];
+
+							for (const section of customFieldSections) {
+								const sectionData = this.getNodeParameter(section, i, {}) as any;
+								if (sectionData && Object.keys(sectionData).length > 0) {
+									allCustomFieldsData[section] = sectionData;
+								}
+							}
+
+							// If we have new format custom fields, process them
+							if (Object.keys(allCustomFieldsData).length > 0) {
+								const fields = await customFieldsLoadMethods.getCachedCustomFields(this);
+								const customFieldsPayload = constructCustomFieldsPayload(allCustomFieldsData, fields);
+
+								// Merge the custom fields payload into the body
+								Object.assign(body, customFieldsPayload);
+							}
+						} catch (error) {
+							console.error('Error processing new custom fields format:', error);
+							// Continue with execution - don't fail the entire operation
 						}
 
 						responseData = await closeApiRequest.call(this, 'POST', '/lead/', body);
@@ -507,6 +619,7 @@ export class Close implements INodeType {
 							body.url = updateFields.url;
 						}
 
+						// Add custom fields if provided (backwards compatibility)
 						const customFields = this.getNodeParameter('customFieldsUi', i, {}) as {
 							customFieldsValues?: Array<{
 								fieldId: string;
@@ -526,6 +639,44 @@ export class Close implements INodeType {
 									body[`custom.${actualFieldId}`] = value;
 								}
 							}
+						}
+
+						// Add new type-specific custom fields
+						try {
+							const allCustomFieldsData: { [key: string]: any } = {};
+
+							// Collect all custom field section data
+							const customFieldSections = [
+								'singleChoiceFields',
+								'multipleChoiceFields',
+								'textFields',
+								'numberFields',
+								'dateFields',
+								'datetimeFields',
+								'singleUserFields',
+								'multipleUserFields',
+								'singleContactFields',
+								'multipleContactFields',
+							];
+
+							for (const section of customFieldSections) {
+								const sectionData = this.getNodeParameter(section, i, {}) as any;
+								if (sectionData && Object.keys(sectionData).length > 0) {
+									allCustomFieldsData[section] = sectionData;
+								}
+							}
+
+							// If we have new format custom fields, process them
+							if (Object.keys(allCustomFieldsData).length > 0) {
+								const fields = await customFieldsLoadMethods.getCachedCustomFields(this);
+								const customFieldsPayload = constructCustomFieldsPayload(allCustomFieldsData, fields);
+
+								// Merge the custom fields payload into the body
+								Object.assign(body, customFieldsPayload);
+							}
+						} catch (error) {
+							console.error('Error processing new custom fields format:', error);
+							// Continue with execution - don't fail the entire operation
 						}
 
 						responseData = await closeApiRequest.call(this, 'PUT', `/lead/${leadId}/`, body);
