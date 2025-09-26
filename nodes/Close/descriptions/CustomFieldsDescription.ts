@@ -1,6 +1,6 @@
 import type { INodeProperties, INodePropertyOptions } from 'n8n-workflow';
 
-import { closeApiRequest } from '../GenericFunctions';
+import { closeApiRequest, closeApiRequestAllItems } from '../GenericFunctions';
 
 /**
  * Cache for storing custom field definitions with workspace isolation
@@ -46,6 +46,37 @@ function getWorkspaceId(context: any): string {
  */
 function isCacheValid(timestamp: number, ttl: number): boolean {
 	return Date.now() - timestamp < ttl;
+}
+
+/**
+ * Normalize various possible Close API responses into an array of CustomField items
+ * Supports shapes like: { data: [...] }, [ { data: [...], has_more: false } ], or an array of fields
+ */
+function normalizeCustomFieldsResponse(raw: any): CustomField[] {
+	if (!raw) return [];
+
+	// If already an array of fields
+	if (Array.isArray(raw)) {
+		if (raw.length === 0) return [];
+		// Some wrappers return an array of objects with a .data array inside
+		if (raw[0] && Array.isArray((raw[0] as any).data)) {
+			return (raw as any[]).flatMap((entry: any) => Array.isArray(entry.data) ? entry.data : []);
+		}
+		// Assume it's already the list of fields
+		return raw as CustomField[];
+	}
+
+	// Object with data property
+	if ((raw as any).data && Array.isArray((raw as any).data)) {
+		return (raw as any).data as CustomField[];
+	}
+
+	// Single field object fallback
+	if ((raw as any).id && (raw as any).type) {
+		return [raw as CustomField];
+	}
+
+	return [];
 }
 
 /**
@@ -190,7 +221,7 @@ export const customFieldsCreateSections: INodeProperties[] = [
 								name: 'fieldId',
 								type: 'options',
 								typeOptions: {
-									loadOptionsMethod: 'getChoiceSingleFields',
+									loadOptionsMethod: 'getSingleChoiceFields',
 								},
 								default: '',
 								description: 'Select the choice field',
@@ -234,7 +265,8 @@ export const customFieldsCreateSections: INodeProperties[] = [
 								name: 'fieldId',
 								type: 'options',
 								typeOptions: {
-									loadOptionsMethod: 'getChoiceMultipleFields',
+									loadOptionsMethod: 'getMultipleChoiceFields',
+									loadOptionsDependsOn: ['fieldId'],
 								},
 								default: '',
 								description: 'Select the choice field',
@@ -278,7 +310,7 @@ export const customFieldsCreateSections: INodeProperties[] = [
 								name: 'fieldId',
 								type: 'options',
 								typeOptions: {
-									loadOptionsMethod: 'getUserSingleFields',
+									loadOptionsMethod: 'getSingleUserFields',
 								},
 								default: '',
 								description: 'Select the user field',
@@ -316,7 +348,7 @@ export const customFieldsCreateSections: INodeProperties[] = [
 								name: 'fieldId',
 								type: 'options',
 								typeOptions: {
-									loadOptionsMethod: 'getUserMultipleFields',
+									loadOptionsMethod: 'getMultipleUserFields',
 								},
 								default: '',
 								description: 'Select the user field',
@@ -354,7 +386,7 @@ export const customFieldsCreateSections: INodeProperties[] = [
 								name: 'fieldId',
 								type: 'options',
 								typeOptions: {
-									loadOptionsMethod: 'getContactSingleFields',
+									loadOptionsMethod: 'getSingleContactFields',
 								},
 								default: '',
 								description: 'Select the contact field',
@@ -390,7 +422,7 @@ export const customFieldsCreateSections: INodeProperties[] = [
 								name: 'fieldId',
 								type: 'options',
 								typeOptions: {
-									loadOptionsMethod: 'getContactMultipleFields',
+									loadOptionsMethod: 'getMultipleContactFields',
 								},
 								default: '',
 								description: 'Select the contact field',
@@ -409,7 +441,7 @@ export const customFieldsCreateSections: INodeProperties[] = [
 			},
 		],
 	},
-];;
+];
 
 /**
  * Custom Fields UI sections for Update operation (same structure as create)
@@ -440,9 +472,15 @@ export const customFieldsLoadMethods = {
 		}
 
 		try {
-			// Use the existing Close API request function for consistency
-			const fields = await closeApiRequest.call(context, 'GET', '/custom_field/lead/');
-			const fieldsData = fields.data || fields;
+			// Prefer the all-items helper to flatten pagination and match JSON shapes
+			let fieldsData: CustomField[] = [];
+			try {
+				fieldsData = await (closeApiRequestAllItems as any).call(context, 'data', 'GET', '/custom_field/lead/');
+			} catch {
+				// Fallback to single request and normalization
+				const raw = await (closeApiRequest as any).call(context, 'GET', '/custom_field/lead/');
+				fieldsData = normalizeCustomFieldsResponse(raw);
+			}
 
 			if (!Array.isArray(fieldsData)) {
 				console.error('Unexpected custom fields response format:', fieldsData);
@@ -475,10 +513,10 @@ export const customFieldsLoadMethods = {
 
 		try {
 			// Use the existing Close API request function for consistency
-			const users = await closeApiRequest.call(context, 'GET', '/user/');
-			const usersData = users.data || [];
+			const users = await (closeApiRequest as any).call(context, 'GET', '/user/');
+			const usersData = (users && Array.isArray(users.data)) ? users.data : normalizeCustomFieldsResponse(users);
 
-			const userOptions: INodePropertyOptions[] = usersData.map((user: any) => ({
+			const userOptions: INodePropertyOptions[] = (usersData as any[]).map((user: any) => ({
 				name: `${user.first_name} ${user.last_name} (${user.email})`,
 				value: user.id,
 			}));
@@ -715,7 +753,14 @@ export const customFieldsLoadMethods = {
 			value: choice,
 		}));
 	},
-};;
+
+	/**
+	 * Expose users as loadOptions method for UI dropdowns
+	 */
+	async getUsers(context: any): Promise<INodePropertyOptions[]> {
+		return this.getCachedUsers(context);
+	},
+};
 
 /**
  * Validation functions for custom field values
@@ -788,18 +833,11 @@ export const customFieldValidators = {
 	 * Validate user field value
 	 */
 	validateUser(value: any, field: CustomField): string | null {
-		if (field.accepts_multiple_values) {
-			if (!Array.isArray(value)) {
-				return 'Multiple user field value must be an array';
-			}
-			for (const v of value) {
-				if (typeof v !== 'string' || !v.startsWith('user_')) {
-					return `Invalid user ID format: ${v}`;
-				}
-			}
-		} else {
-			if (typeof value !== 'string' || !value.startsWith('user_')) {
-				return `Invalid user ID format: ${value}`;
+		const values = field.accepts_multiple_values ? (Array.isArray(value) ? value : [value]) : [value];
+		for (const v of values) {
+			const s = String(v);
+			if (s.indexOf('user_') !== 0) {
+				return `Invalid user ID format: ${v}`;
 			}
 		}
 		return null;
@@ -809,18 +847,11 @@ export const customFieldValidators = {
 	 * Validate contact field value
 	 */
 	validateContact(value: any, field: CustomField): string | null {
-		if (field.accepts_multiple_values) {
-			if (!Array.isArray(value)) {
-				return 'Multiple contact field value must be an array';
-			}
-			for (const v of value) {
-				if (typeof v !== 'string' || !v.startsWith('contact_')) {
-					return `Invalid contact ID format: ${v}`;
-				}
-			}
-		} else {
-			if (typeof value !== 'string' || !value.startsWith('contact_')) {
-				return `Invalid contact ID format: ${value}`;
+		const values = field.accepts_multiple_values ? (Array.isArray(value) ? value : [value]) : [value];
+		for (const v of values) {
+			const s = String(v);
+			if (s.indexOf('contact_') !== 0) {
+				return `Invalid contact ID format: ${v}`;
 			}
 		}
 		return null;
@@ -882,7 +913,7 @@ export function constructCustomFieldsPayload(customFieldsData: any, fields: Cust
 				case 'contactMultiple':
 					// Handle comma-separated string to array conversion
 					if (typeof fieldValues === 'string') {
-						value = fieldValues.split(',').map(id => id.trim()).filter(id => id);
+						value = String(fieldValues).split(',').map(id => id.trim()).filter(id => id);
 					} else if (Array.isArray(fieldValues)) {
 						value = fieldValues;
 					} else {
