@@ -106,8 +106,6 @@ export const customFieldsCreateSections: INodeProperties[] = [
 								fieldType: [
 									'choice_single',
 									'choice_multiple',
-									'user_single',
-									'user_multiple',
 									'contact_single',
 									'contact_multiple',
 								],
@@ -126,7 +124,7 @@ export const customFieldsCreateSections: INodeProperties[] = [
 						description: 'Select a value from the available options',
 						displayOptions: {
 							show: {
-								fieldType: ['choice_single', 'user_single'],
+								fieldType: ['choice_single'],
 							},
 							hide: {
 								fieldId: [''],
@@ -145,10 +143,40 @@ export const customFieldsCreateSections: INodeProperties[] = [
 						description: 'Select multiple values from the available options',
 						displayOptions: {
 							show: {
-								fieldType: ['choice_multiple', 'user_multiple'],
+								fieldType: ['choice_multiple'],
 							},
 							hide: {
 								fieldId: [''],
+							},
+						},
+					},
+					{
+						displayName: 'Value',
+						name: 'fieldValue',
+						type: 'options',
+						typeOptions: {
+							loadOptionsMethod: 'getUsers',
+						},
+						default: '',
+						description: 'Select a user from the list',
+						displayOptions: {
+							show: {
+								fieldType: ['user_single'],
+							},
+						},
+					},
+					{
+						displayName: 'Values',
+						name: 'fieldValues',
+						type: 'multiOptions',
+						typeOptions: {
+							loadOptionsMethod: 'getUsers',
+						},
+						default: [],
+						description: 'Select multiple users from the list',
+						displayOptions: {
+							show: {
+								fieldType: ['user_multiple'],
 							},
 						},
 					},
@@ -218,7 +246,7 @@ export const customFieldsCreateSections: INodeProperties[] = [
 			},
 		],
 	},
-];
+];;
 
 /**
  * Custom Fields UI sections for Update operation (same structure as create)
