@@ -55,198 +55,361 @@ export const customFieldsCreateSections: INodeProperties[] = [
 	{
 		displayName: 'Custom Fields',
 		name: 'customFields',
-		type: 'fixedCollection',
-		typeOptions: {
-			multipleValues: true,
-		},
+		type: 'collection',
+		placeholder: 'Add Custom Field',
+		default: {},
 		displayOptions: {
 			show: {
 				resource: ['lead'],
 				operation: ['create'],
 			},
 		},
-		default: {},
-		description: 'Add custom field values with dynamic field selection',
+		description: 'Add custom field values',
 		options: [
 			{
-				name: 'customFieldsValues',
-				displayName: 'Custom Field',
-				values: [
+				displayName: 'Text Field',
+				name: 'textField',
+				type: 'fixedCollection',
+				typeOptions: {
+					multipleValues: true,
+				},
+				default: {},
+				description: 'Add text custom fields',
+				options: [
 					{
-						displayName: 'Field Type',
-						name: 'fieldType',
-						type: 'options',
-						options: [
-							{ name: 'Choice (Single)', value: 'choice_single' },
-							{ name: 'Choice (Multiple)', value: 'choice_multiple' },
-							{ name: 'Text', value: 'text' },
-							{ name: 'Number', value: 'number' },
-							{ name: 'Date', value: 'date' },
-							{ name: 'DateTime', value: 'datetime' },
-							{ name: 'User (Single)', value: 'user_single' },
-							{ name: 'User (Multiple)', value: 'user_multiple' },
-							{ name: 'Contact (Single)', value: 'contact_single' },
-							{ name: 'Contact (Multiple)', value: 'contact_multiple' },
+						name: 'textFields',
+						displayName: 'Text Fields',
+						values: [
+							{
+								displayName: 'Field Name',
+								name: 'fieldId',
+								type: 'options',
+								typeOptions: {
+									loadOptionsMethod: 'getTextFields',
+								},
+								default: '',
+								description: 'Select the text field',
+							},
+							{
+								displayName: 'Value',
+								name: 'fieldValue',
+								type: 'string',
+								default: '',
+								description: 'Enter the text value',
+							},
 						],
-						default: '',
-						description: 'Select the type of custom field',
 					},
+				],
+			},
+			{
+				displayName: 'Number Field',
+				name: 'numberField',
+				type: 'fixedCollection',
+				typeOptions: {
+					multipleValues: true,
+				},
+				default: {},
+				description: 'Add number custom fields',
+				options: [
 					{
-						displayName: 'Field',
-						name: 'fieldId',
-						type: 'options',
-						typeOptions: {
-							loadOptionsMethod: 'getFieldsByType',
-							loadOptionsDependsOn: ['fieldType'],
-						},
-						default: '',
-						description: 'Select the custom field',
-						displayOptions: {
-							show: {
-								fieldType: [
-									'choice_single',
-									'choice_multiple',
-									'contact_single',
-									'contact_multiple',
-								],
+						name: 'numberFields',
+						displayName: 'Number Fields',
+						values: [
+							{
+								displayName: 'Field Name',
+								name: 'fieldId',
+								type: 'options',
+								typeOptions: {
+									loadOptionsMethod: 'getNumberFields',
+								},
+								default: '',
+								description: 'Select the number field',
 							},
-						},
+							{
+								displayName: 'Value',
+								name: 'fieldValue',
+								type: 'number',
+								default: 0,
+								description: 'Enter the numeric value',
+							},
+						],
 					},
+				],
+			},
+			{
+				displayName: 'Date Field',
+				name: 'dateField',
+				type: 'fixedCollection',
+				typeOptions: {
+					multipleValues: true,
+				},
+				default: {},
+				description: 'Add date custom fields',
+				options: [
 					{
-						displayName: 'Value',
-						name: 'fieldValue',
-						type: 'options',
-						typeOptions: {
-							loadOptionsMethod: 'getFieldChoices',
-							loadOptionsDependsOn: ['fieldId'],
-						},
-						default: '',
-						description: 'Select a value from the available options',
-						displayOptions: {
-							show: {
-								fieldType: ['choice_single'],
+						name: 'dateFields',
+						displayName: 'Date Fields',
+						values: [
+							{
+								displayName: 'Field Name',
+								name: 'fieldId',
+								type: 'options',
+								typeOptions: {
+									loadOptionsMethod: 'getDateFields',
+								},
+								default: '',
+								description: 'Select the date field',
 							},
-							hide: {
-								fieldId: [''],
+							{
+								displayName: 'Value',
+								name: 'fieldValue',
+								type: 'dateTime',
+								default: '',
+								description: 'Select the date value',
 							},
-						},
+						],
 					},
+				],
+			},
+			{
+				displayName: 'Choice Field (Single)',
+				name: 'choiceSingleField',
+				type: 'fixedCollection',
+				typeOptions: {
+					multipleValues: true,
+				},
+				default: {},
+				description: 'Add single-choice custom fields',
+				options: [
 					{
-						displayName: 'Values',
-						name: 'fieldValues',
-						type: 'multiOptions',
-						typeOptions: {
-							loadOptionsMethod: 'getFieldChoices',
-							loadOptionsDependsOn: ['fieldId'],
-						},
-						default: [],
-						description: 'Select multiple values from the available options',
-						displayOptions: {
-							show: {
-								fieldType: ['choice_multiple'],
+						name: 'choiceSingleFields',
+						displayName: 'Single Choice Fields',
+						values: [
+							{
+								displayName: 'Field Name',
+								name: 'fieldId',
+								type: 'options',
+								typeOptions: {
+									loadOptionsMethod: 'getChoiceSingleFields',
+								},
+								default: '',
+								description: 'Select the choice field',
 							},
-							hide: {
-								fieldId: [''],
+							{
+								displayName: 'Value',
+								name: 'fieldValue',
+								type: 'options',
+								typeOptions: {
+									loadOptionsMethod: 'getFieldChoices',
+									loadOptionsDependsOn: ['fieldId'],
+								},
+								default: '',
+								description: 'Select a value from the available options',
+								displayOptions: {
+									hide: {
+										fieldId: [''],
+									},
+								},
 							},
-						},
+						],
 					},
+				],
+			},
+			{
+				displayName: 'Choice Field (Multiple)',
+				name: 'choiceMultipleField',
+				type: 'fixedCollection',
+				typeOptions: {
+					multipleValues: true,
+				},
+				default: {},
+				description: 'Add multiple-choice custom fields',
+				options: [
 					{
-						displayName: 'Value',
-						name: 'fieldValue',
-						type: 'options',
-						typeOptions: {
-							loadOptionsMethod: 'getUsers',
-						},
-						default: '',
-						description: 'Select a user from the list',
-						displayOptions: {
-							show: {
-								fieldType: ['user_single'],
+						name: 'choiceMultipleFields',
+						displayName: 'Multiple Choice Fields',
+						values: [
+							{
+								displayName: 'Field Name',
+								name: 'fieldId',
+								type: 'options',
+								typeOptions: {
+									loadOptionsMethod: 'getChoiceMultipleFields',
+								},
+								default: '',
+								description: 'Select the choice field',
 							},
-						},
+							{
+								displayName: 'Values',
+								name: 'fieldValues',
+								type: 'multiOptions',
+								typeOptions: {
+									loadOptionsMethod: 'getFieldChoices',
+									loadOptionsDependsOn: ['fieldId'],
+								},
+								default: [],
+								description: 'Select multiple values from the available options',
+								displayOptions: {
+									hide: {
+										fieldId: [''],
+									},
+								},
+							},
+						],
 					},
+				],
+			},
+			{
+				displayName: 'User Field (Single)',
+				name: 'userSingleField',
+				type: 'fixedCollection',
+				typeOptions: {
+					multipleValues: true,
+				},
+				default: {},
+				description: 'Add single-user custom fields',
+				options: [
 					{
-						displayName: 'Values',
-						name: 'fieldValues',
-						type: 'multiOptions',
-						typeOptions: {
-							loadOptionsMethod: 'getUsers',
-						},
-						default: [],
-						description: 'Select multiple users from the list',
-						displayOptions: {
-							show: {
-								fieldType: ['user_multiple'],
+						name: 'userSingleFields',
+						displayName: 'Single User Fields',
+						values: [
+							{
+								displayName: 'Field Name',
+								name: 'fieldId',
+								type: 'options',
+								typeOptions: {
+									loadOptionsMethod: 'getUserSingleFields',
+								},
+								default: '',
+								description: 'Select the user field',
 							},
-						},
+							{
+								displayName: 'User',
+								name: 'fieldValue',
+								type: 'options',
+								typeOptions: {
+									loadOptionsMethod: 'getUsers',
+								},
+								default: '',
+								description: 'Select a user from the list',
+							},
+						],
 					},
+				],
+			},
+			{
+				displayName: 'User Field (Multiple)',
+				name: 'userMultipleField',
+				type: 'fixedCollection',
+				typeOptions: {
+					multipleValues: true,
+				},
+				default: {},
+				description: 'Add multiple-user custom fields',
+				options: [
 					{
-						displayName: 'Value',
-						name: 'fieldValue',
-						type: 'string',
-						default: '',
-						description: 'Enter the text value',
-						displayOptions: {
-							show: {
-								fieldType: ['text'],
+						name: 'userMultipleFields',
+						displayName: 'Multiple User Fields',
+						values: [
+							{
+								displayName: 'Field Name',
+								name: 'fieldId',
+								type: 'options',
+								typeOptions: {
+									loadOptionsMethod: 'getUserMultipleFields',
+								},
+								default: '',
+								description: 'Select the user field',
 							},
-						},
+							{
+								displayName: 'Users',
+								name: 'fieldValues',
+								type: 'multiOptions',
+								typeOptions: {
+									loadOptionsMethod: 'getUsers',
+								},
+								default: [],
+								description: 'Select multiple users from the list',
+							},
+						],
 					},
+				],
+			},
+			{
+				displayName: 'Contact Field (Single)',
+				name: 'contactSingleField',
+				type: 'fixedCollection',
+				typeOptions: {
+					multipleValues: true,
+				},
+				default: {},
+				description: 'Add single-contact custom fields',
+				options: [
 					{
-						displayName: 'Value',
-						name: 'fieldValue',
-						type: 'number',
-						default: 0,
-						description: 'Enter the numeric value',
-						displayOptions: {
-							show: {
-								fieldType: ['number'],
+						name: 'contactSingleFields',
+						displayName: 'Single Contact Fields',
+						values: [
+							{
+								displayName: 'Field Name',
+								name: 'fieldId',
+								type: 'options',
+								typeOptions: {
+									loadOptionsMethod: 'getContactSingleFields',
+								},
+								default: '',
+								description: 'Select the contact field',
 							},
-						},
+							{
+								displayName: 'Contact ID',
+								name: 'fieldValue',
+								type: 'string',
+								default: '',
+								description: 'Enter the contact ID',
+								placeholder: 'contact_xxxxxxxxxxxxxxxx',
+							},
+						],
 					},
+				],
+			},
+			{
+				displayName: 'Contact Field (Multiple)',
+				name: 'contactMultipleField',
+				type: 'fixedCollection',
+				typeOptions: {
+					multipleValues: true,
+				},
+				default: {},
+				description: 'Add multiple-contact custom fields',
+				options: [
 					{
-						displayName: 'Value',
-						name: 'fieldValue',
-						type: 'dateTime',
-						default: '',
-						description: 'Select the date value',
-						displayOptions: {
-							show: {
-								fieldType: ['date', 'datetime'],
+						name: 'contactMultipleFields',
+						displayName: 'Multiple Contact Fields',
+						values: [
+							{
+								displayName: 'Field Name',
+								name: 'fieldId',
+								type: 'options',
+								typeOptions: {
+									loadOptionsMethod: 'getContactMultipleFields',
+								},
+								default: '',
+								description: 'Select the contact field',
 							},
-						},
-					},
-					{
-						displayName: 'Value',
-						name: 'fieldValue',
-						type: 'string',
-						default: '',
-						description: 'Enter the contact ID',
-						placeholder: 'contact_xxxxxxxxxxxxxxxx',
-						displayOptions: {
-							show: {
-								fieldType: ['contact_single'],
+							{
+								displayName: 'Contact IDs',
+								name: 'fieldValues',
+								type: 'string',
+								default: '',
+								description: 'Enter contact IDs separated by commas',
+								placeholder: 'contact_xxx..., contact_yyy...',
 							},
-						},
-					},
-					{
-						displayName: 'Values',
-						name: 'fieldValues',
-						type: 'string',
-						default: '',
-						description: 'Enter contact IDs separated by commas',
-						placeholder: 'contact_xxx..., contact_yyy...',
-						displayOptions: {
-							show: {
-								fieldType: ['contact_multiple'],
-							},
-						},
+						],
 					},
 				],
 			},
 		],
 	},
-];
+];;
 
 /**
  * Custom Fields UI sections for Update operation (same structure as create)
@@ -334,7 +497,155 @@ export const customFieldsLoadMethods = {
 	},
 
 	/**
-	 * Get fields filtered by the selected field type
+	 * Get text fields
+	 */
+	async getTextFields(context: any): Promise<INodePropertyOptions[]> {
+		const fields = await this.getCachedCustomFields(context);
+		return fields
+			.filter(field => field.type === 'text')
+			.map(field => ({
+				name: field.name,
+				value: field.id,
+			}));
+	},
+
+	/**
+	 * Get number fields
+	 */
+	async getNumberFields(context: any): Promise<INodePropertyOptions[]> {
+		const fields = await this.getCachedCustomFields(context);
+		return fields
+			.filter(field => field.type === 'number')
+			.map(field => ({
+				name: field.name,
+				value: field.id,
+			}));
+	},
+
+	/**
+	 * Get date fields (includes both date and datetime)
+	 */
+	async getDateFields(context: any): Promise<INodePropertyOptions[]> {
+		const fields = await this.getCachedCustomFields(context);
+		return fields
+			.filter(field => field.type === 'date' || field.type === 'datetime')
+			.map(field => ({
+				name: field.name,
+				value: field.id,
+			}));
+	},
+
+	/**
+	 * Get single choice fields
+	 */
+	async getChoiceSingleFields(context: any): Promise<INodePropertyOptions[]> {
+		const fields = await this.getCachedCustomFields(context);
+		return fields
+			.filter(field => field.type === 'choices' && !field.accepts_multiple_values)
+			.map(field => ({
+				name: field.name,
+				value: field.id,
+			}));
+	},
+
+	/**
+	 * Get multiple choice fields
+	 */
+	async getChoiceMultipleFields(context: any): Promise<INodePropertyOptions[]> {
+		const fields = await this.getCachedCustomFields(context);
+		return fields
+			.filter(field => field.type === 'choices' && field.accepts_multiple_values)
+			.map(field => ({
+				name: field.name,
+				value: field.id,
+			}));
+	},
+
+	/**
+	 * Get single user fields
+	 */
+	async getUserSingleFields(context: any): Promise<INodePropertyOptions[]> {
+		const fields = await this.getCachedCustomFields(context);
+		return fields
+			.filter(field => field.type === 'user' && !field.accepts_multiple_values)
+			.map(field => ({
+				name: field.name,
+				value: field.id,
+			}));
+	},
+
+	/**
+	 * Get multiple user fields
+	 */
+	async getUserMultipleFields(context: any): Promise<INodePropertyOptions[]> {
+		const fields = await this.getCachedCustomFields(context);
+		return fields
+			.filter(field => field.type === 'user' && field.accepts_multiple_values)
+			.map(field => ({
+				name: field.name,
+				value: field.id,
+			}));
+	},
+
+	/**
+	 * Get single contact fields
+	 */
+	async getContactSingleFields(context: any): Promise<INodePropertyOptions[]> {
+		const fields = await this.getCachedCustomFields(context);
+		return fields
+			.filter(field => field.type === 'contact' && !field.accepts_multiple_values)
+			.map(field => ({
+				name: field.name,
+				value: field.id,
+			}));
+	},
+
+	/**
+	 * Get multiple contact fields
+	 */
+	async getContactMultipleFields(context: any): Promise<INodePropertyOptions[]> {
+		const fields = await this.getCachedCustomFields(context);
+		return fields
+			.filter(field => field.type === 'contact' && field.accepts_multiple_values)
+			.map(field => ({
+				name: field.name,
+				value: field.id,
+			}));
+	},
+
+	/**
+	 * Get choices/options for a specific field (handles choice fields)
+	 */
+	async getFieldChoices(context: any): Promise<INodePropertyOptions[]> {
+		const fieldId = context.getCurrentNodeParameter('fieldId') as string;
+		
+		if (!fieldId) {
+			return [];
+		}
+
+		const fields = await this.getCachedCustomFields(context);
+		const field = fields.find(f => f.id === fieldId);
+		
+		if (!field) {
+			return [];
+		}
+
+		// Handle choice fields
+		if (field.type === 'choices') {
+			if (!field.choices || !Array.isArray(field.choices)) {
+				return [];
+			}
+			return field.choices.map(choice => ({
+				name: choice,
+				value: choice,
+			}));
+		}
+
+		return [];
+	},
+
+	/**
+	 * Get fields filtered by the selected field type (legacy method)
 	 */
 	async getFieldsByType(context: any): Promise<INodePropertyOptions[]> {
 		const fieldType = context.getCurrentNodeParameter('fieldType') as string;
@@ -366,8 +677,8 @@ export const customFieldsLoadMethods = {
 		return fields
 			.filter(field => {
 				if (field.type !== config.type) return false;
-				return !(config.multiple !== undefined && field.accepts_multiple_values !== config.multiple);
-
+				if (config.multiple !== undefined && field.accepts_multiple_values !== config.multiple) return false;
+				return true;
 			})
 			.map(field => ({
 				name: field.name,
@@ -376,56 +687,19 @@ export const customFieldsLoadMethods = {
 	},
 
 	/**
-	 * Filter fields by type and cardinality
+	 * Filter fields by type and cardinality (legacy method)
 	 */
 	filterFieldsByType(fields: CustomField[], type: string, multiple?: boolean): INodePropertyOptions[] {
 		return fields
 			.filter(field => {
 				if (field.type !== type) return false;
-				return !(multiple !== undefined && field.accepts_multiple_values !== multiple);
-
+				if (multiple !== undefined && field.accepts_multiple_values !== multiple) return false;
+				return true;
 			})
 			.map(field => ({
 				name: `${field.name} (${field.accepts_multiple_values ? 'Multiple' : 'Single'})`,
 				value: field.id,
 			}));
-	},
-
-	/**
-	 * Get choices/options for a specific field (handles both choices and user fields)
-	 */
-	async getFieldChoices(context: any): Promise<INodePropertyOptions[]> {
-		const fieldId = context.getCurrentNodeParameter('fieldId') as string;
-		const fieldType = context.getCurrentNodeParameter('fieldType') as string;
-		
-		if (!fieldId || !fieldType) {
-			return [];
-		}
-
-		const fields = await this.getCachedCustomFields(context);
-		const field = fields.find(f => f.id === fieldId);
-		
-		if (!field) {
-			return [];
-		}
-
-		// Handle choice fields
-		if (fieldType.startsWith('choice_') && field.type === 'choices') {
-			if (!field.choices || !Array.isArray(field.choices)) {
-				return [];
-			}
-			return field.choices.map(choice => ({
-				name: choice,
-				value: choice,
-			}));
-		}
-
-		// Handle user fields
-		if (fieldType.startsWith('user_') && field.type === 'user') {
-			return await this.getCachedUsers(context);
-		}
-
-		return [];
 	},
 
 	/**
@@ -441,7 +715,7 @@ export const customFieldsLoadMethods = {
 			value: choice,
 		}));
 	},
-};
+};;
 
 /**
  * Validation functions for custom field values
@@ -559,105 +833,141 @@ export const customFieldValidators = {
 export function constructCustomFieldsPayload(customFieldsData: any, fields: CustomField[]): Record<string, any> {
 	const payload: Record<string, any> = {};
 
-	// Handle the new dynamic custom fields structure
+	// Handle the new collection-based custom fields structure
 	const customFields = customFieldsData.customFields;
-	if (!customFields || !customFields.customFieldsValues) {
+	if (!customFields) {
 		return payload;
 	}
 
-	const customFieldValues = customFields.customFieldsValues;
-	if (!Array.isArray(customFieldValues)) {
-		return payload;
-	}
+	// Helper function to process field values
+	const processFields = (fieldsArray: any[], fieldType: string) => {
+		if (!Array.isArray(fieldsArray)) return;
 
-	for (const fieldData of customFieldValues) {
-		const { fieldType, fieldId, fieldValue, fieldValues } = fieldData;
-		
-		if (!fieldId || !fieldType) {
-			continue;
-		}
-
-		const field = fields.find(f => f.id === fieldId);
-		if (!field) {
-			continue;
-		}
-
-		let value: any;
-
-		// Determine the value based on field type
-		switch (fieldType) {
-			case 'choice_single':
-			case 'text':
-			case 'date':
-			case 'datetime':
-			case 'user_single':
-			case 'contact_single':
-				value = fieldValue;
-				break;
-				
-			case 'number':
-				value = Number(fieldValue);
-				if (isNaN(value)) {
-					throw new Error(`Custom field "${field.name}" validation error: Number field value must be a valid number`);
-				}
-				break;
-				
-			case 'choice_multiple':
-			case 'user_multiple':
-				value = fieldValues;
-				break;
-				
-			case 'contact_multiple':
-				// Handle comma-separated string to array conversion
-				if (typeof fieldValues === 'string') {
-					value = fieldValues.split(',').map(id => id.trim()).filter(id => id);
-				} else if (Array.isArray(fieldValues)) {
-					value = fieldValues;
-				} else {
-					value = [];
-				}
-				break;
-				
-			default:
+		for (const fieldData of fieldsArray) {
+			const { fieldId, fieldValue, fieldValues } = fieldData;
+			
+			if (!fieldId) {
 				continue;
+			}
+
+			const field = fields.find(f => f.id === fieldId);
+			if (!field) {
+				continue;
+			}
+
+			let value: any;
+
+			// Determine the value based on field type
+			switch (fieldType) {
+				case 'text':
+				case 'date':
+				case 'choiceSingle':
+				case 'userSingle':
+				case 'contactSingle':
+					value = fieldValue;
+					break;
+					
+				case 'number':
+					value = Number(fieldValue);
+					if (isNaN(value)) {
+						throw new Error(`Custom field "${field.name}" validation error: Number field value must be a valid number`);
+					}
+					break;
+					
+				case 'choiceMultiple':
+				case 'userMultiple':
+					value = fieldValues;
+					break;
+					
+				case 'contactMultiple':
+					// Handle comma-separated string to array conversion
+					if (typeof fieldValues === 'string') {
+						value = fieldValues.split(',').map(id => id.trim()).filter(id => id);
+					} else if (Array.isArray(fieldValues)) {
+						value = fieldValues;
+					} else {
+						value = [];
+					}
+					break;
+					
+				default:
+					continue;
+			}
+
+			// Skip if value is empty
+			if (value === undefined || value === null || value === '' || (Array.isArray(value) && value.length === 0)) {
+				continue;
+			}
+
+			// Validate the value based on field type
+			let validationError: string | null = null;
+
+			switch (field.type) {
+				case 'text':
+					validationError = customFieldValidators.validateText(value);
+					break;
+				case 'number':
+					validationError = customFieldValidators.validateNumber(value);
+					break;
+				case 'date':
+				case 'datetime':
+					validationError = customFieldValidators.validateDate(value);
+					break;
+				case 'choices':
+					validationError = customFieldValidators.validateChoice(value, field);
+					break;
+				case 'user':
+					validationError = customFieldValidators.validateUser(value, field);
+					break;
+				case 'contact':
+					validationError = customFieldValidators.validateContact(value, field);
+					break;
+			}
+
+			if (validationError) {
+				throw new Error(`Custom field "${field.name}" validation error: ${validationError}`);
+			}
+
+			// Add to payload with proper key format
+			payload[`custom.${fieldId}`] = value;
 		}
+	};
 
-		// Skip if value is empty
-		if (value === undefined || value === null || value === '' || (Array.isArray(value) && value.length === 0)) {
-			continue;
-		}
+	// Process each field type collection
+	if (customFields.textField?.textFields) {
+		processFields(customFields.textField.textFields, 'text');
+	}
 
-		// Validate the value based on field type
-		let validationError: string | null = null;
+	if (customFields.numberField?.numberFields) {
+		processFields(customFields.numberField.numberFields, 'number');
+	}
 
-		switch (field.type) {
-			case 'text':
-				validationError = customFieldValidators.validateText(value);
-				break;
-			case 'number':
-				validationError = customFieldValidators.validateNumber(value);
-				break;
-			case 'date':
-			case 'datetime':
-				validationError = customFieldValidators.validateDate(value);
-				break;
-			case 'choices':
-				validationError = customFieldValidators.validateChoice(value, field);
-				break;
-			case 'user':
-				validationError = customFieldValidators.validateUser(value, field);
-				break;
-			case 'contact':
-				validationError = customFieldValidators.validateContact(value, field);
-				break;
-		}
+	if (customFields.dateField?.dateFields) {
+		processFields(customFields.dateField.dateFields, 'date');
+	}
 
-		if (validationError) {
-			throw new Error(`Custom field "${field.name}" validation error: ${validationError}`);
-		}
+	if (customFields.choiceSingleField?.choiceSingleFields) {
+		processFields(customFields.choiceSingleField.choiceSingleFields, 'choiceSingle');
+	}
 
-		// Add to payload with proper key format
-		payload[`custom.${fieldId}`] = value;
+	if (customFields.choiceMultipleField?.choiceMultipleFields) {
+		processFields(customFields.choiceMultipleField.choiceMultipleFields, 'choiceMultiple');
+	}
+
+	if (customFields.userSingleField?.userSingleFields) {
+		processFields(customFields.userSingleField.userSingleFields, 'userSingle');
+	}
+
+	if (customFields.userMultipleField?.userMultipleFields) {
+		processFields(customFields.userMultipleField.userMultipleFields, 'userMultiple');
+	}
+
+	if (customFields.contactSingleField?.contactSingleFields) {
+		processFields(customFields.contactSingleField.contactSingleFields, 'contactSingle');
+	}
+
+	if (customFields.contactMultipleField?.contactMultipleFields) {
+		processFields(customFields.contactMultipleField.contactMultipleFields, 'contactMultiple');
 	}
 
 	return payload;
