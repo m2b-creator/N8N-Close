@@ -56,7 +56,9 @@ describe('Close', () => {
 			expect(close.methods?.loadOptions).toBeDefined();
 			expect(close.methods?.loadOptions?.getLeadStatuses).toBeDefined();
 			expect(close.methods?.loadOptions?.getOpportunityStatuses).toBeDefined();
-			expect(close.methods?.loadOptions?.getCustomFields).toBeDefined();
+			expect(close.methods?.loadOptions?.getFieldsByType).toBeDefined();
+			expect(close.methods?.loadOptions?.getFieldChoices).toBeDefined();
+			expect(close.methods?.loadOptions?.getCachedUsers).toBeDefined();
 			expect(close.methods?.loadOptions?.getSmartViews).toBeDefined();
 		});
 
