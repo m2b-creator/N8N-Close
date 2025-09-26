@@ -166,9 +166,6 @@ export const customFieldsCreateSections: INodeProperties[] = [
 							show: {
 								fieldType: ['text'],
 							},
-							hide: {
-								fieldId: [''],
-							},
 						},
 					},
 					{
@@ -181,9 +178,6 @@ export const customFieldsCreateSections: INodeProperties[] = [
 							show: {
 								fieldType: ['number'],
 							},
-							hide: {
-								fieldId: [''],
-							},
 						},
 					},
 					{
@@ -195,9 +189,6 @@ export const customFieldsCreateSections: INodeProperties[] = [
 						displayOptions: {
 							show: {
 								fieldType: ['date', 'datetime'],
-							},
-							hide: {
-								fieldId: [''],
 							},
 						},
 					},
@@ -212,9 +203,6 @@ export const customFieldsCreateSections: INodeProperties[] = [
 							show: {
 								fieldType: ['contact_single'],
 							},
-							hide: {
-								fieldId: [''],
-							},
 						},
 					},
 					{
@@ -227,9 +215,6 @@ export const customFieldsCreateSections: INodeProperties[] = [
 						displayOptions: {
 							show: {
 								fieldType: ['contact_multiple'],
-							},
-							hide: {
-								fieldId: [''],
 							},
 						},
 					},
