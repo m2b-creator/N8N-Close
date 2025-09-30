@@ -867,8 +867,8 @@ export const customFieldsLoadMethods = {
 		return fields
 			.filter(field => {
 				if (field.type !== config.type) return false;
-				if (config.multiple !== undefined && field.accepts_multiple_values !== config.multiple) return false;
-				return true;
+				return !(config.multiple !== undefined && field.accepts_multiple_values !== config.multiple);
+
 			})
 			.map(field => ({
 				name: field.name,
@@ -883,8 +883,8 @@ export const customFieldsLoadMethods = {
 		return fields
 			.filter(field => {
 				if (field.type !== type) return false;
-				if (multiple !== undefined && field.accepts_multiple_values !== multiple) return false;
-				return true;
+				return !(multiple !== undefined && field.accepts_multiple_values !== multiple);
+
 			})
 			.map(field => ({
 				name: `${field.name} (${field.accepts_multiple_values ? 'Multiple' : 'Single'})`,
