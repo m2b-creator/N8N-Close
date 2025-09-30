@@ -655,47 +655,63 @@ export const customFieldsLoadMethods = {
 	 */
 	async getAllChoiceValues(context: any): Promise<INodePropertyOptions[]> {
 		try {
-			console.log('[getAllChoiceValues] Loading choice values');
-
 			// Try to get the selected fieldId from various sources
 			let selectedFieldId: string | undefined;
 
 			try {
-				// Try to get from current node parameters
-				const customFields = context.getNodeParameter?.('customFields');
-				console.log('[getAllChoiceValues] customFields:', JSON.stringify(customFields, null, 2));
-
-				// Check single choice fields
-				if (customFields?.choiceSingleField?.choiceSingleFields) {
-					const singleFields = customFields.choiceSingleField.choiceSingleFields;
-					if (Array.isArray(singleFields) && singleFields.length > 0) {
-						selectedFieldId = singleFields[singleFields.length - 1]?.fieldId;
-					}
+				// First try to get the fieldId using getCurrentNodeParameter (works for the current editing field)
+				try {
+					selectedFieldId = context.getCurrentNodeParameter('fieldId');
+				} catch {
+					// getCurrentNodeParameter might fail, try alternative approaches
 				}
 
-				// Check multiple choice fields if not found
-				if (!selectedFieldId && customFields?.choiceMultipleField?.choiceMultipleFields) {
-					const multipleFields = customFields.choiceMultipleField.choiceMultipleFields;
-					if (Array.isArray(multipleFields) && multipleFields.length > 0) {
-						selectedFieldId = multipleFields[multipleFields.length - 1]?.fieldId;
+				// If not found, try to get from the path context
+				if (!selectedFieldId) {
+					// Try to get from current node parameters
+					const customFields = context.getNodeParameter?.('customFields');
+
+					// Check single choice fields
+					if (customFields?.choiceSingleField?.choiceSingleFields) {
+						const singleFields = customFields.choiceSingleField.choiceSingleFields;
+						if (Array.isArray(singleFields)) {
+							// Find the field that's currently being edited (the one without a value set)
+							const currentField = singleFields.find((f: any) => f.fieldId && !f.fieldValue);
+							if (currentField?.fieldId) {
+								selectedFieldId = currentField.fieldId;
+							} else if (singleFields.length > 0) {
+								// Fallback to the last field
+								selectedFieldId = singleFields[singleFields.length - 1]?.fieldId;
+							}
+						}
+					}
+
+					// Check multiple choice fields if not found
+					if (!selectedFieldId && customFields?.choiceMultipleField?.choiceMultipleFields) {
+						const multipleFields = customFields.choiceMultipleField.choiceMultipleFields;
+						if (Array.isArray(multipleFields)) {
+							// Find the field that's currently being edited (the one without values set)
+							const currentField = multipleFields.find((f: any) => f.fieldId && (!f.fieldValues || f.fieldValues.length === 0));
+							if (currentField?.fieldId) {
+								selectedFieldId = currentField.fieldId;
+							} else if (multipleFields.length > 0) {
+								// Fallback to the last field
+								selectedFieldId = multipleFields[multipleFields.length - 1]?.fieldId;
+							}
+						}
 					}
 				}
-			} catch (e) {
-				console.log('[getAllChoiceValues] Could not get fieldId:', e);
+			} catch {
+				// Silently fail and show all choices
 			}
-
-			console.log('[getAllChoiceValues] Selected fieldId:', selectedFieldId);
 
 			const fields = await this.getCachedCustomFields(context);
 			const choiceFields = fields.filter(f => f.type === 'choices' && f.choices && Array.isArray(f.choices));
-
-			console.log(`[getAllChoiceValues] Found ${choiceFields.length} total choice fields`);
 
 			// If we have a selected field, only return its choices
 			if (selectedFieldId) {
 				const selectedField = choiceFields.find(f => f.id === selectedFieldId);
 				if (selectedField && selectedField.choices) {
-					console.log(`[getAllChoiceValues] Returning ${selectedField.choices.length} choices for field: ${selectedField.name}`);
 					const result = selectedField.choices.map(choice => ({
 						name: choice,
 						value: choice,
@@ -706,7 +722,6 @@ export const customFieldsLoadMethods = {
 			}
 
 			// Fallback: return all choices from all fields with field name label
-			console.log('[getAllChoiceValues] No specific field selected, returning all choices');
 			const allChoices = new Map<string, string>();
 
 			for (const field of choiceFields) {
@@ -717,8 +732,6 @@ export const customFieldsLoadMethods = {
 					}
 				}
 			}
-
-			console.log(`[getAllChoiceValues] Returning ${allChoices.size} total choices`);
 
 			const result = Array.from(allChoices.entries()).map(([key, name]) => ({
 				name,
