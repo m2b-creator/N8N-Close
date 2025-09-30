@@ -651,36 +651,78 @@ export const customFieldsLoadMethods = {
 	/**
 	 * Get all choice values from all choice fields
 	 * This is used as a workaround since loadOptionsDependsOn doesn't work in fixedCollections
+	 * It tries to filter based on the selected fieldId if possible
 	 */
 	async getAllChoiceValues(context: any): Promise<INodePropertyOptions[]> {
 		try {
-			console.log('[getAllChoiceValues] Loading all choice values');
+			console.log('[getAllChoiceValues] Loading choice values');
+
+			// Try to get the selected fieldId from various sources
+			let selectedFieldId: string | undefined;
+
+			try {
+				// Try to get from current node parameters
+				const customFields = context.getNodeParameter?.('customFields');
+				console.log('[getAllChoiceValues] customFields:', JSON.stringify(customFields, null, 2));
+
+				// Check single choice fields
+				if (customFields?.choiceSingleField?.choiceSingleFields) {
+					const singleFields = customFields.choiceSingleField.choiceSingleFields;
+					if (Array.isArray(singleFields) && singleFields.length > 0) {
+						selectedFieldId = singleFields[singleFields.length - 1]?.fieldId;
+					}
+				}
+
+				// Check multiple choice fields if not found
+				if (!selectedFieldId && customFields?.choiceMultipleField?.choiceMultipleFields) {
+					const multipleFields = customFields.choiceMultipleField.choiceMultipleFields;
+					if (Array.isArray(multipleFields) && multipleFields.length > 0) {
+						selectedFieldId = multipleFields[multipleFields.length - 1]?.fieldId;
+					}
+				}
+			} catch (e) {
+				console.log('[getAllChoiceValues] Could not get fieldId:', e);
+			}
+
+			console.log('[getAllChoiceValues] Selected fieldId:', selectedFieldId);
 
 			const fields = await this.getCachedCustomFields(context);
 			const choiceFields = fields.filter(f => f.type === 'choices' && f.choices && Array.isArray(f.choices));
 
-			console.log(`[getAllChoiceValues] Found ${choiceFields.length} choice fields`);
+			console.log(`[getAllChoiceValues] Found ${choiceFields.length} total choice fields`);
 
-			// Collect all unique choice values with field name prefix
+			// If we have a selected field, only return its choices
+			if (selectedFieldId) {
+				const selectedField = choiceFields.find(f => f.id === selectedFieldId);
+				if (selectedField && selectedField.choices) {
+					console.log(`[getAllChoiceValues] Returning ${selectedField.choices.length} choices for field: ${selectedField.name}`);
+					const result = selectedField.choices.map(choice => ({
+						name: choice,
+						value: choice,
+					}));
+					result.sort((a, b) => a.name.localeCompare(b.name));
+					return result;
+				}
+			}
+
+			// Fallback: return all choices from all fields with field name label
+			console.log('[getAllChoiceValues] No specific field selected, returning all choices');
 			const allChoices = new Map<string, string>();
 
 			for (const field of choiceFields) {
 				if (field.choices) {
 					for (const choice of field.choices) {
-						// Use choice as key to avoid duplicates, but show field name in display
-						const key = choice;
-						if (!allChoices.has(key)) {
-							allChoices.set(key, `${choice} (from ${field.name})`);
-						}
+						const key = `${choice}__${field.id}`;
+						allChoices.set(key, `${choice} (from ${field.name})`);
 					}
 				}
 			}
 
-			console.log(`[getAllChoiceValues] Returning ${allChoices.size} unique choices`);
+			console.log(`[getAllChoiceValues] Returning ${allChoices.size} total choices`);
 
-			const result = Array.from(allChoices.entries()).map(([value, name]) => ({
+			const result = Array.from(allChoices.entries()).map(([key, name]) => ({
 				name,
-				value,
+				value: key.split('__')[0], // Extract the actual choice value
 			}));
 
 			// Sort alphabetically by display name
