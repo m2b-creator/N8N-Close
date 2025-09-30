@@ -481,17 +481,7 @@ describe('Close', () => {
 				expect(closeApiRequest).toHaveBeenCalledWith('GET', '/lead/lead_123/');
 			});
 
-			it('should search leads when no specific lead ID is provided', async () => {
-				const mockResponse = {
-					data: [
-						{
-							id: 'lead_abc123',
-							name: 'Test Company',
-							status_id: 'stat_abc123'
-						}
-					]
-				};
-
+			it('should return empty results when no filters are provided', async () => {
 				mockExecuteFunctions.getNodeParameter
 					.mockReturnValueOnce('lead') // resource
 					.mockReturnValueOnce('find') // operation
@@ -504,11 +494,65 @@ describe('Close', () => {
 					.mockReturnValueOnce(false) // returnAll
 					.mockReturnValueOnce(50); // limit
 
+				const result = await close.execute.call(mockExecuteFunctions);
+
+				expect(closeApiRequest).not.toHaveBeenCalled();
+				expect(result).toEqual([[[]]]);
+			});
+
+			it('should use advanced filtering API when company name is provided', async () => {
+				const mockResponse = {
+					data: [
+						{
+							id: 'lead_abc123',
+							name: 'Test Company',
+							display_name: 'Test Company',
+							status_id: 'stat_abc123'
+						}
+					]
+				};
+
+				mockExecuteFunctions.getNodeParameter
+					.mockReturnValueOnce('lead') // resource
+					.mockReturnValueOnce('find') // operation
+					.mockReturnValueOnce('') // leadId (empty)
+					.mockReturnValueOnce('Test Company') // companyName
+					.mockReturnValueOnce('') // companyUrl (empty)
+					.mockReturnValueOnce('') // email (empty)
+					.mockReturnValueOnce('') // phone (empty)
+					.mockReturnValueOnce('') // statusId (empty)
+					.mockReturnValueOnce(false) // returnAll
+					.mockReturnValueOnce(50); // limit
+
 				(closeApiRequest as jest.Mock).mockResolvedValueOnce(mockResponse);
 
 				await close.execute.call(mockExecuteFunctions);
 
-				expect(closeApiRequest).toHaveBeenCalledWith('GET', '/lead/', {}, { _limit: 50 });
+				expect(closeApiRequest).toHaveBeenCalledWith('POST', '/data/search/', {
+					query: {
+						type: 'and',
+						queries: [
+							{
+								type: 'object_type',
+								object_type: 'lead'
+							},
+							{
+								type: 'field_condition',
+								field: {
+									type: 'regular_field',
+									object_type: 'lead',
+									field_name: 'display_name'
+								},
+								condition: {
+									type: 'text',
+									mode: 'full_words',
+									value: 'Test Company'
+								}
+							}
+						]
+					},
+					results_limit: 50
+				});
 			});
 		});
 

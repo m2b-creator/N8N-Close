@@ -423,38 +423,140 @@ export class Close implements INodeType {
 						if (leadId) {
 							responseData = await closeApiRequest.call(this, 'GET', `/lead/${leadId}/`);
 						} else {
-							// Search for leads using query parameters
-							const searchQs: JsonObject = {};
+							// Build advanced filter query for precise field matching
+							const filterQueries: JsonObject[] = [];
 
-							if (companyName) {
-								searchQs.query = companyName;
-							}
-							if (companyUrl) {
-								searchQs.url = companyUrl;
-							}
-							if (email) {
-								searchQs.email = email;
-							}
-							if (phone) {
-								searchQs.phone = phone;
-							}
+							// Always specify we're looking for leads
+							filterQueries.push({
+								type: 'object_type',
+								object_type: 'lead',
+							});
+
+							// Filter by status_id (Status Name)
 							if (statusId) {
-								searchQs.status_id = statusId;
+								filterQueries.push({
+									type: 'field_condition',
+									field: {
+										type: 'regular_field',
+										object_type: 'lead',
+										field_name: 'status_id',
+									},
+									condition: {
+										type: 'term',
+										values: [statusId],
+									},
+								});
 							}
 
-							if (returnAll) {
-								responseData = await closeApiRequestAllItems.call(
-									this,
-									'data',
-									'GET',
-									'/lead/',
-									{},
-									searchQs,
-								);
+							// Filter by display_name (Company Name)
+							if (companyName) {
+								filterQueries.push({
+									type: 'field_condition',
+									field: {
+										type: 'regular_field',
+										object_type: 'lead',
+										field_name: 'display_name',
+									},
+									condition: {
+										type: 'text',
+										mode: 'full_words',
+										value: companyName,
+									},
+								});
+							}
+
+							// Filter by url (Company URL)
+							if (companyUrl) {
+								filterQueries.push({
+									type: 'field_condition',
+									field: {
+										type: 'regular_field',
+										object_type: 'lead',
+										field_name: 'url',
+									},
+									condition: {
+										type: 'text',
+										mode: 'full_words',
+										value: companyUrl,
+									},
+								});
+							}
+
+							// Filter by email (Contact Email)
+							if (email) {
+								filterQueries.push({
+									type: 'has_related',
+									this_object_type: 'lead',
+									related_object_type: 'contact_email',
+									related_query: {
+										type: 'field_condition',
+										field: {
+											type: 'regular_field',
+											object_type: 'contact_email',
+											field_name: 'email',
+										},
+										condition: {
+											type: 'text',
+											mode: 'full_words',
+											value: email,
+										},
+									},
+								});
+							}
+
+							// Filter by phone (Contact Phone)
+							if (phone) {
+								filterQueries.push({
+									type: 'has_related',
+									this_object_type: 'lead',
+									related_object_type: 'contact_phone',
+									related_query: {
+										type: 'field_condition',
+										field: {
+											type: 'regular_field',
+											object_type: 'contact_phone',
+											field_name: 'phone',
+										},
+										condition: {
+											type: 'text',
+											mode: 'full_words',
+											value: phone,
+										},
+									},
+								});
+							}
+
+							// If no filters provided, return empty results
+							if (filterQueries.length === 1) {
+								responseData = [];
 							} else {
-								searchQs._limit = this.getNodeParameter('limit', i);
-								responseData = await closeApiRequest.call(this, 'GET', '/lead/', {}, searchQs);
-								responseData = responseData.data;
+								// Build the final query
+								const searchBody: JsonObject = {
+									query: {
+										type: 'and',
+										queries: filterQueries,
+									},
+								};
+
+								// Add pagination - Advanced Filtering API uses results_limit
+								if (!returnAll) {
+									searchBody.results_limit = this.getNodeParameter('limit', i);
+								}
+
+								// Use Advanced Filtering API
+								if (returnAll) {
+									responseData = await closeApiRequestAllItems.call(
+										this,
+										'data',
+										'POST',
+										'/data/search/',
+										searchBody,
+										{},
+									);
+								} else {
+									responseData = await closeApiRequest.call(this, 'POST', '/data/search/', searchBody);
+									responseData = responseData.data;
+								}
 							}
 						}
 					}
