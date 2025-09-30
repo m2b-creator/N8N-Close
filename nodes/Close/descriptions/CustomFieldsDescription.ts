@@ -232,7 +232,7 @@ export const customFieldsCreateSections: INodeProperties[] = [
 								type: 'options',
 								typeOptions: {
 									loadOptionsMethod: 'getFieldChoices',
-									loadOptionsDependsOn: ['fieldId'],
+									loadOptionsDependsOn: ['customFields.choiceSingleField.choiceSingleFields.fieldId'],
 								},
 								default: '',
 								description: 'Select a value from the available options',
@@ -276,7 +276,7 @@ export const customFieldsCreateSections: INodeProperties[] = [
 								type: 'multiOptions',
 								typeOptions: {
 									loadOptionsMethod: 'getFieldChoices',
-									loadOptionsDependsOn: ['fieldId'],
+									loadOptionsDependsOn: ['customFields.choiceMultipleField.choiceMultipleFields.fieldId'],
 								},
 								default: [],
 								description: 'Select multiple values from the available options',
@@ -658,25 +658,44 @@ export const customFieldsLoadMethods = {
 			// Get the fieldId - n8n passes this when loadOptionsDependsOn is used
 			let fieldId: string | undefined;
 
-			// Try to get fieldId using getCurrentNodeParameter
-			try {
-				fieldId = context.getCurrentNodeParameter('fieldId') as string;
-			} catch (e) {
-				// Silent fail, will log below
+			// Try multiple ways to get the fieldId
+			const attempts = [
+				// Direct parameter name
+				() => context.getCurrentNodeParameter('fieldId'),
+				// With customFields prefix
+				() => context.getCurrentNodeParameter('customFields.choiceSingleField.choiceSingleFields.fieldId'),
+				() => context.getCurrentNodeParameter('customFields.choiceMultipleField.choiceMultipleFields.fieldId'),
+				// Try getting from node parameters
+				() => {
+					const params = context.getNodeParameter('customFields');
+					if (params?.choiceSingleField?.choiceSingleFields?.[0]?.fieldId) {
+						return params.choiceSingleField.choiceSingleFields[0].fieldId;
+					}
+					if (params?.choiceMultipleField?.choiceMultipleFields?.[0]?.fieldId) {
+						return params.choiceMultipleField.choiceMultipleFields[0].fieldId;
+					}
+					return undefined;
+				},
+			];
+
+			for (const attempt of attempts) {
+				try {
+					const result = attempt();
+					if (result) {
+						fieldId = result as string;
+						break;
+					}
+				} catch (e) {
+					// Continue to next attempt
+				}
 			}
 
 			// Log for debugging
 			console.log('[getFieldChoices] Called with fieldId:', fieldId);
-			console.log('[getFieldChoices] Context type:', typeof context);
-			console.log('[getFieldChoices] Context keys:', Object.keys(context));
 
 			if (!fieldId) {
-				console.log('[getFieldChoices] No fieldId - returning placeholder');
-				// Return a helpful message when no field is selected
-				return [{
-					name: 'Please select a field name first',
-					value: '',
-				}];
+				console.log('[getFieldChoices] No fieldId found - returning empty');
+				return [];
 			}
 
 			// Fetch all custom fields
@@ -688,12 +707,7 @@ export const customFieldsLoadMethods = {
 
 			if (!field) {
 				console.log(`[getFieldChoices] Field not found for ID: ${fieldId}`);
-				const choiceFields = fields.filter(f => f.type === 'choices');
-				console.log(`[getFieldChoices] Available choice fields:`, choiceFields.map(f => ({ id: f.id, name: f.name })));
-				return [{
-					name: `Field ${fieldId} not found`,
-					value: '',
-				}];
+				return [];
 			}
 
 			console.log(`[getFieldChoices] Found field: ${field.name}, type: ${field.type}`);
@@ -702,12 +716,9 @@ export const customFieldsLoadMethods = {
 			if (field.type === 'choices') {
 				if (!field.choices || !Array.isArray(field.choices) || field.choices.length === 0) {
 					console.log(`[getFieldChoices] Field "${field.name}" has no choices`);
-					return [{
-						name: 'No choices available for this field',
-						value: '',
-					}];
+					return [];
 				}
-				console.log(`[getFieldChoices] Returning ${field.choices.length} choices:`, field.choices);
+				console.log(`[getFieldChoices] Returning ${field.choices.length} choices for ${field.name}:`, field.choices);
 				return field.choices.map(choice => ({
 					name: choice,
 					value: choice,
@@ -715,16 +726,10 @@ export const customFieldsLoadMethods = {
 			}
 
 			console.log(`[getFieldChoices] Field "${field.name}" is type "${field.type}", not "choices"`);
-			return [{
-				name: `Field "${field.name}" is not a choice field`,
-				value: '',
-			}];
+			return [];
 		} catch (error) {
 			console.error('[getFieldChoices] Error:', error);
-			return [{
-				name: 'Error loading choices',
-				value: '',
-			}];
+			return [];
 		}
 	},
 
