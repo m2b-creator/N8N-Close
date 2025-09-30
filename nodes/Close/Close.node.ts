@@ -482,45 +482,55 @@ export class Close implements INodeType {
 								});
 							}
 
-							// Filter by email (Contact Email)
+							// Filter by email (Contact Email) - nested relation: Lead -> Contact -> Email
 							if (email) {
 								filterQueries.push({
 									type: 'has_related',
 									this_object_type: 'lead',
-									related_object_type: 'contact_email',
+									related_object_type: 'contact',
 									related_query: {
-										type: 'field_condition',
-										field: {
-											type: 'regular_field',
-											object_type: 'contact_email',
-											field_name: 'email',
-										},
-										condition: {
-											type: 'text',
-											mode: 'full_words',
-											value: email,
+										type: 'has_related',
+										this_object_type: 'contact',
+										related_object_type: 'contact_email',
+										related_query: {
+											type: 'field_condition',
+											field: {
+												type: 'regular_field',
+												object_type: 'contact_email',
+												field_name: 'email',
+											},
+											condition: {
+												type: 'text',
+												value: email,
+												mode: 'phrase',
+											},
 										},
 									},
 								});
 							}
 
-							// Filter by phone (Contact Phone)
+							// Filter by phone (Contact Phone) - nested relation: Lead -> Contact -> Phone
 							if (phone) {
 								filterQueries.push({
 									type: 'has_related',
 									this_object_type: 'lead',
-									related_object_type: 'contact_phone',
+									related_object_type: 'contact',
 									related_query: {
-										type: 'field_condition',
-										field: {
-											type: 'regular_field',
-											object_type: 'contact_phone',
-											field_name: 'phone',
-										},
-										condition: {
-											type: 'text',
-											mode: 'full_words',
-											value: phone,
+										type: 'has_related',
+										this_object_type: 'contact',
+										related_object_type: 'contact_phone',
+										related_query: {
+											type: 'field_condition',
+											field: {
+												type: 'regular_field',
+												object_type: 'contact_phone',
+												field_name: 'phone',
+											},
+											condition: {
+												type: 'text',
+												value: phone,
+												mode: 'phrase',
+											},
 										},
 									},
 								});
