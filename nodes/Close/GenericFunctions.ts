@@ -1,14 +1,14 @@
-import type {
+import {
 	IDataObject,
 	IExecuteFunctions,
 	IHookFunctions,
+	IHttpRequestMethods,
+	IHttpRequestOptions,
 	ILoadOptionsFunctions,
 	IPollFunctions,
-	IHttpRequestMethods,
-	IRequestOptions,
 	JsonObject,
+	NodeOperationError,
 } from 'n8n-workflow';
-
 import { NodeApiError } from 'n8n-workflow';
 
 export async function closeApiRequest(
@@ -19,14 +19,14 @@ export async function closeApiRequest(
 	qs: IDataObject = {},
 	option: IDataObject = {},
 ): Promise<any> {
-	const options: IRequestOptions = {
+	const options: IHttpRequestOptions = {
 		headers: {
 			'Content-Type': 'application/json',
 		},
 		method,
 		qs,
 		body,
-		uri: `https://api.close.com/api/v1${resource}`,
+		url: `https://api.close.com/api/v1${resource}`,
 		json: true,
 	};
 
@@ -40,20 +40,19 @@ export async function closeApiRequest(
 		Object.assign(options, option);
 	}
 
+	const credentials = await this.getCredentials('closeApi');
+
+	if (!credentials || !credentials.apiKey) {
+		throw new NodeOperationError(this.getNode(),'Close API credentials are missing or invalid');
+	}
+
+	options.auth = {
+		username: credentials.apiKey as string,
+		password: '',
+	};
+
 	try {
-		const credentials = await this.getCredentials('closeApi');
-		
-		if (!credentials || !credentials.apiKey) {
-			throw new Error('Close API credentials are missing or invalid');
-		}
-
-		options.auth = {
-			user: credentials.apiKey as string,
-			pass: '',
-		};
-
-		const response = await this.helpers.request(options);
-		return response;
+		return await this.helpers.httpRequest(options);
 	} catch (error: any) {
 		if (error.response) {
 			const statusCode = error.response.status;
