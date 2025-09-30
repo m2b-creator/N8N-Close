@@ -481,7 +481,22 @@ describe('Close', () => {
 				expect(closeApiRequest).toHaveBeenCalledWith('GET', '/lead/lead_123/');
 			});
 
-			it('should return empty results when no filters are provided', async () => {
+			it('should return all leads when no filters are provided', async () => {
+				const mockResponse = {
+					data: [
+						{
+							id: 'lead_abc123',
+							name: 'Test Company 1',
+							status_id: 'stat_abc123'
+						},
+						{
+							id: 'lead_def456',
+							name: 'Test Company 2',
+							status_id: 'stat_def456'
+						}
+					]
+				};
+
 				mockExecuteFunctions.getNodeParameter
 					.mockReturnValueOnce('lead') // resource
 					.mockReturnValueOnce('find') // operation
@@ -494,10 +509,11 @@ describe('Close', () => {
 					.mockReturnValueOnce(false) // returnAll
 					.mockReturnValueOnce(50); // limit
 
-				const result = await close.execute.call(mockExecuteFunctions);
+				(closeApiRequest as jest.Mock).mockResolvedValueOnce(mockResponse);
 
-				expect(closeApiRequest).not.toHaveBeenCalled();
-				expect(result).toEqual([[[]]]);
+				await close.execute.call(mockExecuteFunctions);
+
+				expect(closeApiRequest).toHaveBeenCalledWith('GET', '/lead/', {}, { _limit: 50 });
 			});
 
 			it('should use advanced filtering API when company name is provided', async () => {
@@ -550,6 +566,11 @@ describe('Close', () => {
 								}
 							}
 						]
+					},
+					_fields: {
+						lead: ['id', 'display_name', 'name', 'description', 'url', 'status_id', 'status_label',
+							   'contacts', 'addresses', 'created_by', 'date_created', 'date_updated',
+							   'organization_id', 'tasks', 'opportunities']
 					},
 					results_limit: 50
 				});

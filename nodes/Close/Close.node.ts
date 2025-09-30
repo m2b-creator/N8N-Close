@@ -526,15 +526,36 @@ export class Close implements INodeType {
 								});
 							}
 
-							// If no filters provided, return empty results
+							// If no filters provided, use standard API to get all leads
 							if (filterQueries.length === 1) {
-								responseData = [];
+								const searchQs: JsonObject = {};
+
+								if (returnAll) {
+									responseData = await closeApiRequestAllItems.call(
+										this,
+										'data',
+										'GET',
+										'/lead/',
+										{},
+										searchQs,
+									);
+								} else {
+									searchQs._limit = this.getNodeParameter('limit', i);
+									responseData = await closeApiRequest.call(this, 'GET', '/lead/', {}, searchQs);
+									responseData = responseData.data;
+								}
 							} else {
-								// Build the final query
+								// Build the final query for Advanced Filtering API
 								const searchBody: JsonObject = {
 									query: {
 										type: 'and',
 										queries: filterQueries,
+									},
+									// Request all fields to get complete lead data
+									_fields: {
+										lead: ['id', 'display_name', 'name', 'description', 'url', 'status_id', 'status_label',
+											   'contacts', 'addresses', 'created_by', 'date_created', 'date_updated',
+											   'organization_id', 'tasks', 'opportunities'],
 									},
 								};
 
