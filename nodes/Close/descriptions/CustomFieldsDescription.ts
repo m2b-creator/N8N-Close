@@ -266,7 +266,6 @@ export const customFieldsCreateSections: INodeProperties[] = [
 								type: 'options',
 								typeOptions: {
 									loadOptionsMethod: 'getMultipleChoiceFields',
-									loadOptionsDependsOn: ['fieldId'],
 								},
 								default: '',
 								description: 'Select the choice field',
