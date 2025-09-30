@@ -202,53 +202,43 @@ export class Close implements INodeType {
 
 			// New Custom Fields Load Methods
 			async getSingleChoiceFields(this: ILoadOptionsFunctions): Promise<INodePropertyOptions[]> {
-				const fields = await customFieldsLoadMethods.getCachedCustomFields(this);
-				return customFieldsLoadMethods.filterFieldsByType(fields, 'choices', false);
+				return customFieldsLoadMethods.getChoiceSingleFields(this);
 			},
 
 			async getMultipleChoiceFields(this: ILoadOptionsFunctions): Promise<INodePropertyOptions[]> {
-				const fields = await customFieldsLoadMethods.getCachedCustomFields(this);
-				return customFieldsLoadMethods.filterFieldsByType(fields, 'choices', true);
+				return customFieldsLoadMethods.getChoiceMultipleFields(this);
 			},
 
 			async getTextFields(this: ILoadOptionsFunctions): Promise<INodePropertyOptions[]> {
-				const fields = await customFieldsLoadMethods.getCachedCustomFields(this);
-				return customFieldsLoadMethods.filterFieldsByType(fields, 'text');
+				return customFieldsLoadMethods.getTextFields(this);
 			},
 
 			async getNumberFields(this: ILoadOptionsFunctions): Promise<INodePropertyOptions[]> {
-				const fields = await customFieldsLoadMethods.getCachedCustomFields(this);
-				return customFieldsLoadMethods.filterFieldsByType(fields, 'number');
+				return customFieldsLoadMethods.getNumberFields(this);
 			},
 
 			async getDateFields(this: ILoadOptionsFunctions): Promise<INodePropertyOptions[]> {
-				const fields = await customFieldsLoadMethods.getCachedCustomFields(this);
-				return customFieldsLoadMethods.filterFieldsByType(fields, 'date');
+				return customFieldsLoadMethods.getDateFields(this);
 			},
 
 			async getDateTimeFields(this: ILoadOptionsFunctions): Promise<INodePropertyOptions[]> {
-				const fields = await customFieldsLoadMethods.getCachedCustomFields(this);
-				return customFieldsLoadMethods.filterFieldsByType(fields, 'datetime');
+				return customFieldsLoadMethods.getDateFields(this);
 			},
 
 			async getSingleUserFields(this: ILoadOptionsFunctions): Promise<INodePropertyOptions[]> {
-				const fields = await customFieldsLoadMethods.getCachedCustomFields(this);
-				return customFieldsLoadMethods.filterFieldsByType(fields, 'user', false);
+				return customFieldsLoadMethods.getUserSingleFields(this);
 			},
 
 			async getMultipleUserFields(this: ILoadOptionsFunctions): Promise<INodePropertyOptions[]> {
-				const fields = await customFieldsLoadMethods.getCachedCustomFields(this);
-				return customFieldsLoadMethods.filterFieldsByType(fields, 'user', true);
+				return customFieldsLoadMethods.getUserMultipleFields(this);
 			},
 
 			async getSingleContactFields(this: ILoadOptionsFunctions): Promise<INodePropertyOptions[]> {
-				const fields = await customFieldsLoadMethods.getCachedCustomFields(this);
-				return customFieldsLoadMethods.filterFieldsByType(fields, 'contact', false);
+				return customFieldsLoadMethods.getContactSingleFields(this);
 			},
 
 			async getMultipleContactFields(this: ILoadOptionsFunctions): Promise<INodePropertyOptions[]> {
-				const fields = await customFieldsLoadMethods.getCachedCustomFields(this);
-				return customFieldsLoadMethods.filterFieldsByType(fields, 'contact', true);
+				return customFieldsLoadMethods.getContactMultipleFields(this);
 			},
 
 			// New dynamic method for field type filtering

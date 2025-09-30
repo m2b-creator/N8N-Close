@@ -654,31 +654,78 @@ export const customFieldsLoadMethods = {
 	 * Get choices/options for a specific field (handles choice fields)
 	 */
 	async getFieldChoices(context: any): Promise<INodePropertyOptions[]> {
-		const fieldId = context.getCurrentNodeParameter('fieldId') as string;
-		
-		if (!fieldId) {
-			return [];
-		}
+		try {
+			// Get the fieldId - n8n passes this when loadOptionsDependsOn is used
+			let fieldId: string | undefined;
 
-		const fields = await this.getCachedCustomFields(context);
-		const field = fields.find(f => f.id === fieldId);
-		
-		if (!field) {
-			return [];
-		}
-
-		// Handle choice fields
-		if (field.type === 'choices') {
-			if (!field.choices || !Array.isArray(field.choices)) {
-				return [];
+			// Try to get fieldId using getCurrentNodeParameter
+			try {
+				fieldId = context.getCurrentNodeParameter('fieldId') as string;
+			} catch (e) {
+				// Silent fail, will log below
 			}
-			return field.choices.map(choice => ({
-				name: choice,
-				value: choice,
-			}));
-		}
 
-		return [];
+			// Log for debugging
+			console.log('[getFieldChoices] Called with fieldId:', fieldId);
+			console.log('[getFieldChoices] Context type:', typeof context);
+			console.log('[getFieldChoices] Context keys:', Object.keys(context));
+
+			if (!fieldId) {
+				console.log('[getFieldChoices] No fieldId - returning placeholder');
+				// Return a helpful message when no field is selected
+				return [{
+					name: 'Please select a field name first',
+					value: '',
+				}];
+			}
+
+			// Fetch all custom fields
+			const fields = await this.getCachedCustomFields(context);
+			console.log(`[getFieldChoices] Found ${fields.length} total custom fields`);
+
+			// Find the specific field
+			const field = fields.find(f => f.id === fieldId);
+
+			if (!field) {
+				console.log(`[getFieldChoices] Field not found for ID: ${fieldId}`);
+				const choiceFields = fields.filter(f => f.type === 'choices');
+				console.log(`[getFieldChoices] Available choice fields:`, choiceFields.map(f => ({ id: f.id, name: f.name })));
+				return [{
+					name: `Field ${fieldId} not found`,
+					value: '',
+				}];
+			}
+
+			console.log(`[getFieldChoices] Found field: ${field.name}, type: ${field.type}`);
+
+			// Handle choice fields
+			if (field.type === 'choices') {
+				if (!field.choices || !Array.isArray(field.choices) || field.choices.length === 0) {
+					console.log(`[getFieldChoices] Field "${field.name}" has no choices`);
+					return [{
+						name: 'No choices available for this field',
+						value: '',
+					}];
+				}
+				console.log(`[getFieldChoices] Returning ${field.choices.length} choices:`, field.choices);
+				return field.choices.map(choice => ({
+					name: choice,
+					value: choice,
+				}));
+			}
+
+			console.log(`[getFieldChoices] Field "${field.name}" is type "${field.type}", not "choices"`);
+			return [{
+				name: `Field "${field.name}" is not a choice field`,
+				value: '',
+			}];
+		} catch (error) {
+			console.error('[getFieldChoices] Error:', error);
+			return [{
+				name: 'Error loading choices',
+				value: '',
+			}];
+		}
 	},
 
 	/**
