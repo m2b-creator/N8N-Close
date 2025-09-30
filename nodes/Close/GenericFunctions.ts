@@ -30,7 +30,9 @@ export async function closeApiRequest(
 		json: true,
 	};
 
-	if (Object.keys(body as IDataObject).length === 0) {
+	// For PUT/PATCH requests, always send a body (at least empty JSON {})
+	// For other methods, delete empty body
+	if (Object.keys(body as IDataObject).length === 0 && method !== 'PUT' && method !== 'PATCH') {
 		delete options.body;
 	}
 
