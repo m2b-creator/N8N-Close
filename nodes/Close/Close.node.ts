@@ -669,6 +669,23 @@ export class Close implements INodeType {
 							body.note = additionalFields.note;
 						}
 
+						// Add custom fields from the new structure
+						try {
+							// Collect custom fields data from the new dynamic structure
+							const customFieldsData = this.getNodeParameter('customFields', i, {}) as any;
+
+							// If we have custom fields, process them
+							if (customFieldsData && Object.keys(customFieldsData).length > 0) {
+								const fields = await customFieldsLoadMethods.getCachedCustomFields(this);
+								const customFieldsPayload = constructCustomFieldsPayload({ customFields: customFieldsData }, fields);
+
+								// Merge the custom fields payload into the body
+								Object.assign(body, customFieldsPayload);
+							}
+						} catch (error) {
+							console.error('Error processing custom fields:', error);
+						}
+
 						responseData = await closeApiRequest.call(this, 'POST', '/opportunity/', body);
 					}
 
@@ -760,6 +777,23 @@ export class Close implements INodeType {
 						}
 						if (updateFields.value) {
 							body.value = updateFields.value;
+						}
+
+						// Add custom fields from the new structure
+						try {
+							// Collect custom fields data from the new dynamic structure
+							const customFieldsData = this.getNodeParameter('customFields', i, {}) as any;
+
+							// If we have custom fields, process them
+							if (customFieldsData && Object.keys(customFieldsData).length > 0) {
+								const fields = await customFieldsLoadMethods.getCachedCustomFields(this);
+								const customFieldsPayload = constructCustomFieldsPayload({ customFields: customFieldsData }, fields);
+
+								// Merge the custom fields payload into the body
+								Object.assign(body, customFieldsPayload);
+							}
+						} catch (error) {
+							console.error('Error processing custom fields:', error);
 						}
 
 						responseData = await closeApiRequest.call(

@@ -91,7 +91,7 @@ export const customFieldsCreateSections: INodeProperties[] = [
 		default: {},
 		displayOptions: {
 			show: {
-				resource: ['lead'],
+				resource: ['lead', 'opportunity'],
 				operation: ['create'],
 			},
 		},
@@ -447,7 +447,7 @@ export const customFieldsUpdateSections: INodeProperties[] = customFieldsCreateS
 	...section,
 	displayOptions: {
 		show: {
-			resource: ['lead'],
+			resource: ['lead', 'opportunity'],
 			operation: ['update'],
 		},
 	},
@@ -462,20 +462,29 @@ export const customFieldsLoadMethods = {
 	 */
 	async getCachedCustomFields(context: any): Promise<CustomField[]> {
 		const workspaceId = getWorkspaceId(context);
-		const cached = customFieldsCache.get(workspaceId);
+
+		// Determine the resource type from the context
+		const resource = context.getNodeParameter?.('resource', 0) || 'lead';
+		const cacheKey = `${workspaceId}_${resource}`;
+		const cached = customFieldsCache.get(cacheKey);
 
 		if (cached && isCacheValid(cached.timestamp, FIELD_CACHE_TTL)) {
 			return cached.fields;
 		}
 
 		try {
+			// Use the appropriate endpoint based on resource type
+			const endpoint = resource === 'opportunity'
+				? '/custom_field/opportunity/'
+				: '/custom_field/lead/';
+
 			// Prefer the all-items helper to flatten pagination and match JSON shapes
 			let fieldsData: CustomField[] = [];
 			try {
-				fieldsData = await (closeApiRequestAllItems as any).call(context, 'data', 'GET', '/custom_field/lead/');
+				fieldsData = await (closeApiRequestAllItems as any).call(context, 'data', 'GET', endpoint);
 			} catch {
 				// Fallback to single request and normalization
-				const raw = await (closeApiRequest as any).call(context, 'GET', '/custom_field/lead/');
+				const raw = await (closeApiRequest as any).call(context, 'GET', endpoint);
 				fieldsData = normalizeCustomFieldsResponse(raw);
 			}
 
@@ -484,8 +493,8 @@ export const customFieldsLoadMethods = {
 				return [];
 			}
 
-			// Cache the results
-			customFieldsCache.set(workspaceId, {
+			// Cache the results with resource-specific key
+			customFieldsCache.set(cacheKey, {
 				timestamp: Date.now(),
 				fields: fieldsData,
 			});
