@@ -989,7 +989,7 @@ export const customFieldValidators = {
 		const values = field.accepts_multiple_values ? (Array.isArray(value) ? value : [value]) : [value];
 		for (const v of values) {
 			const s = String(v);
-			if (s.indexOf('contact_') !== 0) {
+			if (s.indexOf('cont_') !== 0) {
 				return `Invalid contact ID format: ${v}`;
 			}
 		}
