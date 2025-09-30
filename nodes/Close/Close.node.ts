@@ -250,6 +250,10 @@ export class Close implements INodeType {
 				return customFieldsLoadMethods.getFieldChoices(this);
 			},
 
+			async getAllChoiceValues(this: ILoadOptionsFunctions): Promise<INodePropertyOptions[]> {
+				return customFieldsLoadMethods.getAllChoiceValues(this);
+			},
+
 			async getCachedUsers(this: ILoadOptionsFunctions): Promise<INodePropertyOptions[]> {
 				return customFieldsLoadMethods.getCachedUsers(this);
 			},

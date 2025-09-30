@@ -231,11 +231,10 @@ export const customFieldsCreateSections: INodeProperties[] = [
 								name: 'fieldValue',
 								type: 'options',
 								typeOptions: {
-									loadOptionsMethod: 'getFieldChoices',
-									loadOptionsDependsOn: ['customFields.choiceSingleField.choiceSingleFields.fieldId'],
+									loadOptionsMethod: 'getAllChoiceValues',
 								},
 								default: '',
-								description: 'Select a value from the available options',
+								description: 'Select a value (shows all possible values from all choice fields)',
 								displayOptions: {
 									hide: {
 										fieldId: [''],
@@ -275,11 +274,10 @@ export const customFieldsCreateSections: INodeProperties[] = [
 								name: 'fieldValues',
 								type: 'multiOptions',
 								typeOptions: {
-									loadOptionsMethod: 'getFieldChoices',
-									loadOptionsDependsOn: ['customFields.choiceMultipleField.choiceMultipleFields.fieldId'],
+									loadOptionsMethod: 'getAllChoiceValues',
 								},
 								default: [],
-								description: 'Select multiple values from the available options',
+								description: 'Select multiple values (shows all possible values from all choice fields)',
 								displayOptions: {
 									hide: {
 										fieldId: [''],
@@ -651,7 +649,53 @@ export const customFieldsLoadMethods = {
 	},
 
 	/**
+	 * Get all choice values from all choice fields
+	 * This is used as a workaround since loadOptionsDependsOn doesn't work in fixedCollections
+	 */
+	async getAllChoiceValues(context: any): Promise<INodePropertyOptions[]> {
+		try {
+			console.log('[getAllChoiceValues] Loading all choice values');
+
+			const fields = await this.getCachedCustomFields(context);
+			const choiceFields = fields.filter(f => f.type === 'choices' && f.choices && Array.isArray(f.choices));
+
+			console.log(`[getAllChoiceValues] Found ${choiceFields.length} choice fields`);
+
+			// Collect all unique choice values with field name prefix
+			const allChoices = new Map<string, string>();
+
+			for (const field of choiceFields) {
+				if (field.choices) {
+					for (const choice of field.choices) {
+						// Use choice as key to avoid duplicates, but show field name in display
+						const key = choice;
+						if (!allChoices.has(key)) {
+							allChoices.set(key, `${choice} (from ${field.name})`);
+						}
+					}
+				}
+			}
+
+			console.log(`[getAllChoiceValues] Returning ${allChoices.size} unique choices`);
+
+			const result = Array.from(allChoices.entries()).map(([value, name]) => ({
+				name,
+				value,
+			}));
+
+			// Sort alphabetically by display name
+			result.sort((a, b) => a.name.localeCompare(b.name));
+
+			return result;
+		} catch (error) {
+			console.error('[getAllChoiceValues] Error:', error);
+			return [];
+		}
+	},
+
+	/**
 	 * Get choices/options for a specific field (handles choice fields)
+	 * NOTE: This method doesn't work in fixedCollections due to n8n limitations
 	 */
 	async getFieldChoices(context: any): Promise<INodePropertyOptions[]> {
 		try {
@@ -660,38 +704,40 @@ export const customFieldsLoadMethods = {
 
 			// Try multiple ways to get the fieldId
 			const attempts = [
-				// Direct parameter name
-				() => context.getCurrentNodeParameter('fieldId'),
-				// With customFields prefix
-				() => context.getCurrentNodeParameter('customFields.choiceSingleField.choiceSingleFields.fieldId'),
-				() => context.getCurrentNodeParameter('customFields.choiceMultipleField.choiceMultipleFields.fieldId'),
-				// Try getting from node parameters
-				() => {
-					const params = context.getNodeParameter('customFields');
-					if (params?.choiceSingleField?.choiceSingleFields?.[0]?.fieldId) {
-						return params.choiceSingleField.choiceSingleFields[0].fieldId;
+				{ name: 'Direct fieldId', fn: () => context.getCurrentNodeParameter('fieldId') },
+				{ name: 'Single choice path', fn: () => context.getCurrentNodeParameter('customFields.choiceSingleField.choiceSingleFields.fieldId') },
+				{ name: 'Multiple choice path', fn: () => context.getCurrentNodeParameter('customFields.choiceMultipleField.choiceMultipleFields.fieldId') },
+				{
+					name: 'Node parameters',
+					fn: () => {
+						const params = context.getNodeParameter('customFields');
+						console.log('[getFieldChoices] Full customFields params:', JSON.stringify(params, null, 2));
+						if (params?.choiceSingleField?.choiceSingleFields?.[0]?.fieldId) {
+							return params.choiceSingleField.choiceSingleFields[0].fieldId;
+						}
+						if (params?.choiceMultipleField?.choiceMultipleFields?.[0]?.fieldId) {
+							return params.choiceMultipleField.choiceMultipleFields[0].fieldId;
+						}
+						return undefined;
 					}
-					if (params?.choiceMultipleField?.choiceMultipleFields?.[0]?.fieldId) {
-						return params.choiceMultipleField.choiceMultipleFields[0].fieldId;
-					}
-					return undefined;
 				},
 			];
 
 			for (const attempt of attempts) {
 				try {
-					const result = attempt();
+					const result = attempt.fn();
 					if (result) {
+						console.log(`[getFieldChoices] Found fieldId via "${attempt.name}":`, result);
 						fieldId = result as string;
 						break;
 					}
 				} catch (e) {
-					// Continue to next attempt
+					console.log(`[getFieldChoices] "${attempt.name}" failed:`, e instanceof Error ? e.message : e);
 				}
 			}
 
 			// Log for debugging
-			console.log('[getFieldChoices] Called with fieldId:', fieldId);
+			console.log('[getFieldChoices] Final fieldId:', fieldId);
 
 			if (!fieldId) {
 				console.log('[getFieldChoices] No fieldId found - returning empty');
