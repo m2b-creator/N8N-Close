@@ -8,7 +8,6 @@ import type {
 	JsonObject,
 	NodeConnectionType,
 } from 'n8n-workflow';
-
 import { NodeOperationError } from 'n8n-workflow';
 
 import { closeApiRequest, closeApiRequestAllItems } from './GenericFunctions';
@@ -19,10 +18,7 @@ import { leadStatusFields, leadStatusOperations } from './descriptions/LeadStatu
 
 import { opportunityFields, opportunityOperations } from './descriptions/OpportunityDescription';
 
-import {
-	opportunityStatusFields,
-	opportunityStatusOperations,
-} from './descriptions/OpportunityStatusDescription';
+import { opportunityStatusFields, opportunityStatusOperations, } from './descriptions/OpportunityStatusDescription';
 
 import { taskFields, taskOperations } from './descriptions/TaskDescription';
 
@@ -36,16 +32,13 @@ import { meetingFields, meetingOperations } from './descriptions/MeetingDescript
 
 import { smsFields, smsOperations } from './descriptions/SmsDescription';
 
-import {
-	customActivityFields,
-	customActivityOperations,
-} from './descriptions/CustomActivityDescription';
+import { customActivityFields, customActivityOperations, } from './descriptions/CustomActivityDescription';
 
 import {
-	customFieldsCreateSections,
-	customFieldsUpdateSections,
-	customFieldsLoadMethods,
 	constructCustomFieldsPayload,
+	customFieldsCreateSections,
+	customFieldsLoadMethods,
+	customFieldsUpdateSections,
 } from './descriptions/CustomFieldsDescription';
 
 export class Close implements INodeType {
@@ -459,8 +452,7 @@ export class Close implements INodeType {
 									searchQs,
 								);
 							} else {
-								const limit = this.getNodeParameter('limit', i);
-								searchQs._limit = limit;
+								searchQs._limit = this.getNodeParameter('limit', i);
 								responseData = await closeApiRequest.call(this, 'GET', '/lead/', {}, searchQs);
 								responseData = responseData.data;
 							}
@@ -734,8 +726,8 @@ export class Close implements INodeType {
 								qs,
 							);
 						} else {
-							const limit = this.getNodeParameter('limit', i);
-							qs._limit = limit;
+
+							qs._limit = this.getNodeParameter('limit', i);
 							responseData = await closeApiRequest.call(this, 'GET', '/opportunity/', {}, qs);
 							responseData = responseData.data;
 						}
@@ -1025,8 +1017,8 @@ export class Close implements INodeType {
 								qs,
 							);
 						} else {
-							const limit = this.getNodeParameter('limit', i);
-							qs._limit = limit;
+
+							qs._limit = this.getNodeParameter('limit', i);
 							responseData = await closeApiRequest.call(this, 'GET', '/task/', {}, qs);
 							responseData = responseData.data;
 						}
@@ -1195,8 +1187,8 @@ export class Close implements INodeType {
 								qs,
 							);
 						} else {
-							const limit = this.getNodeParameter('limit', i);
-							qs._limit = limit;
+
+							qs._limit = this.getNodeParameter('limit', i);
 							responseData = await closeApiRequest.call(this, 'GET', '/activity/note/', {}, qs);
 							responseData = responseData.data;
 						}
@@ -1312,8 +1304,8 @@ export class Close implements INodeType {
 								qs,
 							);
 						} else {
-							const limit = this.getNodeParameter('limit', i);
-							qs._limit = limit;
+
+							qs._limit = this.getNodeParameter('limit', i);
 							responseData = await closeApiRequest.call(this, 'GET', '/activity/', {}, qs);
 							responseData = responseData.data;
 						}
@@ -1472,8 +1464,8 @@ export class Close implements INodeType {
 								qs,
 							);
 						} else {
-							const limit = this.getNodeParameter('limit', i);
-							qs._limit = limit;
+
+							qs._limit = this.getNodeParameter('limit', i);
 							responseData = await closeApiRequest.call(this, 'GET', '/activity/email/', {}, qs);
 							responseData = responseData.data;
 						}
@@ -1578,8 +1570,8 @@ export class Close implements INodeType {
 								qs,
 							);
 						} else {
-							const limit = this.getNodeParameter('limit', i);
-							qs._limit = limit;
+
+							qs._limit = this.getNodeParameter('limit', i);
 							responseData = await closeApiRequest.call(this, 'GET', '/activity/meeting/', {}, qs);
 							responseData = responseData.data;
 						}
@@ -1726,8 +1718,8 @@ export class Close implements INodeType {
 								qs,
 							);
 						} else {
-							const limit = this.getNodeParameter('limit', i);
-							qs._limit = limit;
+
+							qs._limit = this.getNodeParameter('limit', i);
 							responseData = await closeApiRequest.call(this, 'GET', '/activity/sms/', {}, qs);
 							responseData = responseData.data;
 						}
@@ -1771,8 +1763,8 @@ export class Close implements INodeType {
 								qs,
 							);
 						} else {
-							const limit = this.getNodeParameter('limit', i);
-							qs._limit = limit;
+
+							qs._limit = this.getNodeParameter('limit', i);
 							responseData = await closeApiRequest.call(this, 'GET', '/activity/', {}, qs);
 							responseData = responseData.data;
 						}
