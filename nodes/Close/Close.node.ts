@@ -772,11 +772,23 @@ export class Close implements INodeType {
 						if (updateFields.statusId) {
 							body.status_id = updateFields.statusId;
 						}
+						if (updateFields.assignedTo) {
+							body.user_id = updateFields.assignedTo;
+						}
+						if (updateFields.confidence !== undefined) {
+							body.confidence = updateFields.confidence;
+						}
 						if (updateFields.note) {
 							body.note = updateFields.note;
 						}
-						if (updateFields.value) {
+						if (updateFields.value !== undefined) {
 							body.value = updateFields.value;
+						}
+						if (updateFields.valuePeriod) {
+							body.value_period = updateFields.valuePeriod;
+						}
+						if (updateFields.closeDate) {
+							body.date_won = updateFields.closeDate;
 						}
 
 						// Add custom fields from the new structure
