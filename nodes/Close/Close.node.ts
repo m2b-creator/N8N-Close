@@ -384,13 +384,13 @@ export class Close implements INodeType {
 							}
 						}
 
-						// Add custom fields
+						// Add custom fields from the new structure
 						try {
 							// Collect custom fields data from the new dynamic structure
 							const customFieldsData = this.getNodeParameter('customFields', i, {}) as any;
 
 							// If we have custom fields, process them
-							if (customFieldsData && customFieldsData.customFieldsValues && customFieldsData.customFieldsValues.length > 0) {
+							if (customFieldsData && Object.keys(customFieldsData).length > 0) {
 								const fields = await customFieldsLoadMethods.getCachedCustomFields(this);
 								const customFieldsPayload = constructCustomFieldsPayload({ customFields: customFieldsData }, fields);
 
@@ -398,7 +398,7 @@ export class Close implements INodeType {
 								Object.assign(body, customFieldsPayload);
 							}
 						} catch (error) {
-							console.error('Error processing new custom fields format:', error);
+							console.error('Error processing custom fields:', error);
 							// Continue with execution - don't fail the entire operation
 						}
 
@@ -539,13 +539,13 @@ export class Close implements INodeType {
 							}
 						}
 
-						// Add custom fields
+						// Add custom fields from the new structure
 						try {
 							// Collect custom fields data from the new dynamic structure
 							const customFieldsData = this.getNodeParameter('customFields', i, {}) as any;
 
 							// If we have custom fields, process them
-							if (customFieldsData && customFieldsData.customFieldsValues && customFieldsData.customFieldsValues.length > 0) {
+							if (customFieldsData && Object.keys(customFieldsData).length > 0) {
 								const fields = await customFieldsLoadMethods.getCachedCustomFields(this);
 								const customFieldsPayload = constructCustomFieldsPayload({ customFields: customFieldsData }, fields);
 
@@ -553,7 +553,7 @@ export class Close implements INodeType {
 								Object.assign(body, customFieldsPayload);
 							}
 						} catch (error) {
-							console.error('Error processing new custom fields format:', error);
+							console.error('Error processing custom fields:', error);
 							// Continue with execution - don't fail the entire operation
 						}
 
