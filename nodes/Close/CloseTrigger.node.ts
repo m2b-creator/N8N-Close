@@ -763,7 +763,12 @@ export class CloseTrigger implements INodeType {
 				const webhookData = this.getWorkflowStaticData('node');
 				const triggerOn = this.getNodeParameter('event') as string;
 
-				const actionsParam = `${triggerOn}Actions`;
+				// Convert event name to camelCase for parameter name
+				const actionsParam = triggerOn
+					.split('_')
+					.map((word, index) => (index === 0 ? word : word.charAt(0).toUpperCase() + word.slice(1)))
+					.join('') + 'Actions';
+
 				let selectedActions: string[] = [];
 
 				try {
