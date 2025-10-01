@@ -174,9 +174,12 @@ export const taskFields: INodeProperties[] = [
 			{
 				displayName: 'Assigned To',
 				name: 'assignedTo',
-				type: 'string',
+				type: 'options',
+				typeOptions: {
+					loadOptionsMethod: 'getUsers',
+				},
 				default: '',
-				description: 'User ID to assign the task to',
+				description: 'The user to assign the task to. Choose from the list, or specify an ID using an <a href="https://docs.n8n.io/code-examples/expressions/">expression</a>.',
 			},
 			{
 				displayName: 'Date',

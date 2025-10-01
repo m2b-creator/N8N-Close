@@ -71,7 +71,7 @@ export const opportunityFields: INodeProperties[] = [
 		},
 		options: [
 			{
-				displayName: 'Status Name or ID',
+				displayName: 'Status Name ',
 				name: 'statusId',
 				type: 'options',
 				typeOptions: {
@@ -179,7 +179,7 @@ export const opportunityFields: INodeProperties[] = [
 		description: 'Filter opportunities by lead ID',
 	},
 	{
-		displayName: 'Status Name or ID',
+		displayName: 'Status Name ',
 		name: 'statusId',
 		type: 'options',
 		typeOptions: {
@@ -327,7 +327,7 @@ export const opportunityFields: INodeProperties[] = [
 		},
 		options: [
 			{
-				displayName: 'Status Name or ID',
+				displayName: 'Status Name ',
 				name: 'statusId',
 				type: 'options',
 				typeOptions: {
@@ -338,11 +338,25 @@ export const opportunityFields: INodeProperties[] = [
 					'The status of the opportunity. Choose from the list, or specify an ID using an <a href="https://docs.n8n.io/code-examples/expressions/">expression</a>.',
 			},
 			{
-				displayName: 'Note',
-				name: 'note',
-				type: 'string',
+				displayName: 'Assigned to User',
+				name: 'assignedTo',
+				type: 'options',
+				typeOptions: {
+					loadOptionsMethod: 'getUsers',
+				},
 				default: '',
-				description: 'Note about the opportunity',
+				description: 'The user assigned to this opportunity. Choose from the list, or specify an ID using an <a href="https://docs.n8n.io/code-examples/expressions/">expression</a>.',
+			},
+			{
+				displayName: 'Confidence',
+				name: 'confidence',
+				type: 'number',
+				default: 0,
+				description: 'The confidence percentage for this opportunity (0-100)',
+				typeOptions: {
+					minValue: 0,
+					maxValue: 100,
+				},
 			},
 			{
 				displayName: 'Value',
@@ -350,6 +364,44 @@ export const opportunityFields: INodeProperties[] = [
 				type: 'number',
 				default: 0,
 				description: 'The value of the opportunity in cents',
+			},
+			{
+				displayName: 'Value Period',
+				name: 'valuePeriod',
+				type: 'options',
+				options: [
+					{
+						name: 'One Time',
+						value: 'one_time',
+						description: 'One-time value',
+					},
+					{
+						name: 'Monthly',
+						value: 'monthly',
+						description: 'Monthly recurring value',
+					},
+					{
+						name: 'Annual',
+						value: 'annual',
+						description: 'Annual recurring value',
+					},
+				],
+				default: 'one_time',
+				description: 'The period for the opportunity value',
+			},
+			{
+				displayName: 'Close Date',
+				name: 'closeDate',
+				type: 'dateTime',
+				default: '',
+				description: 'The expected close date for this opportunity',
+			},
+			{
+				displayName: 'Note',
+				name: 'note',
+				type: 'string',
+				default: '',
+				description: 'Note about the opportunity',
 			},
 		],
 	},

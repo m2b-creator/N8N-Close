@@ -8,7 +8,6 @@ import type {
 	JsonObject,
 	NodeConnectionType,
 } from 'n8n-workflow';
-
 import { NodeOperationError } from 'n8n-workflow';
 
 import { closeApiRequest, closeApiRequestAllItems } from './GenericFunctions';
@@ -19,10 +18,7 @@ import { leadStatusFields, leadStatusOperations } from './descriptions/LeadStatu
 
 import { opportunityFields, opportunityOperations } from './descriptions/OpportunityDescription';
 
-import {
-	opportunityStatusFields,
-	opportunityStatusOperations,
-} from './descriptions/OpportunityStatusDescription';
+import { opportunityStatusFields, opportunityStatusOperations, } from './descriptions/OpportunityStatusDescription';
 
 import { taskFields, taskOperations } from './descriptions/TaskDescription';
 
@@ -36,10 +32,14 @@ import { meetingFields, meetingOperations } from './descriptions/MeetingDescript
 
 import { smsFields, smsOperations } from './descriptions/SmsDescription';
 
+import { customActivityFields, customActivityOperations, } from './descriptions/CustomActivityDescription';
+
 import {
-	customActivityFields,
-	customActivityOperations,
-} from './descriptions/CustomActivityDescription';
+	constructCustomFieldsPayload,
+	customFieldsCreateSections,
+	customFieldsLoadMethods,
+	customFieldsUpdateSections,
+} from './descriptions/CustomFieldsDescription';
 
 export class Close implements INodeType {
 	description: INodeTypeDescription = {
@@ -137,6 +137,8 @@ export class Close implements INodeType {
 			...smsFields,
 			...customActivityOperations,
 			...customActivityFields,
+			...customFieldsCreateSections,
+			...customFieldsUpdateSections,
 		],
 	};
 
@@ -166,50 +168,6 @@ export class Close implements INodeType {
 				return returnData;
 			},
 
-			async getCustomFields(this: ILoadOptionsFunctions): Promise<INodePropertyOptions[]> {
-				const returnData: INodePropertyOptions[] = [];
-				const fields = await closeApiRequest.call(this, 'GET', '/custom_field/lead/');
-				for (const field of fields.data) {
-					// Include field type in the description for user clarity
-					const fieldTypeLabel =
-						field.type === 'choices' ? ' (Dropdown)' : ` (${field.type || 'Text'})`;
-					returnData.push({
-						name: `${field.name}${fieldTypeLabel}`,
-						value: `${field.id}|${field.type || 'text'}`, // Encode type in value
-					});
-				}
-				return returnData;
-			},
-
-			async getCustomFieldChoices(this: ILoadOptionsFunctions): Promise<INodePropertyOptions[]> {
-				const fieldIdWithType = this.getCurrentNodeParameter('fieldId') as string;
-				if (!fieldIdWithType) {
-					return [];
-				}
-
-				// Parse the encoded field ID and type
-				const [fieldId, fieldType] = fieldIdWithType.split('|');
-
-				if (fieldType !== 'choices') {
-					return [];
-				}
-
-				try {
-					const field = await closeApiRequest.call(this, 'GET', `/custom_field/lead/${fieldId}/`);
-
-					if (field.type === 'choices' && field.choices && Array.isArray(field.choices)) {
-						return field.choices.map((choice: string) => ({
-							name: choice,
-							value: choice,
-						}));
-					}
-				} catch (error) {
-					// If field details can't be fetched, return empty array
-					return [];
-				}
-
-				return [];
-			},
 
 			async getSmartViews(this: ILoadOptionsFunctions): Promise<INodePropertyOptions[]> {
 				const returnData: INodePropertyOptions[] = [];
@@ -230,6 +188,76 @@ export class Close implements INodeType {
 					returnData.push({
 						name: `${user.first_name} ${user.last_name} (${user.email})`,
 						value: user.id,
+					});
+				}
+				return returnData;
+			},
+
+			// New Custom Fields Load Methods
+			async getSingleChoiceFields(this: ILoadOptionsFunctions): Promise<INodePropertyOptions[]> {
+				return customFieldsLoadMethods.getChoiceSingleFields(this);
+			},
+
+			async getMultipleChoiceFields(this: ILoadOptionsFunctions): Promise<INodePropertyOptions[]> {
+				return customFieldsLoadMethods.getChoiceMultipleFields(this);
+			},
+
+			async getTextFields(this: ILoadOptionsFunctions): Promise<INodePropertyOptions[]> {
+				return customFieldsLoadMethods.getTextFields(this);
+			},
+
+			async getNumberFields(this: ILoadOptionsFunctions): Promise<INodePropertyOptions[]> {
+				return customFieldsLoadMethods.getNumberFields(this);
+			},
+
+			async getDateFields(this: ILoadOptionsFunctions): Promise<INodePropertyOptions[]> {
+				return customFieldsLoadMethods.getDateFields(this);
+			},
+
+			async getDateTimeFields(this: ILoadOptionsFunctions): Promise<INodePropertyOptions[]> {
+				return customFieldsLoadMethods.getDateFields(this);
+			},
+
+			async getSingleUserFields(this: ILoadOptionsFunctions): Promise<INodePropertyOptions[]> {
+				return customFieldsLoadMethods.getUserSingleFields(this);
+			},
+
+			async getMultipleUserFields(this: ILoadOptionsFunctions): Promise<INodePropertyOptions[]> {
+				return customFieldsLoadMethods.getUserMultipleFields(this);
+			},
+
+			async getSingleContactFields(this: ILoadOptionsFunctions): Promise<INodePropertyOptions[]> {
+				return customFieldsLoadMethods.getContactSingleFields(this);
+			},
+
+			async getMultipleContactFields(this: ILoadOptionsFunctions): Promise<INodePropertyOptions[]> {
+				return customFieldsLoadMethods.getContactMultipleFields(this);
+			},
+
+			// New dynamic method for field type filtering
+			async getFieldsByType(this: ILoadOptionsFunctions): Promise<INodePropertyOptions[]> {
+				return customFieldsLoadMethods.getFieldsByType(this);
+			},
+
+			async getFieldChoices(this: ILoadOptionsFunctions): Promise<INodePropertyOptions[]> {
+				return customFieldsLoadMethods.getFieldChoices(this);
+			},
+
+			async getAllChoiceValues(this: ILoadOptionsFunctions): Promise<INodePropertyOptions[]> {
+				return customFieldsLoadMethods.getAllChoiceValues(this);
+			},
+
+			async getCachedUsers(this: ILoadOptionsFunctions): Promise<INodePropertyOptions[]> {
+				return customFieldsLoadMethods.getCachedUsers(this);
+			},
+
+			async getCustomActivityTypes(this: ILoadOptionsFunctions): Promise<INodePropertyOptions[]> {
+				const returnData: INodePropertyOptions[] = [];
+				const types = await closeApiRequest.call(this, 'GET', '/custom_activity/');
+				for (const type of types.data) {
+					returnData.push({
+						name: type.name,
+						value: type.id,
 					});
 				}
 				return returnData;
@@ -339,7 +367,7 @@ export class Close implements INodeType {
 							body.addresses = addressesArray;
 						}
 
-						// Add custom fields if provided
+						// Add custom fields if provided (backwards compatibility)
 						const customFields = this.getNodeParameter('customFieldsUi', i, {}) as {
 							customFieldsValues?: Array<{
 								fieldId: string;
@@ -359,6 +387,24 @@ export class Close implements INodeType {
 									body[`custom.${actualFieldId}`] = value;
 								}
 							}
+						}
+
+						// Add custom fields from the new structure
+						try {
+							// Collect custom fields data from the new dynamic structure
+							const customFieldsData = this.getNodeParameter('customFields', i, {}) as any;
+
+							// If we have custom fields, process them
+							if (customFieldsData && Object.keys(customFieldsData).length > 0) {
+								const fields = await customFieldsLoadMethods.getCachedCustomFields(this);
+								const customFieldsPayload = constructCustomFieldsPayload({ customFields: customFieldsData }, fields);
+
+								// Merge the custom fields payload into the body
+								Object.assign(body, customFieldsPayload);
+							}
+						} catch (error) {
+							console.error('Error processing custom fields:', error);
+							// Continue with execution - don't fail the entire operation
 						}
 
 						responseData = await closeApiRequest.call(this, 'POST', '/lead/', body);
@@ -389,39 +435,171 @@ export class Close implements INodeType {
 						if (leadId) {
 							responseData = await closeApiRequest.call(this, 'GET', `/lead/${leadId}/`);
 						} else {
-							// Search for leads using query parameters
-							const searchQs: JsonObject = {};
+							// Build advanced filter query for precise field matching
+							const filterQueries: JsonObject[] = [];
 
-							if (companyName) {
-								searchQs.query = companyName;
-							}
-							if (companyUrl) {
-								searchQs.url = companyUrl;
-							}
-							if (email) {
-								searchQs.email = email;
-							}
-							if (phone) {
-								searchQs.phone = phone;
-							}
+							// Always specify we're looking for leads
+							filterQueries.push({
+								type: 'object_type',
+								object_type: 'lead',
+							});
+
+							// Filter by status_id (Status Name)
 							if (statusId) {
-								searchQs.status_id = statusId;
+								filterQueries.push({
+									type: 'field_condition',
+									field: {
+										type: 'regular_field',
+										object_type: 'lead',
+										field_name: 'status_id',
+									},
+									condition: {
+										type: 'term',
+										values: [statusId],
+									},
+								});
 							}
 
-							if (returnAll) {
-								responseData = await closeApiRequestAllItems.call(
-									this,
-									'data',
-									'GET',
-									'/lead/',
-									{},
-									searchQs,
-								);
+							// Filter by display_name (Company Name)
+							if (companyName) {
+								filterQueries.push({
+									type: 'field_condition',
+									field: {
+										type: 'regular_field',
+										object_type: 'lead',
+										field_name: 'display_name',
+									},
+									condition: {
+										type: 'text',
+										mode: 'full_words',
+										value: companyName,
+									},
+								});
+							}
+
+							// Filter by url (Company URL)
+							if (companyUrl) {
+								filterQueries.push({
+									type: 'field_condition',
+									field: {
+										type: 'regular_field',
+										object_type: 'lead',
+										field_name: 'url',
+									},
+									condition: {
+										type: 'text',
+										mode: 'full_words',
+										value: companyUrl,
+									},
+								});
+							}
+
+							// Filter by email (Contact Email) - nested relation: Lead -> Contact -> Email
+							if (email) {
+								filterQueries.push({
+									type: 'has_related',
+									this_object_type: 'lead',
+									related_object_type: 'contact',
+									related_query: {
+										type: 'has_related',
+										this_object_type: 'contact',
+										related_object_type: 'contact_email',
+										related_query: {
+											type: 'field_condition',
+											field: {
+												type: 'regular_field',
+												object_type: 'contact_email',
+												field_name: 'email',
+											},
+											condition: {
+												type: 'text',
+												value: email,
+												mode: 'phrase',
+											},
+										},
+									},
+								});
+							}
+
+							// Filter by phone (Contact Phone) - nested relation: Lead -> Contact -> Phone
+							if (phone) {
+								filterQueries.push({
+									type: 'has_related',
+									this_object_type: 'lead',
+									related_object_type: 'contact',
+									related_query: {
+										type: 'has_related',
+										this_object_type: 'contact',
+										related_object_type: 'contact_phone',
+										related_query: {
+											type: 'field_condition',
+											field: {
+												type: 'regular_field',
+												object_type: 'contact_phone',
+												field_name: 'phone',
+											},
+											condition: {
+												type: 'text',
+												value: phone,
+												mode: 'phrase',
+											},
+										},
+									},
+								});
+							}
+
+							// If no filters provided, use standard API to get all leads
+							if (filterQueries.length === 1) {
+								const searchQs: JsonObject = {};
+
+								if (returnAll) {
+									responseData = await closeApiRequestAllItems.call(
+										this,
+										'data',
+										'GET',
+										'/lead/',
+										{},
+										searchQs,
+									);
+								} else {
+									searchQs._limit = this.getNodeParameter('limit', i);
+									responseData = await closeApiRequest.call(this, 'GET', '/lead/', {}, searchQs);
+									responseData = responseData.data;
+								}
 							} else {
-								const limit = this.getNodeParameter('limit', i);
-								searchQs._limit = limit;
-								responseData = await closeApiRequest.call(this, 'GET', '/lead/', {}, searchQs);
-								responseData = responseData.data;
+								// Build the final query for Advanced Filtering API
+								const searchBody: JsonObject = {
+									query: {
+										type: 'and',
+										queries: filterQueries,
+									},
+									// Request all fields to get complete lead data
+									_fields: {
+										lead: ['id', 'display_name', 'name', 'description', 'url', 'status_id', 'status_label',
+											   'contacts', 'addresses', 'created_by', 'date_created', 'date_updated',
+											   'organization_id', 'tasks', 'opportunities'],
+									},
+								};
+
+								// Add pagination - Advanced Filtering API uses results_limit
+								if (!returnAll) {
+									searchBody.results_limit = this.getNodeParameter('limit', i);
+								}
+
+								// Use Advanced Filtering API
+								if (returnAll) {
+									responseData = await closeApiRequestAllItems.call(
+										this,
+										'data',
+										'POST',
+										'/data/search/',
+										searchBody,
+										{},
+									);
+								} else {
+									responseData = await closeApiRequest.call(this, 'POST', '/data/search/', searchBody);
+									responseData = responseData.data;
+								}
 							}
 						}
 					}
@@ -476,6 +654,7 @@ export class Close implements INodeType {
 							body.url = updateFields.url;
 						}
 
+						// Add custom fields if provided (backwards compatibility)
 						const customFields = this.getNodeParameter('customFieldsUi', i, {}) as {
 							customFieldsValues?: Array<{
 								fieldId: string;
@@ -495,6 +674,24 @@ export class Close implements INodeType {
 									body[`custom.${actualFieldId}`] = value;
 								}
 							}
+						}
+
+						// Add custom fields from the new structure
+						try {
+							// Collect custom fields data from the new dynamic structure
+							const customFieldsData = this.getNodeParameter('customFields', i, {}) as any;
+
+							// If we have custom fields, process them
+							if (customFieldsData && Object.keys(customFieldsData).length > 0) {
+								const fields = await customFieldsLoadMethods.getCachedCustomFields(this);
+								const customFieldsPayload = constructCustomFieldsPayload({ customFields: customFieldsData }, fields);
+
+								// Merge the custom fields payload into the body
+								Object.assign(body, customFieldsPayload);
+							}
+						} catch (error) {
+							console.error('Error processing custom fields:', error);
+							// Continue with execution - don't fail the entire operation
 						}
 
 						responseData = await closeApiRequest.call(this, 'PUT', `/lead/${leadId}/`, body);
@@ -617,6 +814,23 @@ export class Close implements INodeType {
 							body.note = additionalFields.note;
 						}
 
+						// Add custom fields from the new structure
+						try {
+							// Collect custom fields data from the new dynamic structure
+							const customFieldsData = this.getNodeParameter('customFields', i, {}) as any;
+
+							// If we have custom fields, process them
+							if (customFieldsData && Object.keys(customFieldsData).length > 0) {
+								const fields = await customFieldsLoadMethods.getCachedCustomFields(this);
+								const customFieldsPayload = constructCustomFieldsPayload({ customFields: customFieldsData }, fields);
+
+								// Merge the custom fields payload into the body
+								Object.assign(body, customFieldsPayload);
+							}
+						} catch (error) {
+							console.error('Error processing custom fields:', error);
+						}
+
 						responseData = await closeApiRequest.call(this, 'POST', '/opportunity/', body);
 					}
 
@@ -674,8 +888,8 @@ export class Close implements INodeType {
 								qs,
 							);
 						} else {
-							const limit = this.getNodeParameter('limit', i);
-							qs._limit = limit;
+
+							qs._limit = this.getNodeParameter('limit', i);
 							responseData = await closeApiRequest.call(this, 'GET', '/opportunity/', {}, qs);
 							responseData = responseData.data;
 						}
@@ -703,11 +917,40 @@ export class Close implements INodeType {
 						if (updateFields.statusId) {
 							body.status_id = updateFields.statusId;
 						}
+						if (updateFields.assignedTo) {
+							body.user_id = updateFields.assignedTo;
+						}
+						if (updateFields.confidence !== undefined) {
+							body.confidence = updateFields.confidence;
+						}
 						if (updateFields.note) {
 							body.note = updateFields.note;
 						}
-						if (updateFields.value) {
+						if (updateFields.value !== undefined) {
 							body.value = updateFields.value;
+						}
+						if (updateFields.valuePeriod) {
+							body.value_period = updateFields.valuePeriod;
+						}
+						if (updateFields.closeDate) {
+							body.date_won = updateFields.closeDate;
+						}
+
+						// Add custom fields from the new structure
+						try {
+							// Collect custom fields data from the new dynamic structure
+							const customFieldsData = this.getNodeParameter('customFields', i, {}) as any;
+
+							// If we have custom fields, process them
+							if (customFieldsData && Object.keys(customFieldsData).length > 0) {
+								const fields = await customFieldsLoadMethods.getCachedCustomFields(this);
+								const customFieldsPayload = constructCustomFieldsPayload({ customFields: customFieldsData }, fields);
+
+								// Merge the custom fields payload into the body
+								Object.assign(body, customFieldsPayload);
+							}
+						} catch (error) {
+							console.error('Error processing custom fields:', error);
 						}
 
 						responseData = await closeApiRequest.call(
@@ -965,8 +1208,8 @@ export class Close implements INodeType {
 								qs,
 							);
 						} else {
-							const limit = this.getNodeParameter('limit', i);
-							qs._limit = limit;
+
+							qs._limit = this.getNodeParameter('limit', i);
 							responseData = await closeApiRequest.call(this, 'GET', '/task/', {}, qs);
 							responseData = responseData.data;
 						}
@@ -1135,8 +1378,8 @@ export class Close implements INodeType {
 								qs,
 							);
 						} else {
-							const limit = this.getNodeParameter('limit', i);
-							qs._limit = limit;
+
+							qs._limit = this.getNodeParameter('limit', i);
 							responseData = await closeApiRequest.call(this, 'GET', '/activity/note/', {}, qs);
 							responseData = responseData.data;
 						}
@@ -1252,8 +1495,8 @@ export class Close implements INodeType {
 								qs,
 							);
 						} else {
-							const limit = this.getNodeParameter('limit', i);
-							qs._limit = limit;
+
+							qs._limit = this.getNodeParameter('limit', i);
 							responseData = await closeApiRequest.call(this, 'GET', '/activity/', {}, qs);
 							responseData = responseData.data;
 						}
@@ -1412,8 +1655,8 @@ export class Close implements INodeType {
 								qs,
 							);
 						} else {
-							const limit = this.getNodeParameter('limit', i);
-							qs._limit = limit;
+
+							qs._limit = this.getNodeParameter('limit', i);
 							responseData = await closeApiRequest.call(this, 'GET', '/activity/email/', {}, qs);
 							responseData = responseData.data;
 						}
@@ -1518,8 +1761,8 @@ export class Close implements INodeType {
 								qs,
 							);
 						} else {
-							const limit = this.getNodeParameter('limit', i);
-							qs._limit = limit;
+
+							qs._limit = this.getNodeParameter('limit', i);
 							responseData = await closeApiRequest.call(this, 'GET', '/activity/meeting/', {}, qs);
 							responseData = responseData.data;
 						}
@@ -1666,8 +1909,8 @@ export class Close implements INodeType {
 								qs,
 							);
 						} else {
-							const limit = this.getNodeParameter('limit', i);
-							qs._limit = limit;
+
+							qs._limit = this.getNodeParameter('limit', i);
 							responseData = await closeApiRequest.call(this, 'GET', '/activity/sms/', {}, qs);
 							responseData = responseData.data;
 						}
@@ -1675,6 +1918,121 @@ export class Close implements INodeType {
 				}
 
 				if (resource === 'customActivity') {
+					if (operation === 'create') {
+						const leadId = this.getNodeParameter('leadId', i) as string;
+						const customActivityTypeId = this.getNodeParameter('customActivityTypeId', i) as string;
+
+						if (!leadId) {
+							throw new NodeOperationError(
+								this.getNode(),
+								'Lead ID is required for create operation',
+							);
+						}
+						if (!customActivityTypeId) {
+							throw new NodeOperationError(
+								this.getNode(),
+								'Custom Activity Type ID is required for create operation',
+							);
+						}
+
+						const body: JsonObject = {
+							lead_id: leadId,
+							custom_activity_type_id: customActivityTypeId,
+						};
+
+						// Add additional fields if provided
+						const additionalFields = this.getNodeParameter('additionalFields', i) as JsonObject;
+						if (additionalFields.status) {
+							body.status = additionalFields.status;
+						}
+						if (additionalFields.note) {
+							body.note = additionalFields.note;
+						}
+
+						// Add custom fields if provided
+						const customFields = additionalFields.customFieldsUi as {
+							customFieldsValues?: Array<{
+								fieldId: string;
+								value: string;
+							}>;
+						};
+
+						if (customFields?.customFieldsValues?.length) {
+							for (const field of customFields.customFieldsValues) {
+								if (field.fieldId && field.value) {
+									body[`custom.${field.fieldId}`] = field.value;
+								}
+							}
+						}
+
+						responseData = await closeApiRequest.call(this, 'POST', '/activity/custom/', body);
+					}
+
+					if (operation === 'update') {
+						const activityId = this.getNodeParameter('activityId', i) as string;
+						if (!activityId) {
+							throw new NodeOperationError(
+								this.getNode(),
+								'Activity ID is required for update operation',
+							);
+						}
+
+						const updateFields = this.getNodeParameter('updateFields', i) as JsonObject;
+						const body: JsonObject = {};
+
+						if (updateFields.leadId) {
+							body.lead_id = updateFields.leadId;
+						}
+						if (updateFields.status) {
+							body.status = updateFields.status;
+						}
+						if (updateFields.note) {
+							body.note = updateFields.note;
+						}
+
+						// Add custom fields if provided
+						const customFields = updateFields.customFieldsUi as {
+							customFieldsValues?: Array<{
+								fieldId: string;
+								value: string;
+							}>;
+						};
+
+						if (customFields?.customFieldsValues?.length) {
+							for (const field of customFields.customFieldsValues) {
+								if (field.fieldId && field.value) {
+									body[`custom.${field.fieldId}`] = field.value;
+								}
+							}
+						}
+
+						responseData = await closeApiRequest.call(this, 'PUT', `/activity/custom/${activityId}/`, body);
+					}
+
+					if (operation === 'get') {
+						const activityId = this.getNodeParameter('activityId', i) as string;
+						if (!activityId) {
+							throw new NodeOperationError(
+								this.getNode(),
+								'Activity ID is required for get operation',
+							);
+						}
+
+						responseData = await closeApiRequest.call(this, 'GET', `/activity/custom/${activityId}/`);
+					}
+
+					if (operation === 'delete') {
+						const activityId = this.getNodeParameter('activityId', i) as string;
+						if (!activityId) {
+							throw new NodeOperationError(
+								this.getNode(),
+								'Activity ID is required for delete operation',
+							);
+						}
+
+						responseData = await closeApiRequest.call(this, 'DELETE', `/activity/custom/${activityId}/`);
+					}
+
 					if (operation === 'find') {
 						const leadId = this.getNodeParameter('leadId', i, '') as string;
 						const customActivityId = this.getNodeParameter('customActivityId', i, '') as string;
@@ -1711,8 +2069,8 @@ export class Close implements INodeType {
 								qs,
 							);
 						} else {
-							const limit = this.getNodeParameter('limit', i);
-							qs._limit = limit;
+
+							qs._limit = this.getNodeParameter('limit', i);
 							responseData = await closeApiRequest.call(this, 'GET', '/activity/', {}, qs);
 							responseData = responseData.data;
 						}

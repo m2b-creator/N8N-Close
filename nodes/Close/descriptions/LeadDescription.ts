@@ -84,7 +84,7 @@ export const leadFields: INodeProperties[] = [
 				description: 'The description of the lead',
 			},
 			{
-				displayName: 'Status Name or ID',
+				displayName: 'Status Name ',
 				name: 'statusId',
 				type: 'options',
 				typeOptions: {
@@ -212,69 +212,6 @@ export const leadFields: INodeProperties[] = [
 			},
 		],
 	},
-	{
-		displayName: 'Custom Fields',
-		name: 'customFieldsUi',
-		placeholder: 'Add Custom Field',
-		type: 'fixedCollection',
-		typeOptions: {
-			multipleValues: true,
-		},
-		displayOptions: {
-			show: {
-				resource: ['lead'],
-				operation: ['create'],
-			},
-		},
-		default: {},
-		options: [
-			{
-				name: 'customFieldsValues',
-				displayName: 'Custom Field',
-				values: [
-					{
-						displayName: 'Field Name or ID',
-						name: 'fieldId',
-						type: 'options',
-						typeOptions: {
-							loadOptionsMethod: 'getCustomFields',
-						},
-						default: '',
-						description:
-							'The ID of the field to add custom field to. Choose from the list, or specify an ID using an <a href="https://docs.n8n.io/code-examples/expressions/">expression</a>.',
-					},
-					{
-						displayName: 'Field Value',
-						name: 'fieldValue',
-						type: 'string',
-						default: '',
-						description: 'The value of the field (for text, number, date, etc.)',
-						displayOptions: {
-							hide: {
-								fieldId: ['=/.*\\|choices$/'],
-							},
-						},
-					},
-					{
-						displayName: 'Field Value',
-						name: 'fieldValueChoice',
-						type: 'options',
-						typeOptions: {
-							loadOptionsMethod: 'getCustomFieldChoices',
-							loadOptionsDependsOn: ['fieldId'],
-						},
-						displayOptions: {
-							show: {
-								fieldId: ['=/.*\\|choices$/'],
-							},
-						},
-						default: '',
-						description: 'Select the value from available dropdown options',
-					},
-				],
-			},
-		],
-	},
 
 	// DELETE OPERATION FIELDS
 	{
@@ -390,7 +327,7 @@ export const leadFields: INodeProperties[] = [
 		description: 'Search for leads by contact phone number',
 	},
 	{
-		displayName: 'Status Name or ID',
+		displayName: 'Status Name ',
 		name: 'statusId',
 		type: 'options',
 		typeOptions: {
@@ -479,7 +416,7 @@ export const leadFields: INodeProperties[] = [
 				description: 'The description of the lead',
 			},
 			{
-				displayName: 'Status Name or ID',
+				displayName: 'Status Name ',
 				name: 'statusId',
 				type: 'options',
 				typeOptions: {
@@ -495,69 +432,6 @@ export const leadFields: INodeProperties[] = [
 				type: 'string',
 				default: '',
 				description: 'The website URL of the lead',
-			},
-		],
-	},
-	{
-		displayName: 'Custom Fields',
-		name: 'customFieldsUi',
-		placeholder: 'Add Custom Field',
-		type: 'fixedCollection',
-		typeOptions: {
-			multipleValues: true,
-		},
-		displayOptions: {
-			show: {
-				resource: ['lead'],
-				operation: ['update'],
-			},
-		},
-		default: {},
-		options: [
-			{
-				name: 'customFieldsValues',
-				displayName: 'Custom Field',
-				values: [
-					{
-						displayName: 'Field Name or ID',
-						name: 'fieldId',
-						type: 'options',
-						typeOptions: {
-							loadOptionsMethod: 'getCustomFields',
-						},
-						default: '',
-						description:
-							'The ID of the field to add custom field to. Choose from the list, or specify an ID using an <a href="https://docs.n8n.io/code-examples/expressions/">expression</a>.',
-					},
-					{
-						displayName: 'Field Value',
-						name: 'fieldValue',
-						type: 'string',
-						default: '',
-						description: 'The value of the field (for text, number, date, etc.)',
-						displayOptions: {
-							hide: {
-								fieldId: ['=/.*\\|choices$/'],
-							},
-						},
-					},
-					{
-						displayName: 'Field Value',
-						name: 'fieldValueChoice',
-						type: 'options',
-						typeOptions: {
-							loadOptionsMethod: 'getCustomFieldChoices',
-							loadOptionsDependsOn: ['fieldId'],
-						},
-						displayOptions: {
-							show: {
-								fieldId: ['=/.*\\|choices$/'],
-							},
-						},
-						default: '',
-						description: 'Select the value from available dropdown options',
-					},
-				],
 			},
 		],
 	},
