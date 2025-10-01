@@ -56,7 +56,9 @@ describe('Close', () => {
 			expect(close.methods?.loadOptions).toBeDefined();
 			expect(close.methods?.loadOptions?.getLeadStatuses).toBeDefined();
 			expect(close.methods?.loadOptions?.getOpportunityStatuses).toBeDefined();
-			expect(close.methods?.loadOptions?.getCustomFields).toBeDefined();
+			expect(close.methods?.loadOptions?.getFieldsByType).toBeDefined();
+			expect(close.methods?.loadOptions?.getFieldChoices).toBeDefined();
+			expect(close.methods?.loadOptions?.getCachedUsers).toBeDefined();
 			expect(close.methods?.loadOptions?.getSmartViews).toBeDefined();
 		});
 
@@ -479,13 +481,18 @@ describe('Close', () => {
 				expect(closeApiRequest).toHaveBeenCalledWith('GET', '/lead/lead_123/');
 			});
 
-			it('should search leads when no specific lead ID is provided', async () => {
+			it('should return all leads when no filters are provided', async () => {
 				const mockResponse = {
 					data: [
 						{
 							id: 'lead_abc123',
-							name: 'Test Company',
+							name: 'Test Company 1',
 							status_id: 'stat_abc123'
+						},
+						{
+							id: 'lead_def456',
+							name: 'Test Company 2',
+							status_id: 'stat_def456'
 						}
 					]
 				};
@@ -507,6 +514,66 @@ describe('Close', () => {
 				await close.execute.call(mockExecuteFunctions);
 
 				expect(closeApiRequest).toHaveBeenCalledWith('GET', '/lead/', {}, { _limit: 50 });
+			});
+
+			it('should use advanced filtering API when company name is provided', async () => {
+				const mockResponse = {
+					data: [
+						{
+							id: 'lead_abc123',
+							name: 'Test Company',
+							display_name: 'Test Company',
+							status_id: 'stat_abc123'
+						}
+					]
+				};
+
+				mockExecuteFunctions.getNodeParameter
+					.mockReturnValueOnce('lead') // resource
+					.mockReturnValueOnce('find') // operation
+					.mockReturnValueOnce('') // leadId (empty)
+					.mockReturnValueOnce('Test Company') // companyName
+					.mockReturnValueOnce('') // companyUrl (empty)
+					.mockReturnValueOnce('') // email (empty)
+					.mockReturnValueOnce('') // phone (empty)
+					.mockReturnValueOnce('') // statusId (empty)
+					.mockReturnValueOnce(false) // returnAll
+					.mockReturnValueOnce(50); // limit
+
+				(closeApiRequest as jest.Mock).mockResolvedValueOnce(mockResponse);
+
+				await close.execute.call(mockExecuteFunctions);
+
+				expect(closeApiRequest).toHaveBeenCalledWith('POST', '/data/search/', {
+					query: {
+						type: 'and',
+						queries: [
+							{
+								type: 'object_type',
+								object_type: 'lead'
+							},
+							{
+								type: 'field_condition',
+								field: {
+									type: 'regular_field',
+									object_type: 'lead',
+									field_name: 'display_name'
+								},
+								condition: {
+									type: 'text',
+									mode: 'full_words',
+									value: 'Test Company'
+								}
+							}
+						]
+					},
+					_fields: {
+						lead: ['id', 'display_name', 'name', 'description', 'url', 'status_id', 'status_label',
+							   'contacts', 'addresses', 'created_by', 'date_created', 'date_updated',
+							   'organization_id', 'tasks', 'opportunities']
+					},
+					results_limit: 50
+				});
 			});
 		});
 
