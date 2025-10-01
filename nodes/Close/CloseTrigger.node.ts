@@ -1,18 +1,172 @@
-import type {
-	IPollFunctions,
-	ILoadOptionsFunctions,
-	IDataObject,
-	INodeExecutionData,
+import {
+	IHookFunctions,
+	IWebhookFunctions,
 	INodeType,
 	INodeTypeDescription,
-	INodePropertyOptions,
-	JsonObject,
-	NodeConnectionType,
+	IWebhookResponseData,
+	NodeOperationError,
 } from 'n8n-workflow';
 
-import { NodeApiError } from 'n8n-workflow';
-
 import { closeApiRequest } from './GenericFunctions';
+import * as crypto from 'crypto';
+
+function timingSafeEqual(a: Buffer, b: Buffer): boolean {
+	if (a.length !== b.length) {
+		return false;
+	}
+
+	let result = 0;
+	for (let i = 0; i < a.length; i++) {
+		result |= a[i] ^ b[i];
+	}
+
+	return result === 0;
+}
+
+function mapAccountSetupAction(action: string): { object_type: string; action: string } | null {
+	const mapping: { [key: string]: { object_type: string; action: string } } = {
+		custom_field_lead_created: { object_type: 'custom_fields.lead', action: 'created' },
+		custom_field_lead_updated: { object_type: 'custom_fields.lead', action: 'updated' },
+		custom_field_lead_deleted: { object_type: 'custom_fields.lead', action: 'deleted' },
+		custom_field_contact_created: { object_type: 'custom_fields.contact', action: 'created' },
+		custom_field_contact_updated: { object_type: 'custom_fields.contact', action: 'updated' },
+		custom_field_contact_deleted: { object_type: 'custom_fields.contact', action: 'deleted' },
+		custom_field_opportunity_created: { object_type: 'custom_fields.opportunity', action: 'created' },
+		custom_field_opportunity_updated: { object_type: 'custom_fields.opportunity', action: 'updated' },
+		custom_field_opportunity_deleted: { object_type: 'custom_fields.opportunity', action: 'deleted' },
+		custom_field_activity_created: { object_type: 'custom_fields.activity', action: 'created' },
+		custom_field_activity_updated: { object_type: 'custom_fields.activity', action: 'updated' },
+		custom_field_activity_deleted: { object_type: 'custom_fields.activity', action: 'deleted' },
+		custom_activity_type_created: { object_type: 'custom_activity_type', action: 'created' },
+		custom_activity_type_updated: { object_type: 'custom_activity_type', action: 'updated' },
+		custom_activity_type_deleted: { object_type: 'custom_activity_type', action: 'deleted' },
+		status_lead_created: { object_type: 'status.lead', action: 'created' },
+		status_lead_updated: { object_type: 'status.lead', action: 'updated' },
+		status_lead_deleted: { object_type: 'status.lead', action: 'deleted' },
+		status_opportunity_created: { object_type: 'status.opportunity', action: 'created' },
+		status_opportunity_updated: { object_type: 'status.opportunity', action: 'updated' },
+		status_opportunity_deleted: { object_type: 'status.opportunity', action: 'deleted' },
+		membership_activated: { object_type: 'membership', action: 'activated' },
+		membership_deactivated: { object_type: 'membership', action: 'deactivated' },
+		group_created: { object_type: 'group', action: 'created' },
+		group_updated: { object_type: 'group', action: 'updated' },
+		group_deleted: { object_type: 'group', action: 'deleted' },
+		saved_search_created: { object_type: 'saved_search', action: 'created' },
+		saved_search_updated: { object_type: 'saved_search', action: 'updated' },
+		phone_number_created: { object_type: 'phone_number', action: 'created' },
+		phone_number_updated: { object_type: 'phone_number', action: 'updated' },
+		phone_number_deleted: { object_type: 'phone_number', action: 'deleted' },
+	};
+
+	return mapping[action] || null;
+}
+
+function buildEventsArray(triggerOn: string, actions: string[]): Array<{ object_type: string; action: string }> {
+	const events: Array<{ object_type: string; action: string }> = [];
+
+	switch (triggerOn) {
+		case 'lead':
+			for (const action of actions) {
+				if (action === 'status_change') {
+					events.push({ object_type: 'activity.lead_status_change', action: 'created' });
+				} else {
+					events.push({ object_type: 'lead', action });
+				}
+			}
+			break;
+
+		case 'custom_activity':
+			for (const action of actions) {
+				if (action === 'created') {
+					events.push({ object_type: 'custom_activity', action: 'created' });
+				} else {
+					events.push({ object_type: 'activity.custom_activity', action });
+				}
+			}
+			break;
+
+		case 'contact':
+			for (const action of actions) {
+				events.push({ object_type: 'contact', action });
+			}
+			break;
+
+		case 'opportunity':
+			for (const action of actions) {
+				if (action === 'status_change') {
+					events.push({ object_type: 'activity.opportunity_status_change', action: 'created' });
+				} else {
+					events.push({ object_type: 'opportunity', action });
+				}
+			}
+			break;
+
+		case 'task':
+			for (const action of actions) {
+				if (action === 'completed') {
+					events.push({ object_type: 'activity.task_completed', action: 'created' });
+				} else {
+					events.push({ object_type: 'task.lead', action });
+				}
+			}
+			break;
+
+		case 'email':
+			for (const action of actions) {
+				if (action.startsWith('template_')) {
+					const templateAction = action.replace('template_', '');
+					events.push({ object_type: 'email_template', action: templateAction });
+				} else {
+					events.push({ object_type: 'activity.email', action });
+				}
+			}
+			break;
+
+		case 'meeting':
+			for (const action of actions) {
+				events.push({ object_type: 'activity.meeting', action });
+			}
+			break;
+
+		case 'call':
+			for (const action of actions) {
+				events.push({ object_type: 'activity.call', action });
+			}
+			break;
+
+		case 'sms':
+			for (const action of actions) {
+				events.push({ object_type: 'activity.sms', action });
+			}
+			break;
+
+		case 'export':
+			for (const action of actions) {
+				events.push({ object_type: 'export.lead', action });
+			}
+			break;
+
+		case 'bulk_action':
+			for (const action of actions) {
+				events.push({ object_type: 'bulk_action.delete', action });
+				events.push({ object_type: 'bulk_action.edit', action });
+				events.push({ object_type: 'bulk_action.email', action });
+				events.push({ object_type: 'bulk_action.sequence_subscription', action });
+			}
+			break;
+
+		case 'account_setup':
+			for (const action of actions) {
+				const eventMapping = mapAccountSetupAction(action);
+				if (eventMapping) {
+					events.push(eventMapping);
+				}
+			}
+			break;
+	}
+
+	return events;
+}
 
 export class CloseTrigger implements INodeType {
 	description: INodeTypeDescription = {
@@ -27,14 +181,21 @@ export class CloseTrigger implements INodeType {
 			name: 'Close CRM Trigger',
 		},
 		inputs: [],
-		outputs: [{ type: 'main' as NodeConnectionType }],
+		outputs: ['main'],
 		credentials: [
 			{
 				name: 'closeApi',
 				required: true,
 			},
 		],
-		polling: true,
+		webhooks: [
+			{
+				name: 'default',
+				httpMethod: 'POST',
+				responseMode: 'onReceived',
+				path: 'webhook',
+			},
+		],
 		properties: [
 			{
 				displayName: 'Event',
@@ -42,442 +203,660 @@ export class CloseTrigger implements INodeType {
 				type: 'options',
 				options: [
 					{
-						name: 'New Lead in SmartView',
-						value: 'newLeadInSmartView',
-						description: 'Triggers when a lead enters a SmartView (first-time entry or re-entry after leaving). Does NOT trigger on updates to leads already in the SmartView.',
+						name: 'Lead',
+						value: 'lead',
 					},
 					{
-						name: 'New Lead in Status',
-						value: 'newLeadInStatus',
-						description: 'Triggers when a new lead is created with a specific status',
+						name: 'Contact',
+						value: 'contact',
 					},
 					{
-						name: 'Opportunity in new Status',
-						value: 'opportunityInNewStatus',
-						description: 'Triggers when an opportunity enters a new status',
+						name: 'Opportunity',
+						value: 'opportunity',
 					},
 					{
-						name: 'New Task',
-						value: 'newTask',
-						description: 'Triggers when a new task is created or completed',
+						name: 'Task',
+						value: 'task',
 					},
 					{
-						name: 'Published Custom Activity',
-						value: 'publishedCustomActivity',
-						description: 'Triggers when a custom activity is published',
+						name: 'Custom Activity',
+						value: 'custom_activity',
+					},
+					{
+						name: 'Email',
+						value: 'email',
+					},
+					{
+						name: 'Meeting',
+						value: 'meeting',
+					},
+					{
+						name: 'Call',
+						value: 'call',
+					},
+					{
+						name: 'SMS',
+						value: 'sms',
+					},
+					{
+						name: 'Export',
+						value: 'export',
+					},
+					{
+						name: 'Bulk Action',
+						value: 'bulk_action',
+					},
+					{
+						name: 'Account Setup',
+						value: 'account_setup',
 					},
 				],
-				default: 'newLeadInSmartView',
+				default: 'lead',
 				required: true,
+				description: 'The entity type to trigger on',
 			},
+			// Lead Actions
 			{
-				displayName: 'Smart View Name ',
-				name: 'smartViewId',
-				type: 'options',
-				typeOptions: {
-					loadOptionsMethod: 'getSmartViews',
-				},
+				displayName: 'Actions',
+				name: 'leadActions',
+				type: 'multiOptions',
 				displayOptions: {
 					show: {
-						event: ['newLeadInSmartView'],
+						event: ['lead'],
 					},
 				},
-				default: '',
-				required: true,
-				description: 'The SmartView to monitor for lead transitions. Only triggers when leads enter this SmartView (not on updates within SmartView). Choose from the list, or specify an ID using an <a href="https://docs.n8n.io/code-examples/expressions/">expression</a>.',
-			},
-			{
-				displayName: 'Status Name ',
-				name: 'statusId',
-				type: 'options',
-				typeOptions: {
-					loadOptionsMethod: 'getLeadStatuses',
-				},
-				displayOptions: {
-					show: {
-						event: ['newLeadInStatus'],
-					},
-				},
-				default: '',
-				required: true,
-				description: 'The status to monitor for new leads. Choose from the list, or specify an ID using an <a href="https://docs.n8n.io/code-examples/expressions/">expression</a>.',
-			},
-			{
-				displayName: 'Opportunity Status Name ',
-				name: 'opportunityStatusId',
-				type: 'options',
-				typeOptions: {
-					loadOptionsMethod: 'getOpportunityStatuses',
-				},
-				displayOptions: {
-					show: {
-						event: ['opportunityInNewStatus'],
-					},
-				},
-				default: '',
-				required: false,
-				description: 'Monitor opportunities entering this specific status. Leave empty to monitor all status changes. Choose from the list, or specify an ID using an <a href="https://docs.n8n.io/code-examples/expressions/">expression</a>.',
-			},
-			{
-				displayName: 'Task Type',
-				name: 'taskType',
-				type: 'options',
 				options: [
 					{
-						name: 'All Tasks',
-						value: 'all',
-						description: 'Monitor all tasks',
+						name: 'Lead Created',
+						value: 'created',
 					},
 					{
-						name: 'New Tasks Only',
-						value: 'new',
-						description: 'Monitor only newly created tasks',
+						name: 'Lead Updated',
+						value: 'updated',
 					},
 					{
-						name: 'Completed Tasks Only',
-						value: 'completed',
-						description: 'Monitor only completed tasks',
+						name: 'Lead Deleted',
+						value: 'deleted',
+					},
+					{
+						name: 'Lead in New Status',
+						value: 'status_change',
 					},
 				],
-				displayOptions: {
-					show: {
-						event: ['newTask'],
-					},
-				},
-				default: 'all',
+				default: ['created'],
 				required: true,
-				description: 'Type of task events to monitor',
+				description: 'The actions to trigger on for leads',
 			},
+			// Contact Actions
 			{
-				displayName: 'Custom Activity Type ID (Optional)',
-				name: 'customActivityTypeId',
-				type: 'string',
+				displayName: 'Actions',
+				name: 'contactActions',
+				type: 'multiOptions',
 				displayOptions: {
 					show: {
-						event: ['publishedCustomActivity'],
+						event: ['contact'],
 					},
 				},
-				default: '',
-				description: 'Filter by specific custom activity type ID. Leave empty to monitor all custom activities. Note: This filter is applied after fetching the 50 newest activities to capture all published activities across all leads.',
+				options: [
+					{
+						name: 'Contact Created',
+						value: 'created',
+					},
+					{
+						name: 'Contact Updated',
+						value: 'updated',
+					},
+					{
+						name: 'Contact Deleted',
+						value: 'deleted',
+					},
+				],
+				default: ['created'],
+				required: true,
+				description: 'The actions to trigger on for contacts',
 			},
+			// Opportunity Actions
 			{
-				displayName: 'User ID (Optional)',
-				name: 'userId',
-				type: 'string',
+				displayName: 'Actions',
+				name: 'opportunityActions',
+				type: 'multiOptions',
 				displayOptions: {
 					show: {
-						event: ['publishedCustomActivity'],
+						event: ['opportunity'],
 					},
 				},
-				default: '',
-				description: 'Filter by specific user ID. Leave empty to monitor activities from all users. Note: This filter is applied after fetching the 50 newest activities to capture all published activities across all leads.',
+				options: [
+					{
+						name: 'Opportunity Created',
+						value: 'created',
+					},
+					{
+						name: 'Opportunity Updated',
+						value: 'updated',
+					},
+					{
+						name: 'Opportunity Deleted',
+						value: 'deleted',
+					},
+					{
+						name: 'Opportunity in New Status',
+						value: 'status_change',
+					},
+				],
+				default: ['created'],
+				required: true,
+				description: 'The actions to trigger on for opportunities',
 			},
+			// Task Actions
 			{
-				displayName: 'Contact ID (Optional)',
-				name: 'contactId',
-				type: 'string',
+				displayName: 'Actions',
+				name: 'taskActions',
+				type: 'multiOptions',
 				displayOptions: {
 					show: {
-						event: ['publishedCustomActivity'],
+						event: ['task'],
 					},
 				},
-				default: '',
-				description: 'Filter by specific contact ID. Leave empty to monitor activities for all contacts. Note: This filter is applied after fetching the 50 newest activities to capture all published activities across all leads.',
+				options: [
+					{
+						name: 'Task Created',
+						value: 'created',
+					},
+					{
+						name: 'Task Updated',
+						value: 'updated',
+					},
+					{
+						name: 'Task Deleted',
+						value: 'deleted',
+					},
+					{
+						name: 'Task Completed',
+						value: 'completed',
+					},
+				],
+				default: ['created'],
+				required: true,
+				description: 'The actions to trigger on for tasks',
+			},
+			// Custom Activity Actions
+			{
+				displayName: 'Actions',
+				name: 'customActivityActions',
+				type: 'multiOptions',
+				displayOptions: {
+					show: {
+						event: ['custom_activity'],
+					},
+				},
+				options: [
+					{
+						name: 'Custom Activity Created',
+						value: 'created',
+					},
+					{
+						name: 'Custom Activity Updated',
+						value: 'updated',
+					},
+					{
+						name: 'Custom Activity Deleted',
+						value: 'deleted',
+					},
+				],
+				default: ['created'],
+				required: true,
+				description: 'The actions to trigger on for custom activities',
+			},
+			// Email Actions
+			{
+				displayName: 'Actions',
+				name: 'emailActions',
+				type: 'multiOptions',
+				displayOptions: {
+					show: {
+						event: ['email'],
+					},
+				},
+				options: [
+					{
+						name: 'Email Created',
+						value: 'created',
+					},
+					{
+						name: 'Email Deleted',
+						value: 'deleted',
+					},
+					{
+						name: 'Email Sent',
+						value: 'sent',
+					},
+					{
+						name: 'Email Template Created',
+						value: 'template_created',
+					},
+					{
+						name: 'Email Template Updated',
+						value: 'template_updated',
+					},
+					{
+						name: 'Email Template Deleted',
+						value: 'template_deleted',
+					},
+				],
+				default: ['created'],
+				required: true,
+				description: 'The actions to trigger on for emails',
+			},
+			// Meeting Actions
+			{
+				displayName: 'Actions',
+				name: 'meetingActions',
+				type: 'multiOptions',
+				displayOptions: {
+					show: {
+						event: ['meeting'],
+					},
+				},
+				options: [
+					{
+						name: 'Meeting Created',
+						value: 'created',
+					},
+					{
+						name: 'Meeting Updated',
+						value: 'updated',
+					},
+					{
+						name: 'Meeting Deleted',
+						value: 'deleted',
+					},
+					{
+						name: 'Meeting Scheduled',
+						value: 'scheduled',
+					},
+					{
+						name: 'Meeting Started',
+						value: 'started',
+					},
+					{
+						name: 'Meeting Completed',
+						value: 'completed',
+					},
+					{
+						name: 'Meeting Canceled',
+						value: 'canceled',
+					},
+				],
+				default: ['created'],
+				required: true,
+				description: 'The actions to trigger on for meetings',
+			},
+			// Call Actions
+			{
+				displayName: 'Actions',
+				name: 'callActions',
+				type: 'multiOptions',
+				displayOptions: {
+					show: {
+						event: ['call'],
+					},
+				},
+				options: [
+					{
+						name: 'Call Created',
+						value: 'created',
+					},
+					{
+						name: 'Call Deleted',
+						value: 'deleted',
+					},
+					{
+						name: 'Call Answered',
+						value: 'answered',
+					},
+					{
+						name: 'Call Completed',
+						value: 'completed',
+					},
+				],
+				default: ['created'],
+				required: true,
+				description: 'The actions to trigger on for calls',
+			},
+			// SMS Actions
+			{
+				displayName: 'Actions',
+				name: 'smsActions',
+				type: 'multiOptions',
+				displayOptions: {
+					show: {
+						event: ['sms'],
+					},
+				},
+				options: [
+					{
+						name: 'SMS Created',
+						value: 'created',
+					},
+					{
+						name: 'SMS Updated',
+						value: 'updated',
+					},
+					{
+						name: 'SMS Deleted',
+						value: 'deleted',
+					},
+					{
+						name: 'SMS Sent',
+						value: 'sent',
+					},
+				],
+				default: ['created'],
+				required: true,
+				description: 'The actions to trigger on for SMS',
+			},
+			// Export Actions
+			{
+				displayName: 'Actions',
+				name: 'exportActions',
+				type: 'multiOptions',
+				displayOptions: {
+					show: {
+						event: ['export'],
+					},
+				},
+				options: [
+					{
+						name: 'Export Completed',
+						value: 'completed',
+					},
+				],
+				default: ['completed'],
+				required: true,
+				description: 'The actions to trigger on for exports',
+			},
+			// Bulk Action Actions
+			{
+				displayName: 'Actions',
+				name: 'bulkActionActions',
+				type: 'multiOptions',
+				displayOptions: {
+					show: {
+						event: ['bulk_action'],
+					},
+				},
+				options: [
+					{
+						name: 'Bulk Action Created',
+						value: 'created',
+					},
+					{
+						name: 'Bulk Action Updated',
+						value: 'updated',
+					},
+					{
+						name: 'Bulk Action Completed',
+						value: 'completed',
+					},
+				],
+				default: ['created'],
+				required: true,
+				description: 'The actions to trigger on for bulk actions',
+			},
+			// Account Setup Actions
+			{
+				displayName: 'Actions',
+				name: 'accountSetupActions',
+				type: 'multiOptions',
+				displayOptions: {
+					show: {
+						event: ['account_setup'],
+					},
+				},
+				options: [
+					{
+						name: 'Custom Field (Lead) Created',
+						value: 'custom_field_lead_created',
+					},
+					{
+						name: 'Custom Field (Lead) Updated',
+						value: 'custom_field_lead_updated',
+					},
+					{
+						name: 'Custom Field (Lead) Deleted',
+						value: 'custom_field_lead_deleted',
+					},
+					{
+						name: 'Custom Field (Contact) Created',
+						value: 'custom_field_contact_created',
+					},
+					{
+						name: 'Custom Field (Contact) Updated',
+						value: 'custom_field_contact_updated',
+					},
+					{
+						name: 'Custom Field (Contact) Deleted',
+						value: 'custom_field_contact_deleted',
+					},
+					{
+						name: 'Custom Field (Opportunity) Created',
+						value: 'custom_field_opportunity_created',
+					},
+					{
+						name: 'Custom Field (Opportunity) Updated',
+						value: 'custom_field_opportunity_updated',
+					},
+					{
+						name: 'Custom Field (Opportunity) Deleted',
+						value: 'custom_field_opportunity_deleted',
+					},
+					{
+						name: 'Activity Custom Field Created',
+						value: 'custom_field_activity_created',
+					},
+					{
+						name: 'Activity Custom Field Updated',
+						value: 'custom_field_activity_updated',
+					},
+					{
+						name: 'Activity Custom Field Deleted',
+						value: 'custom_field_activity_deleted',
+					},
+					{
+						name: 'Custom Activity Type Created',
+						value: 'custom_activity_type_created',
+					},
+					{
+						name: 'Custom Activity Type Updated',
+						value: 'custom_activity_type_updated',
+					},
+					{
+						name: 'Custom Activity Type Deleted',
+						value: 'custom_activity_type_deleted',
+					},
+					{
+						name: 'Status (Lead) Created',
+						value: 'status_lead_created',
+					},
+					{
+						name: 'Status (Lead) Updated',
+						value: 'status_lead_updated',
+					},
+					{
+						name: 'Status (Lead) Deleted',
+						value: 'status_lead_deleted',
+					},
+					{
+						name: 'Status (Opportunity) Created',
+						value: 'status_opportunity_created',
+					},
+					{
+						name: 'Status (Opportunity) Updated',
+						value: 'status_opportunity_updated',
+					},
+					{
+						name: 'Status (Opportunity) Deleted',
+						value: 'status_opportunity_deleted',
+					},
+					{
+						name: 'Membership Activated',
+						value: 'membership_activated',
+					},
+					{
+						name: 'Membership Deactivated',
+						value: 'membership_deactivated',
+					},
+					{
+						name: 'Group Created',
+						value: 'group_created',
+					},
+					{
+						name: 'Group Updated',
+						value: 'group_updated',
+					},
+					{
+						name: 'Group Deleted',
+						value: 'group_deleted',
+					},
+					{
+						name: 'Saved Search Created',
+						value: 'saved_search_created',
+					},
+					{
+						name: 'Saved Search Updated',
+						value: 'saved_search_updated',
+					},
+					{
+						name: 'Phone Number Created',
+						value: 'phone_number_created',
+					},
+					{
+						name: 'Phone Number Updated',
+						value: 'phone_number_updated',
+					},
+					{
+						name: 'Phone Number Deleted',
+						value: 'phone_number_deleted',
+					},
+				],
+				default: ['custom_field_lead_created'],
+				required: true,
+				description: 'The actions to trigger on for account setup changes',
 			},
 		],
 	};
 
-	methods = {
-		loadOptions: {
-			async getLeadStatuses(this: ILoadOptionsFunctions): Promise<INodePropertyOptions[]> {
-				const returnData: INodePropertyOptions[] = [];
-				const statuses = await closeApiRequest.call(this, 'GET', '/status/lead/');
-				for (const status of statuses.data) {
-					returnData.push({
-						name: status.label,
-						value: status.id,
-					});
+	webhookMethods = {
+		default: {
+			async checkExists(this: IHookFunctions): Promise<boolean> {
+				const webhookData = this.getWorkflowStaticData('node');
+				if (webhookData.webhookId === undefined) {
+					return false;
 				}
-				return returnData;
+
+				try {
+					await closeApiRequest.call(this, 'GET', `/webhook/${webhookData.webhookId}`);
+					return true;
+				} catch {
+					return false;
+				}
 			},
 
-			async getSmartViews(this: ILoadOptionsFunctions): Promise<INodePropertyOptions[]> {
-				const returnData: INodePropertyOptions[] = [];
-				const views = await closeApiRequest.call(this, 'GET', '/saved_search/');
-				for (const view of views.data) {
-					returnData.push({
-						name: view.name,
-						value: view.id,
-					});
+			async create(this: IHookFunctions): Promise<boolean> {
+				const webhookUrl = this.getNodeWebhookUrl('default');
+				const webhookData = this.getWorkflowStaticData('node');
+				const triggerOn = this.getNodeParameter('event') as string;
+
+				const actionsParam = `${triggerOn}Actions`;
+				let selectedActions: string[] = [];
+
+				try {
+					selectedActions = this.getNodeParameter(actionsParam) as string[];
+				} catch {
+					selectedActions = ['created'];
 				}
-				return returnData;
+
+				const events = buildEventsArray(triggerOn, selectedActions);
+
+				const body = {
+					url: webhookUrl,
+					events,
+				};
+
+				try {
+					const responseData = await closeApiRequest.call(this, 'POST', '/webhook/', body);
+
+					if (responseData.id === undefined || responseData.signature_key === undefined) {
+						return false;
+					}
+
+					webhookData.webhookId = responseData.id as string;
+					webhookData.signatureKey = responseData.signature_key as string;
+
+					return true;
+				} catch (error) {
+					const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+					throw new NodeOperationError(
+						this.getNode(),
+						`Failed to create webhook: ${errorMessage}`,
+					);
+				}
 			},
 
-			async getOpportunityStatuses(this: ILoadOptionsFunctions): Promise<INodePropertyOptions[]> {
-				const returnData: INodePropertyOptions[] = [];
-				const statuses = await closeApiRequest.call(this, 'GET', '/status/opportunity/');
-				for (const status of statuses.data) {
-					returnData.push({
-						name: status.label,
-						value: status.id,
-					});
+			async delete(this: IHookFunctions): Promise<boolean> {
+				const webhookData = this.getWorkflowStaticData('node');
+
+				if (webhookData.webhookId !== undefined) {
+					try {
+						await closeApiRequest.call(this, 'DELETE', `/webhook/${webhookData.webhookId}`);
+					} catch {
+						return false;
+					}
+
+					delete webhookData.webhookId;
+					delete webhookData.signatureKey;
 				}
-				return returnData;
+
+				return true;
 			},
 		},
 	};
 
-	async poll(this: IPollFunctions): Promise<INodeExecutionData[][] | null> {
-	const webhookData = this.getWorkflowStaticData('node');
-	const event = this.getNodeParameter('event') as string;
+	async webhook(this: IWebhookFunctions): Promise<IWebhookResponseData> {
+		const req = this.getRequestObject();
+		const webhookData = this.getWorkflowStaticData('node');
+		const headerData = this.getHeaderData();
 
-	let responseData: IDataObject[] = [];
-	const qs: IDataObject = {};
+		const signatureKey = webhookData.signatureKey as string;
+		if (signatureKey) {
+			const timestamp = headerData['close-sig-timestamp'] as string;
+			const receivedHash = headerData['close-sig-hash'] as string;
 
-	const now = new Date();
-	const startDate = webhookData.lastTimeChecked as string | undefined;
-	const endDate = now.toISOString();
-
-	if (event === 'newLeadInSmartView') {
-		const smartViewId = this.getNodeParameter('smartViewId') as string;
-
-		try {
-			// First, fetch the SmartView definition to get its name and criteria
-			let smartViewDefinition: IDataObject;
-			try {
-				smartViewDefinition = await closeApiRequest.call(this, 'GET', `/saved_search/${smartViewId}/`);
-			} catch (error) {
-				throw new NodeApiError(this.getNode(), {
-					message: `Failed to fetch SmartView definition: ${error}`,
-					description: 'Please verify the SmartView ID is correct and accessible.'
-				});
-			}
-
-			// Get ALL leads currently in the Smart View (without time filter)
-			// This ensures we get the accurate Smart View membership
-			const smartViewQs: IDataObject = {
-				_limit: 200,
-				_order_by: '-date_updated',
-				saved_search_id: smartViewId
-			};
-
-			const smartViewResponse = await closeApiRequest.call(
-				this,
-				'GET',
-				'/lead/',
-				{},
-				smartViewQs
-			);
-
-			const allSmartViewLeads = smartViewResponse.data || [];
-			
-			// Create a Set of lead IDs that are actually in the Smart View
-			const smartViewLeadIds = new Set(allSmartViewLeads.map((lead: IDataObject) => lead.id as string));
-
-			// Now get recently updated leads
-			const recentQs: IDataObject = {
-				_limit: 100,
-				_order_by: '-date_updated'
-			};
-
-			if (startDate) {
-				recentQs.date_updated__gte = startDate;
-			}
-
-			const recentResponse = await closeApiRequest.call(
-				this,
-				'GET',
-				'/lead/',
-				{},
-				recentQs
-			);
-
-			const recentlyUpdatedLeads = recentResponse.data || [];
-
-			// Filter to only include leads that are BOTH recently updated AND actually in the Smart View
-			const validLeads = recentlyUpdatedLeads.filter((lead: IDataObject) => {
-				// Verify the lead is actually in the Smart View
-				if (!smartViewLeadIds.has(lead.id as string)) {
-					return false;
-				}
-
-				// Double-check: For the GmbH? Smart View, verify the custom field
-				// This protects against API inconsistencies
-				const customData = lead.custom as IDataObject;
-				const gmbhValue = customData?.['GmbH?'] ||
-								customData?.cf_SgcT6RCFrnC3WhcDEyAoBohUOMBhq9Z8huZgw946otI;
-				
-				// If this is the GmbH Smart View, only include leads with GmbH? = "Ja"
-				if (smartViewDefinition.name === 'GmbH?' && gmbhValue !== 'Ja') {
-					return false;
-				}
-
-				return true;
-			});
-
-			// Enhance valid leads with Smart View information
-			for (const lead of validLeads) {
-				lead.smartViewId = smartViewId;
-				lead.smartViewName = smartViewDefinition.name || 'Unknown SmartView';
-				lead.triggerReason = 'entered_smartview';
-				lead.triggerTimestamp = new Date().toISOString();
-				
-				// Add metadata for debugging
-				const leadCustomData = lead.custom as IDataObject;
-				lead.metadata = {
-					verificationMethod: 'double_verification',
-					isInSmartView: true,
-					gmbhFieldValue: leadCustomData?.['GmbH?'] || leadCustomData?.cf_SgcT6RCFrnC3WhcDEyAoBohUOMBhq9Z8huZgw946otI || 'not set',
-					lastPollingCheck: startDate,
-					currentPollingCheck: endDate,
-					totalSmartViewLeads: allSmartViewLeads.length,
-					totalRecentLeads: recentlyUpdatedLeads.length,
-					totalValidLeads: validLeads.length
-				};
-			}
-
-			// Return only the most recent valid lead
-			if (validLeads.length > 0) {
-				validLeads.sort((a: IDataObject, b: IDataObject) => {
-					const dateA = new Date(a.date_updated as string);
-					const dateB = new Date(b.date_updated as string);
-					return dateB.getTime() - dateA.getTime();
-				});
-				responseData = [validLeads[0]];
-			} else {
-				responseData = [];
-			}
-
-		} catch (error) {
-			throw new NodeApiError(this.getNode(), error as JsonObject);
-		}
-	}
-
-	if (event === 'newLeadInStatus') {
-		qs.status_id = this.getNodeParameter('statusId') as string;
-		qs._limit = 1;
-		
-		if (startDate) {
-			qs.date_created__gte = startDate;
-		}
-
-		try {
-			const response = await closeApiRequest.call(this, 'GET', '/lead/', {}, qs);
-			responseData = response.data || [];
-		} catch (error) {
-			throw new NodeApiError(this.getNode(), error as JsonObject);
-		}
-	}
-
-	if (event === 'opportunityInNewStatus') {
-		const opportunityStatusId = this.getNodeParameter('opportunityStatusId') as string;
-		qs._limit = 1;
-		
-		if (startDate) {
-			qs.date_updated__gte = startDate;
-		}
-
-		if (opportunityStatusId) {
-			qs.status_id = opportunityStatusId;
-		}
-
-		try {
-			const response = await closeApiRequest.call(this, 'GET', '/opportunity/', {}, qs);
-			responseData = response.data || [];
-		} catch (error) {
-			throw new NodeApiError(this.getNode(), error as JsonObject);
-		}
-	}
-
-	if (event === 'newTask') {
-		const taskType = this.getNodeParameter('taskType') as string;
-		qs._limit = 1;
-		
-		if (startDate) {
-			qs.date_created__gte = startDate;
-		}
-
-		if (taskType === 'new') {
-			qs.is_complete = false;
-		} else if (taskType === 'completed') {
-			qs.is_complete = true;
-		}
-
-		try {
-			const response = await closeApiRequest.call(this, 'GET', '/task/', {}, qs);
-			responseData = response.data || [];
-		} catch (error) {
-			throw new NodeApiError(this.getNode(), error as JsonObject);
-		}
-	}
-
-	if (event === 'publishedCustomActivity') {
-		if (startDate) {
-			qs.date_created__gte = startDate;
-		}
-
-		const customActivityTypeId = this.getNodeParameter('customActivityTypeId') as string;
-		const userId = this.getNodeParameter('userId') as string;
-		const contactId = this.getNodeParameter('contactId') as string;
-
-		qs._order_by = '-date_created';
-		qs._limit = 1;
-
-		try {
-			const response = await closeApiRequest.call(this, 'GET', '/activity/custom/', {}, qs);
-			let activities = response.data || [];
-
-			if (customActivityTypeId) {
-				activities = activities.filter((activity: IDataObject) => 
-					activity.custom_activity_type_id === customActivityTypeId
+			if (!timestamp || !receivedHash) {
+				throw new NodeOperationError(
+					this.getNode(),
+					'Missing signature headers from Close webhook',
 				);
 			}
 
-			if (userId) {
-				activities = activities.filter((activity: IDataObject) => 
-					activity.user_id === userId
+			const bodyString = (req as any).rawBody || JSON.stringify(req.body);
+			const keyBuffer = Buffer.from(signatureKey, 'hex');
+
+			const expectedHash = crypto
+				.createHmac('sha256', keyBuffer)
+				.update(timestamp + bodyString)
+				.digest('hex');
+
+			if (!timingSafeEqual(Buffer.from(receivedHash), Buffer.from(expectedHash))) {
+				throw new NodeOperationError(
+					this.getNode(),
+					'Webhook signature verification failed - invalid signature',
 				);
 			}
-
-			if (contactId) {
-				activities = activities.filter((activity: IDataObject) => 
-					activity.contact_id === contactId
-				);
-			}
-
-			activities = activities.filter((activity: IDataObject) => {
-				return activity.status !== 'draft' && activity.date_created;
-			});
-
-			for (const activity of activities) {
-				if (activity.custom_activity_type_id) {
-					try {
-						const activityType = await closeApiRequest.call(
-							this, 
-							'GET', 
-							`/custom_activity_type/${activity.custom_activity_type_id}/`
-						);
-						if (activityType && activityType.name) {
-							activity.custom_activity_name = activityType.name;
-						}
-					} catch {
-						activity.custom_activity_name = 'Unknown Activity Type';
-					}
-				}
-			}
-
-			responseData = activities;
-		} catch (error) {
-			throw new NodeApiError(this.getNode(), error as JsonObject);
 		}
+
+		return {
+			workflowData: [this.helpers.returnJsonArray(req.body as any)],
+		};
 	}
-
-	webhookData.lastTimeChecked = endDate;
-
-	if (Array.isArray(responseData) && responseData.length) {
-		return [this.helpers.returnJsonArray(responseData)];
-	}
-
-	return null;
-}
 }

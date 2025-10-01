@@ -1,6 +1,6 @@
 {
   "name": "n8n-nodes-close-crm",
-  "version": "1.0.104",
+  "version": "1.0.111",
   "description": "N8N community node for Close CRM integration with comprehensive lead, opportunity, task, note, call management, and enhanced triggers for workflow automation",
   "keywords": [
     "n8n-community-node-package",
@@ -50,13 +50,12 @@
     ],
     "nodes": [
       "dist/nodes/Close/Close.node.js",
-      "dist/nodes/Close/CloseTrigger.node.js",
-      "dist/nodes/Close/CloseWebhook.node.js"
+      "dist/nodes/Close/CloseTrigger.node.js"
     ]
   },
   "devDependencies": {
     "@types/jest": "^30.0.0",
-    "@types/node": "^24.6.0",
+    "@types/node": "^24.6.1",
     "@typescript-eslint/eslint-plugin": "^8.45.0",
     "@typescript-eslint/parser": "^8.45.0",
     "eslint": "^9.36.0",
@@ -66,7 +65,7 @@
     "n8n-workflow": "^1.111.0",
     "prettier": "^3.6.2",
     "ts-jest": "^29.4.4",
-    "typescript": "^5.9.2"
+    "typescript": "^5.9.3"
   },
   "peerDependencies": {
     "n8n-workflow": "*"
