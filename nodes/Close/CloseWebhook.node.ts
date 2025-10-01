@@ -686,9 +686,15 @@ export class CloseWebhook implements INodeType {
 				);
 			}
 
-			const bodyString = JSON.stringify(req.body);
+			// Get raw body - try rawBody first, fallback to stringified body
+			const bodyString = (req as any).rawBody || JSON.stringify(req.body);
+			
+			// Convert signature key from hex to buffer as per Close documentation
+			const keyBuffer = Buffer.from(signatureKey, 'hex');
+			
+			// Create HMAC with timestamp + body
 			const expectedHash = crypto
-				.createHmac('sha256', signatureKey)
+				.createHmac('sha256', keyBuffer)
 				.update(timestamp + bodyString)
 				.digest('hex');
 
