@@ -77,11 +77,7 @@ function buildEventsArray(triggerOn: string, actions: string[]): Array<{ object_
 
 		case 'custom_activity':
 			for (const action of actions) {
-				if (action === 'created') {
-					events.push({ object_type: 'custom_activity', action: 'created' });
-				} else {
-					events.push({ object_type: 'activity.custom_activity', action });
-				}
+				events.push({ object_type: 'activity.custom_activity', action });
 			}
 			break;
 
