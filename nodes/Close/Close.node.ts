@@ -250,6 +250,18 @@ export class Close implements INodeType {
 			async getCachedUsers(this: ILoadOptionsFunctions): Promise<INodePropertyOptions[]> {
 				return customFieldsLoadMethods.getCachedUsers(this);
 			},
+
+			async getCustomActivityTypes(this: ILoadOptionsFunctions): Promise<INodePropertyOptions[]> {
+				const returnData: INodePropertyOptions[] = [];
+				const types = await closeApiRequest.call(this, 'GET', '/custom_activity/');
+				for (const type of types.data) {
+					returnData.push({
+						name: type.name,
+						value: type.id,
+					});
+				}
+				return returnData;
+			},
 		},
 	};
 
@@ -1906,6 +1918,121 @@ export class Close implements INodeType {
 				}
 
 				if (resource === 'customActivity') {
+					if (operation === 'create') {
+						const leadId = this.getNodeParameter('leadId', i) as string;
+						const customActivityTypeId = this.getNodeParameter('customActivityTypeId', i) as string;
+
+						if (!leadId) {
+							throw new NodeOperationError(
+								this.getNode(),
+								'Lead ID is required for create operation',
+							);
+						}
+						if (!customActivityTypeId) {
+							throw new NodeOperationError(
+								this.getNode(),
+								'Custom Activity Type ID is required for create operation',
+							);
+						}
+
+						const body: JsonObject = {
+							lead_id: leadId,
+							custom_activity_type_id: customActivityTypeId,
+						};
+
+						// Add additional fields if provided
+						const additionalFields = this.getNodeParameter('additionalFields', i) as JsonObject;
+						if (additionalFields.status) {
+							body.status = additionalFields.status;
+						}
+						if (additionalFields.note) {
+							body.note = additionalFields.note;
+						}
+
+						// Add custom fields if provided
+						const customFields = additionalFields.customFieldsUi as {
+							customFieldsValues?: Array<{
+								fieldId: string;
+								value: string;
+							}>;
+						};
+
+						if (customFields?.customFieldsValues?.length) {
+							for (const field of customFields.customFieldsValues) {
+								if (field.fieldId && field.value) {
+									body[`custom.${field.fieldId}`] = field.value;
+								}
+							}
+						}
+
+						responseData = await closeApiRequest.call(this, 'POST', '/activity/custom/', body);
+					}
+
+					if (operation === 'update') {
+						const activityId = this.getNodeParameter('activityId', i) as string;
+						if (!activityId) {
+							throw new NodeOperationError(
+								this.getNode(),
+								'Activity ID is required for update operation',
+							);
+						}
+
+						const updateFields = this.getNodeParameter('updateFields', i) as JsonObject;
+						const body: JsonObject = {};
+
+						if (updateFields.leadId) {
+							body.lead_id = updateFields.leadId;
+						}
+						if (updateFields.status) {
+							body.status = updateFields.status;
+						}
+						if (updateFields.note) {
+							body.note = updateFields.note;
+						}
+
+						// Add custom fields if provided
+						const customFields = updateFields.customFieldsUi as {
+							customFieldsValues?: Array<{
+								fieldId: string;
+								value: string;
+							}>;
+						};
+
+						if (customFields?.customFieldsValues?.length) {
+							for (const field of customFields.customFieldsValues) {
+								if (field.fieldId && field.value) {
+									body[`custom.${field.fieldId}`] = field.value;
+								}
+							}
+						}
+
+						responseData = await closeApiRequest.call(this, 'PUT', `/activity/custom/${activityId}/`, body);
+					}
+
+					if (operation === 'get') {
+						const activityId = this.getNodeParameter('activityId', i) as string;
+						if (!activityId) {
+							throw new NodeOperationError(
+								this.getNode(),
+								'Activity ID is required for get operation',
+							);
+						}
+
+						responseData = await closeApiRequest.call(this, 'GET', `/activity/custom/${activityId}/`);
+					}
+
+					if (operation === 'delete') {
+						const activityId = this.getNodeParameter('activityId', i) as string;
+						if (!activityId) {
+							throw new NodeOperationError(
+								this.getNode(),
+								'Activity ID is required for delete operation',
+							);
+						}
+
+						responseData = await closeApiRequest.call(this, 'DELETE', `/activity/custom/${activityId}/`);
+					}
+
 					if (operation === 'find') {
 						const leadId = this.getNodeParameter('leadId', i, '') as string;
 						const customActivityId = this.getNodeParameter('customActivityId', i, '') as string;
