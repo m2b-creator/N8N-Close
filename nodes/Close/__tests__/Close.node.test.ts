@@ -1135,7 +1135,8 @@ describe('Close', () => {
 				mockExecuteFunctions.getNodeParameter
 					.mockReturnValueOnce('opportunity') // resource
 					.mockReturnValueOnce('find') // operation
-					.mockReturnValueOnce('lead_xyz789') // leadId
+				.mockReturnValueOnce('') // opportunityId
+				.mockReturnValueOnce('lead_xyz789') // leadId
 					.mockReturnValueOnce('') // statusId
 					.mockReturnValueOnce('') // assignedTo
 					.mockReturnValueOnce({}) // additionalFilters
@@ -1163,7 +1164,8 @@ describe('Close', () => {
 				mockExecuteFunctions.getNodeParameter
 					.mockReturnValueOnce('opportunity') // resource
 					.mockReturnValueOnce('find') // operation
-					.mockReturnValueOnce('') // leadId
+				.mockReturnValueOnce('') // opportunityId
+				.mockReturnValueOnce('') // leadId
 					.mockReturnValueOnce('') // statusId
 					.mockReturnValueOnce('') // assignedTo
 					.mockReturnValueOnce({}) // additionalFilters

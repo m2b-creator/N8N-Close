@@ -166,6 +166,19 @@ export const opportunityFields: INodeProperties[] = [
 	},
 	// Fields for Find operation
 	{
+		displayName: 'Opportunity ID',
+		name: 'opportunityId',
+		type: 'string',
+		displayOptions: {
+			show: {
+				resource: ['opportunity'],
+				operation: ['find'],
+			},
+		},
+		default: '',
+		description: 'Find a specific opportunity by ID',
+	},
+	{
 		displayName: 'Lead ID',
 		name: 'leadId',
 		type: 'string',

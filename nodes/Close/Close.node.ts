@@ -851,54 +851,60 @@ export class Close implements INodeType {
 					}
 
 					if (operation === 'find') {
+						const opportunityId = this.getNodeParameter('opportunityId', i, '') as string;
 						const leadId = this.getNodeParameter('leadId', i, '') as string;
 						const statusId = this.getNodeParameter('statusId', i, '') as string;
 						const assignedTo = this.getNodeParameter('assignedTo', i, '') as string;
 						const additionalFilters = this.getNodeParameter('additionalFilters', i, {}) as JsonObject;
 						const returnAll = this.getNodeParameter('returnAll', i);
 
-						if (leadId) {
-							qs.lead_id = leadId;
-						}
-						if (statusId) {
-							qs.status_id = statusId;
-						}
-						if (assignedTo) {
-							qs.user_id = assignedTo;
-						}
-						if (additionalFilters.confidence !== undefined) {
-							// Note: Close API doesn't directly support confidence filtering
-							// We'll filter client-side after fetching results
-						}
-						if (additionalFilters.valuePeriod) {
-							qs.value_period = additionalFilters.valuePeriod;
-						}
-						if (additionalFilters.closeDate) {
-							// For date filtering, use date_won__gte to filter from the specified date
-							qs.date_won__gte = additionalFilters.closeDate;
-						}
-
-						if (returnAll) {
-							responseData = await closeApiRequestAllItems.call(
-								this,
-								'data',
-								'GET',
-								'/opportunity/',
-								{},
-								qs,
-							);
+						// If Opportunity ID is provided, get specific opportunity
+						if (opportunityId) {
+							responseData = await closeApiRequest.call(this, 'GET', `/opportunity/${opportunityId}/`);
 						} else {
+							if (leadId) {
+								qs.lead_id = leadId;
+							}
+							if (statusId) {
+								qs.status_id = statusId;
+							}
+							if (assignedTo) {
+								qs.user_id = assignedTo;
+							}
+							if (additionalFilters.confidence !== undefined) {
+								// Note: Close API doesn't directly support confidence filtering
+								// We'll filter client-side after fetching results
+							}
+							if (additionalFilters.valuePeriod) {
+								qs.value_period = additionalFilters.valuePeriod;
+							}
+							if (additionalFilters.closeDate) {
+								// For date filtering, use date_won__gte to filter from the specified date
+								qs.date_won__gte = additionalFilters.closeDate;
+							}
 
-							qs._limit = this.getNodeParameter('limit', i);
-							responseData = await closeApiRequest.call(this, 'GET', '/opportunity/', {}, qs);
-							responseData = responseData.data;
-						}
+							if (returnAll) {
+								responseData = await closeApiRequestAllItems.call(
+									this,
+									'data',
+									'GET',
+									'/opportunity/',
+									{},
+									qs,
+								);
+							} else {
 
-						// Apply client-side confidence filtering if specified
-						if (additionalFilters.confidence !== undefined && Array.isArray(responseData)) {
-							responseData = responseData.filter((opportunity: JsonObject) => 
-								opportunity.confidence === additionalFilters.confidence
-							);
+								qs._limit = this.getNodeParameter('limit', i);
+								responseData = await closeApiRequest.call(this, 'GET', '/opportunity/', {}, qs);
+								responseData = responseData.data;
+							}
+
+							// Apply client-side confidence filtering if specified
+							if (additionalFilters.confidence !== undefined && Array.isArray(responseData)) {
+								responseData = responseData.filter((opportunity: JsonObject) =>
+									opportunity.confidence === additionalFilters.confidence
+								);
+							}
 						}
 					}
 
