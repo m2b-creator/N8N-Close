@@ -840,7 +840,26 @@ export class CloseTrigger implements INodeType {
 				);
 			}
 
-			const bodyString = (req as any).rawBody || JSON.stringify(req.body);
+			// Get the raw body - Close CRM requires the exact body string for signature verification
+			let bodyString: string;
+
+			// Try to get rawBody from request (this is set by n8n's body-parser middleware)
+			if ((req as any).rawBody !== undefined) {
+				// rawBody can be either a Buffer or a string
+				bodyString = typeof (req as any).rawBody === 'string'
+					? (req as any).rawBody
+					: (req as any).rawBody.toString();
+			}
+			// Fallback: try body as string
+			else if (typeof (req as any).body === 'string') {
+				bodyString = (req as any).body;
+			}
+			// Last resort: stringify the parsed body
+			// Note: This may fail signature verification if the JSON formatting differs
+			else {
+				bodyString = JSON.stringify(req.body);
+			}
+
 			const keyBuffer = Buffer.from(signatureKey, 'hex');
 
 			const expectedHash = crypto
