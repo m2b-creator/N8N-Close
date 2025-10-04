@@ -106,7 +106,7 @@ docker exec -it n8n npm install n8n-nodes-close-crm
 |-----------|-------------|
 | Create | Create opportunities with assigned user, confidence, value period, close date |
 | Delete | Remove existing opportunities |
-| Find | Advanced filtering by user, confidence, value period, close date |
+| Find | Advanced filtering by ID, user, confidence, value period, close date |
 | Update | Modify opportunity details including status, value, and notes |
 
 </details>
@@ -180,9 +180,9 @@ docker exec -it n8n npm install n8n-nodes-close-crm
 |---------|-------------|
 | New Lead in SmartView | Fires when leads are added to a specific SmartView |
 | New Lead in Status | Fires when leads are created with a specific status |
-| Opportunity in new Status | 🆕 Fires when opportunities enter a new status (with optional filtering) |
-| New Task | 🆕 Fires when tasks are created or completed (with task type filtering) |
-| Published Custom Activity | Fires when custom activities are published |
+| Opportunity in new Status | Fires when opportunities enter a new status (with optional filtering) |
+| New Task | Fires when tasks are created or completed (with task type filtering) |
+| Published Custom Activity | Fires when custom activities are published with secure webhook signature verification |
 
 ## 🔐 Credentials
 
@@ -267,6 +267,11 @@ Additional Fields:
 ```yaml
 Resource: Opportunity
 Operation: Find
+
+# Direct lookup by ID
+Opportunity ID: oppo_abc123
+
+# OR filter by criteria
 Lead ID: lead_abc123
 Assigned to User: "John Doe"
 
@@ -363,7 +368,7 @@ This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) 
 
 ---
 
-<div align="center">
+<div>
 
 **Made with ❤️ for the n8n community**
 

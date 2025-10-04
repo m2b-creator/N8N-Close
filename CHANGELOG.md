@@ -5,6 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.0] - 2025-10-04
+
+### Fixed
+- **CloseTrigger**: Improved webhook signature verification by enhancing raw body handling for Close CRM webhooks
+  - Added robust fallback mechanism for raw body extraction (Buffer/string support)
+  - Ensures accurate signature validation across different n8n configurations
+  - Prevents signature verification failures due to body parsing inconsistencies
+
+### Added
+- **Opportunity Find Operation**: Added opportunityId parameter for direct opportunity lookup by ID
+
+### Documentation
+- Updated README.md to reflect new Opportunity Find operation with ID-based lookup
+- Enhanced webhook trigger documentation to highlight secure signature verification
+- Improved usage examples with direct opportunity ID lookup demonstration
+
 ## [1.0.0] - 2024-01-31
 
 ### Added
