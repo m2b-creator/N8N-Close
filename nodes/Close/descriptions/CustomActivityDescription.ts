@@ -101,8 +101,8 @@ export const customActivityFields: INodeProperties[] = [
 				operation: ['create'],
 			},
 		},
-		default: 'published',
-		description: 'The status of the activity. Use "draft" to create without all required fields.',
+		default: '',
+		description: 'The status of the activity (optional). Use "draft" to create without all required fields.',
 	},
 
 	// UPDATE OPERATION FIELDS
@@ -157,8 +157,8 @@ export const customActivityFields: INodeProperties[] = [
 				operation: ['update'],
 			},
 		},
-		default: 'published',
-		description: 'The status of the activity',
+		default: '',
+		description: 'The status of the activity (optional)',
 	},
 
 	// GET OPERATION FIELDS

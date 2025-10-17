@@ -2026,7 +2026,7 @@ export class Close implements INodeType {
 					if (operation === 'create') {
 						const leadId = this.getNodeParameter('leadId', i) as string;
 						const customActivityTypeId = this.getNodeParameter('customActivityTypeId', i) as string;
-						const status = this.getNodeParameter('status', i, 'published') as string;
+						const status = this.getNodeParameter('status', i, '') as string;
 
 						if (!leadId) {
 							throw new NodeOperationError(
@@ -2044,8 +2044,11 @@ export class Close implements INodeType {
 						const body: JsonObject = {
 							lead_id: leadId,
 							custom_activity_type_id: customActivityTypeId,
-							status,
 						};
+
+						if (status) {
+							body.status = status;
+						}
 
 						// Add custom fields from the new structure
 						try {
