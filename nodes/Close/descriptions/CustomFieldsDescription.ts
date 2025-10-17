@@ -1,4 +1,5 @@
 import type { INodeProperties, INodePropertyOptions } from 'n8n-workflow';
+import { toHTML } from '@portabletext/to-html';
 
 import { closeApiRequest, closeApiRequestAllItems } from '../GenericFunctions';
 
@@ -46,6 +47,34 @@ function getWorkspaceId(context: any): string {
  */
 function isCacheValid(timestamp: number, ttl: number): boolean {
 	return Date.now() - timestamp < ttl;
+}
+
+/**
+ * Convert plain text with newlines to Portable Text format and then to HTML
+ */
+function convertPlainTextToHTML(text: string): string {
+	// Split text by newlines to create blocks
+	const lines = text.split('\n');
+
+	// Convert each line to a Portable Text block
+	const blocks = lines.map(line => ({
+		_type: 'block',
+		_key: Math.random().toString(36).substring(7), // Generate random key
+		style: 'normal',
+		children: [
+			{
+				_type: 'span',
+				text: line.trim(),
+				marks: []
+			}
+		]
+	}));
+
+	// Convert Portable Text to HTML
+	const html = toHTML(blocks);
+
+	// Wrap in body tags and return
+	return `<body>${html}</body>`;
 }
 
 /**
@@ -2095,14 +2124,12 @@ export function constructCustomActivityCustomFieldsPayload(customActivityData: a
 			}
 
 
-		// Apply HTML formatting for rich text fields
+		// Apply HTML formatting for rich text fields using Portable Text
 		if (fieldType === 'richText' && field.type === 'richtextarea' && typeof value === 'string' && value.trim()) {
 			// Check if the value doesn't already contain HTML body tags
 			if (!value.includes('<body>') && !value.includes('<body ')) {
-				// Split text by newlines and wrap each line in a paragraph tag (including empty lines)
-				const lines = value.split('\n');
-				const paragraphs = lines.map(line => `<p>${line.trim()}</p>`).join('');
-				value = `<body>${paragraphs}</body>`;
+				// Convert plain text to HTML using Portable Text
+				value = convertPlainTextToHTML(value);
 			}
 		}
 			// Skip if value is empty
