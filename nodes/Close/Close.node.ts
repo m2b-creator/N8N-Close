@@ -40,6 +40,11 @@ import {
 	customFieldsCreateSections,
 	customFieldsLoadMethods,
 	customFieldsUpdateSections,
+	customActivityCustomFieldsCreateSections,
+	customActivityCustomFieldsUpdateSections,
+	customActivityCustomFieldsLoadMethods,
+	constructCustomActivityCustomFieldsPayload,
+	getCachedCustomActivityCustomFields,
 } from './descriptions/CustomFieldsDescription';
 
 export class Close implements INodeType {
@@ -140,6 +145,8 @@ export class Close implements INodeType {
 			...customActivityFields,
 			...customFieldsCreateSections,
 			...customFieldsUpdateSections,
+			...customActivityCustomFieldsCreateSections,
+			...customActivityCustomFieldsUpdateSections,
 		],
 	};
 
@@ -295,6 +302,39 @@ export class Close implements INodeType {
 					});
 				}
 				return returnData;
+			},
+
+			// Custom Activity Custom Fields Load Methods
+			async getCustomActivityTextFields(this: ILoadOptionsFunctions): Promise<INodePropertyOptions[]> {
+				return customActivityCustomFieldsLoadMethods.getCustomActivityTextFields(this);
+			},
+
+			async getCustomActivityNumberFields(this: ILoadOptionsFunctions): Promise<INodePropertyOptions[]> {
+				return customActivityCustomFieldsLoadMethods.getCustomActivityNumberFields(this);
+			},
+
+			async getCustomActivityDateFields(this: ILoadOptionsFunctions): Promise<INodePropertyOptions[]> {
+				return customActivityCustomFieldsLoadMethods.getCustomActivityDateFields(this);
+			},
+
+			async getCustomActivitySingleChoiceFields(this: ILoadOptionsFunctions): Promise<INodePropertyOptions[]> {
+				return customActivityCustomFieldsLoadMethods.getCustomActivitySingleChoiceFields(this);
+			},
+
+			async getCustomActivityMultipleChoiceFields(this: ILoadOptionsFunctions): Promise<INodePropertyOptions[]> {
+				return customActivityCustomFieldsLoadMethods.getCustomActivityMultipleChoiceFields(this);
+			},
+
+			async getCustomActivityAllChoiceValues(this: ILoadOptionsFunctions): Promise<INodePropertyOptions[]> {
+				return customActivityCustomFieldsLoadMethods.getCustomActivityAllChoiceValues(this);
+			},
+
+			async getCustomActivitySingleUserFields(this: ILoadOptionsFunctions): Promise<INodePropertyOptions[]> {
+				return customActivityCustomFieldsLoadMethods.getCustomActivitySingleUserFields(this);
+			},
+
+			async getCustomActivityMultipleUserFields(this: ILoadOptionsFunctions): Promise<INodePropertyOptions[]> {
+				return customActivityCustomFieldsLoadMethods.getCustomActivityMultipleUserFields(this);
 			},
 		},
 	};
@@ -2007,7 +2047,7 @@ export class Close implements INodeType {
 							body.status = additionalFields.status;
 						}
 
-						// Add custom fields if provided
+						// Add custom fields if provided (backwards compatibility)
 						const customFields = additionalFields.customFieldsUi as {
 							customFieldsValues?: Array<{
 								fieldId: string;
@@ -2021,6 +2061,24 @@ export class Close implements INodeType {
 									body[`custom.${field.fieldId}`] = field.value;
 								}
 							}
+						}
+
+						// Add custom fields from the new structure
+						try {
+							// Collect custom fields data from the new dynamic structure
+							const customActivityCustomFieldsData = this.getNodeParameter('customActivityCustomFields', i, {}) as any;
+
+							// If we have custom fields, process them
+							if (customActivityCustomFieldsData && Object.keys(customActivityCustomFieldsData).length > 0) {
+								const fields = await getCachedCustomActivityCustomFields(this);
+								const customFieldsPayload = constructCustomActivityCustomFieldsPayload(customActivityCustomFieldsData, fields);
+
+								// Merge the custom fields payload into the body
+								Object.assign(body, customFieldsPayload);
+							}
+						} catch (error) {
+							console.error('Error processing custom activity custom fields:', error);
+							// Continue with execution - don't fail the entire operation
 						}
 
 						responseData = await closeApiRequest.call(this, 'POST', '/activity/custom/', body);
@@ -2045,7 +2103,7 @@ export class Close implements INodeType {
 							body.status = updateFields.status;
 						}
 
-						// Add custom fields if provided
+						// Add custom fields if provided (backwards compatibility)
 						const customFields = updateFields.customFieldsUi as {
 							customFieldsValues?: Array<{
 								fieldId: string;
@@ -2059,6 +2117,24 @@ export class Close implements INodeType {
 									body[`custom.${field.fieldId}`] = field.value;
 								}
 							}
+						}
+
+						// Add custom fields from the new structure
+						try {
+							// Collect custom fields data from the new dynamic structure
+							const customActivityCustomFieldsData = this.getNodeParameter('customActivityCustomFields', i, {}) as any;
+
+							// If we have custom fields, process them
+							if (customActivityCustomFieldsData && Object.keys(customActivityCustomFieldsData).length > 0) {
+								const fields = await getCachedCustomActivityCustomFields(this);
+								const customFieldsPayload = constructCustomActivityCustomFieldsPayload(customActivityCustomFieldsData, fields);
+
+								// Merge the custom fields payload into the body
+								Object.assign(body, customFieldsPayload);
+							}
+						} catch (error) {
+							console.error('Error processing custom activity custom fields:', error);
+							// Continue with execution - don't fail the entire operation
 						}
 
 						responseData = await closeApiRequest.call(this, 'PUT', `/activity/custom/${activityId}/`, body);

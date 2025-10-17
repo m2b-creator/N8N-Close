@@ -1471,3 +1471,604 @@ export function constructContactCustomFieldsPayload(contactData: any, fields: Cu
 
 	return payload;
 }
+
+/**
+ * Get cached custom activity custom fields with workspace isolation
+ */
+export async function getCachedCustomActivityCustomFields(context: any): Promise<CustomField[]> {
+	const credentials = context.getCredentials?.('closeApi');
+	const workspaceId = credentials?.apiKey ?
+		Buffer.from(credentials.apiKey).toString('base64').substring(0, 16) :
+		'default';
+	const cacheKey = `${workspaceId}_custom_activity`;
+	const cached = customFieldsCache.get(cacheKey);
+
+	if (cached && isCacheValid(cached.timestamp, FIELD_CACHE_TTL)) {
+		return cached.fields;
+	}
+
+	try {
+		// Use the custom activity custom fields endpoint
+		const endpoint = '/custom_field/activity.custom/';
+
+		// Prefer the all-items helper to flatten pagination and match JSON shapes
+		let fieldsData: CustomField[] = [];
+		try {
+			fieldsData = await (closeApiRequestAllItems as any).call(context, 'data', 'GET', endpoint);
+		} catch {
+			// Fallback to single request and normalization
+			const raw = await (closeApiRequest as any).call(context, 'GET', endpoint);
+			fieldsData = normalizeCustomFieldsResponse(raw);
+		}
+
+		if (!Array.isArray(fieldsData)) {
+			console.error('Unexpected custom fields response format:', fieldsData);
+			return [];
+		}
+
+		// Cache the results with resource-specific key
+		customFieldsCache.set(cacheKey, {
+			timestamp: Date.now(),
+			fields: fieldsData,
+		});
+
+		return fieldsData;
+	} catch (error) {
+		console.error('Error fetching custom activity custom fields:', error);
+		return [];
+	}
+}
+
+/**
+ * Custom Activity Custom Fields UI sections for Create operation
+ */
+export const customActivityCustomFieldsCreateSections: INodeProperties[] = [
+	{
+		displayName: 'Custom Fields',
+		name: 'customActivityCustomFields',
+		type: 'collection',
+		placeholder: 'Add Custom Field',
+		default: {},
+		displayOptions: {
+			show: {
+				resource: ['customActivity'],
+				operation: ['create'],
+			},
+		},
+		description: 'Add custom field values for this custom activity',
+		options: [
+			{
+				displayName: 'Text Field',
+				name: 'textField',
+				type: 'fixedCollection',
+				typeOptions: {
+					multipleValues: true,
+				},
+				default: {},
+				description: 'Add text custom fields',
+				options: [
+					{
+						name: 'textFields',
+						displayName: 'Text Fields',
+						values: [
+							{
+								displayName: 'Field Name',
+								name: 'fieldId',
+								type: 'options',
+								typeOptions: {
+									loadOptionsMethod: 'getCustomActivityTextFields',
+								},
+								default: '',
+								description: 'Select the text field',
+							},
+							{
+								displayName: 'Value',
+								name: 'fieldValue',
+								type: 'string',
+								default: '',
+								description: 'Enter the text value',
+							},
+						],
+					},
+				],
+			},
+			{
+				displayName: 'Number Field',
+				name: 'numberField',
+				type: 'fixedCollection',
+				typeOptions: {
+					multipleValues: true,
+				},
+				default: {},
+				description: 'Add number custom fields',
+				options: [
+					{
+						name: 'numberFields',
+						displayName: 'Number Fields',
+						values: [
+							{
+								displayName: 'Field Name',
+								name: 'fieldId',
+								type: 'options',
+								typeOptions: {
+									loadOptionsMethod: 'getCustomActivityNumberFields',
+								},
+								default: '',
+								description: 'Select the number field',
+							},
+							{
+								displayName: 'Value',
+								name: 'fieldValue',
+								type: 'number',
+								default: 0,
+								description: 'Enter the numeric value',
+							},
+						],
+					},
+				],
+			},
+			{
+				displayName: 'Date Field',
+				name: 'dateField',
+				type: 'fixedCollection',
+				typeOptions: {
+					multipleValues: true,
+				},
+				default: {},
+				description: 'Add date custom fields',
+				options: [
+					{
+						name: 'dateFields',
+						displayName: 'Date Fields',
+						values: [
+							{
+								displayName: 'Field Name',
+								name: 'fieldId',
+								type: 'options',
+								typeOptions: {
+									loadOptionsMethod: 'getCustomActivityDateFields',
+								},
+								default: '',
+								description: 'Select the date field',
+							},
+							{
+								displayName: 'Value',
+								name: 'fieldValue',
+								type: 'dateTime',
+								default: '',
+								description: 'Select the date value',
+							},
+						],
+					},
+				],
+			},
+			{
+				displayName: 'Choice Field (Single)',
+				name: 'choiceSingleField',
+				type: 'fixedCollection',
+				typeOptions: {
+					multipleValues: true,
+				},
+				default: {},
+				description: 'Add single-choice custom fields',
+				options: [
+					{
+						name: 'choiceSingleFields',
+						displayName: 'Single Choice Fields',
+						values: [
+							{
+								displayName: 'Field Name',
+								name: 'fieldId',
+								type: 'options',
+								typeOptions: {
+									loadOptionsMethod: 'getCustomActivitySingleChoiceFields',
+								},
+								default: '',
+								description: 'Select the choice field',
+							},
+							{
+								displayName: 'Value',
+								name: 'fieldValue',
+								type: 'options',
+								typeOptions: {
+									loadOptionsMethod: 'getCustomActivityAllChoiceValues',
+								},
+								default: '',
+								description: 'Select a value (shows all possible values from all choice fields)',
+								displayOptions: {
+									hide: {
+										fieldId: [''],
+									},
+								},
+							},
+						],
+					},
+				],
+			},
+			{
+				displayName: 'Choice Field (Multiple)',
+				name: 'choiceMultipleField',
+				type: 'fixedCollection',
+				typeOptions: {
+					multipleValues: true,
+				},
+				default: {},
+				description: 'Add multiple-choice custom fields',
+				options: [
+					{
+						name: 'choiceMultipleFields',
+						displayName: 'Multiple Choice Fields',
+						values: [
+							{
+								displayName: 'Field Name',
+								name: 'fieldId',
+								type: 'options',
+								typeOptions: {
+									loadOptionsMethod: 'getCustomActivityMultipleChoiceFields',
+								},
+								default: '',
+								description: 'Select the choice field',
+							},
+							{
+								displayName: 'Values',
+								name: 'fieldValues',
+								type: 'multiOptions',
+								typeOptions: {
+									loadOptionsMethod: 'getCustomActivityAllChoiceValues',
+								},
+								default: [],
+								description: 'Select multiple values (shows all possible values from all choice fields)',
+								displayOptions: {
+									hide: {
+										fieldId: [''],
+									},
+								},
+							},
+						],
+					},
+				],
+			},
+			{
+				displayName: 'User Field (Single)',
+				name: 'userSingleField',
+				type: 'fixedCollection',
+				typeOptions: {
+					multipleValues: true,
+				},
+				default: {},
+				description: 'Add single-user custom fields',
+				options: [
+					{
+						name: 'userSingleFields',
+						displayName: 'Single User Fields',
+						values: [
+							{
+								displayName: 'Field Name',
+								name: 'fieldId',
+								type: 'options',
+								typeOptions: {
+									loadOptionsMethod: 'getCustomActivitySingleUserFields',
+								},
+								default: '',
+								description: 'Select the user field',
+							},
+							{
+								displayName: 'User',
+								name: 'fieldValue',
+								type: 'options',
+								typeOptions: {
+									loadOptionsMethod: 'getUsers',
+								},
+								default: '',
+								description: 'Select a user from the list',
+							},
+						],
+					},
+				],
+			},
+			{
+				displayName: 'User Field (Multiple)',
+				name: 'userMultipleField',
+				type: 'fixedCollection',
+				typeOptions: {
+					multipleValues: true,
+				},
+				default: {},
+				description: 'Add multiple-user custom fields',
+				options: [
+					{
+						name: 'userMultipleFields',
+						displayName: 'Multiple User Fields',
+						values: [
+							{
+								displayName: 'Field Name',
+								name: 'fieldId',
+								type: 'options',
+								typeOptions: {
+									loadOptionsMethod: 'getCustomActivityMultipleUserFields',
+								},
+								default: '',
+								description: 'Select the user field',
+							},
+							{
+								displayName: 'Users',
+								name: 'fieldValues',
+								type: 'multiOptions',
+								typeOptions: {
+									loadOptionsMethod: 'getUsers',
+								},
+								default: [],
+								description: 'Select multiple users from the list',
+							},
+						],
+					},
+				],
+			},
+		],
+	},
+];
+
+/**
+ * Custom Activity Custom Fields UI sections for Update operation
+ */
+export const customActivityCustomFieldsUpdateSections: INodeProperties[] = customActivityCustomFieldsCreateSections.map(section => ({
+	...section,
+	displayOptions: {
+		show: {
+			resource: ['customActivity'],
+			operation: ['update'],
+		},
+	},
+}));
+
+/**
+ * Load methods for Custom Activity custom fields
+ */
+export const customActivityCustomFieldsLoadMethods = {
+	/**
+	 * Get Custom Activity text fields
+	 */
+	async getCustomActivityTextFields(context: any): Promise<INodePropertyOptions[]> {
+		const fields = await getCachedCustomActivityCustomFields(context);
+		return fields
+			.filter(field => field.type === 'text')
+			.map(field => ({
+				name: field.name,
+				value: field.id,
+			}));
+	},
+
+	/**
+	 * Get Custom Activity number fields
+	 */
+	async getCustomActivityNumberFields(context: any): Promise<INodePropertyOptions[]> {
+		const fields = await getCachedCustomActivityCustomFields(context);
+		return fields
+			.filter(field => field.type === 'number')
+			.map(field => ({
+				name: field.name,
+				value: field.id,
+			}));
+	},
+
+	/**
+	 * Get Custom Activity date fields (includes both date and datetime)
+	 */
+	async getCustomActivityDateFields(context: any): Promise<INodePropertyOptions[]> {
+		const fields = await getCachedCustomActivityCustomFields(context);
+		return fields
+			.filter(field => field.type === 'date' || field.type === 'datetime')
+			.map(field => ({
+				name: field.name,
+				value: field.id,
+			}));
+	},
+
+	/**
+	 * Get Custom Activity single choice fields
+	 */
+	async getCustomActivitySingleChoiceFields(context: any): Promise<INodePropertyOptions[]> {
+		const fields = await getCachedCustomActivityCustomFields(context);
+		return fields
+			.filter(field => field.type === 'choices' && !field.accepts_multiple_values)
+			.map(field => ({
+				name: field.name,
+				value: field.id,
+			}));
+	},
+
+	/**
+	 * Get Custom Activity multiple choice fields
+	 */
+	async getCustomActivityMultipleChoiceFields(context: any): Promise<INodePropertyOptions[]> {
+		const fields = await getCachedCustomActivityCustomFields(context);
+		return fields
+			.filter(field => field.type === 'choices' && field.accepts_multiple_values)
+			.map(field => ({
+				name: field.name,
+				value: field.id,
+			}));
+	},
+
+	/**
+	 * Get all choice values from all Custom Activity choice fields
+	 */
+	async getCustomActivityAllChoiceValues(context: any): Promise<INodePropertyOptions[]> {
+		try {
+			const fields = await getCachedCustomActivityCustomFields(context);
+			const choiceFields = fields.filter(f => f.type === 'choices' && f.choices && Array.isArray(f.choices));
+
+			// Return all choices from all fields with field name label
+			const allChoices = new Map<string, string>();
+
+			for (const field of choiceFields) {
+				if (field.choices) {
+					for (const choice of field.choices) {
+						const key = `${choice}__${field.id}`;
+						allChoices.set(key, `${choice} (from ${field.name})`);
+					}
+				}
+			}
+
+			const result = Array.from(allChoices.entries()).map(([key, name]) => ({
+				name,
+				value: key.split('__')[0], // Extract the actual choice value
+			}));
+
+			// Sort alphabetically by display name
+			result.sort((a, b) => a.name.localeCompare(b.name));
+
+			return result;
+		} catch (error) {
+			console.error('[getCustomActivityAllChoiceValues] Error:', error);
+			return [];
+		}
+	},
+
+	/**
+	 * Get Custom Activity single user fields
+	 */
+	async getCustomActivitySingleUserFields(context: any): Promise<INodePropertyOptions[]> {
+		const fields = await getCachedCustomActivityCustomFields(context);
+		return fields
+			.filter(field => field.type === 'user' && !field.accepts_multiple_values)
+			.map(field => ({
+				name: field.name,
+				value: field.id,
+			}));
+	},
+
+	/**
+	 * Get Custom Activity multiple user fields
+	 */
+	async getCustomActivityMultipleUserFields(context: any): Promise<INodePropertyOptions[]> {
+		const fields = await getCachedCustomActivityCustomFields(context);
+		return fields
+			.filter(field => field.type === 'user' && field.accepts_multiple_values)
+			.map(field => ({
+				name: field.name,
+				value: field.id,
+			}));
+	},
+};
+
+/**
+ * Utility function to construct Custom Activity custom field payload
+ */
+export function constructCustomActivityCustomFieldsPayload(customActivityData: any, fields: CustomField[]): Record<string, any> {
+	const payload: Record<string, any> = {};
+
+	if (!customActivityData) {
+		return payload;
+	}
+
+	// Helper function to process field values
+	const processFields = (fieldsArray: any[], fieldType: string) => {
+		if (!Array.isArray(fieldsArray)) return;
+
+		for (const fieldData of fieldsArray) {
+			const { fieldId, fieldValue, fieldValues } = fieldData;
+
+			if (!fieldId) {
+				continue;
+			}
+
+			const field = fields.find(f => f.id === fieldId);
+			if (!field) {
+				continue;
+			}
+
+			let value: any;
+
+			// Determine the value based on field type
+			switch (fieldType) {
+				case 'text':
+				case 'date':
+				case 'choiceSingle':
+				case 'userSingle':
+					value = fieldValue;
+					break;
+
+				case 'number':
+					value = Number(fieldValue);
+					if (isNaN(value)) {
+						throw new Error(`Custom field "${field.name}" validation error: Number field value must be a valid number`);
+					}
+					break;
+
+				case 'choiceMultiple':
+				case 'userMultiple':
+					value = fieldValues;
+					break;
+
+				default:
+					continue;
+			}
+
+			// Skip if value is empty
+			if (value === undefined || value === null || value === '' || (Array.isArray(value) && value.length === 0)) {
+				continue;
+			}
+
+			// Validate the value based on field type
+			let validationError: string | null = null;
+
+			switch (field.type) {
+				case 'text':
+					validationError = customFieldValidators.validateText(value);
+					break;
+				case 'number':
+					validationError = customFieldValidators.validateNumber(value);
+					break;
+				case 'date':
+				case 'datetime':
+					validationError = customFieldValidators.validateDate(value);
+					break;
+				case 'choices':
+					validationError = customFieldValidators.validateChoice(value, field);
+					break;
+				case 'user':
+					validationError = customFieldValidators.validateUser(value, field);
+					break;
+			}
+
+			if (validationError) {
+				throw new Error(`Custom field "${field.name}" validation error: ${validationError}`);
+			}
+
+			// Add to payload with proper key format
+			payload[`custom.${fieldId}`] = value;
+		}
+	};
+
+	// Process each field type
+	if (customActivityData.textField?.textFields) {
+		processFields(customActivityData.textField.textFields, 'text');
+	}
+
+	if (customActivityData.numberField?.numberFields) {
+		processFields(customActivityData.numberField.numberFields, 'number');
+	}
+
+	if (customActivityData.dateField?.dateFields) {
+		processFields(customActivityData.dateField.dateFields, 'date');
+	}
+
+	if (customActivityData.choiceSingleField?.choiceSingleFields) {
+		processFields(customActivityData.choiceSingleField.choiceSingleFields, 'choiceSingle');
+	}
+
+	if (customActivityData.choiceMultipleField?.choiceMultipleFields) {
+		processFields(customActivityData.choiceMultipleField.choiceMultipleFields, 'choiceMultiple');
+	}
+
+	if (customActivityData.userSingleField?.userSingleFields) {
+		processFields(customActivityData.userSingleField.userSingleFields, 'userSingle');
+	}
+
+	if (customActivityData.userMultipleField?.userMultipleFields) {
+		processFields(customActivityData.userMultipleField.userMultipleFields, 'userMultiple');
+	}
+
+	return payload;
+}
