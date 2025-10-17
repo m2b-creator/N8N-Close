@@ -309,6 +309,10 @@ export class Close implements INodeType {
 				return customActivityCustomFieldsLoadMethods.getCustomActivityTextFields(this);
 			},
 
+			async getCustomActivityRichTextFields(this: ILoadOptionsFunctions): Promise<INodePropertyOptions[]> {
+				return customActivityCustomFieldsLoadMethods.getCustomActivityRichTextFields(this);
+			},
+
 			async getCustomActivityNumberFields(this: ILoadOptionsFunctions): Promise<INodePropertyOptions[]> {
 				return customActivityCustomFieldsLoadMethods.getCustomActivityNumberFields(this);
 			},
