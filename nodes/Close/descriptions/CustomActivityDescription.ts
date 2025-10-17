@@ -300,6 +300,23 @@ export const customActivityFields: INodeProperties[] = [
 		description: 'Filter activities by lead ID',
 	},
 	{
+		displayName: 'Custom Activity Type Name or ID',
+		name: 'customActivityTypeId',
+		type: 'options',
+		typeOptions: {
+			loadOptionsMethod: 'getCustomActivityTypes',
+		},
+		displayOptions: {
+			show: {
+				resource: ['customActivity'],
+				operation: ['find'],
+			},
+		},
+		default: '',
+		description:
+			'Filter by custom activity type. Choose from the list, or specify an ID using an <a href="https://docs.n8n.io/code-examples/expressions/">expression</a>.',
+	},
+	{
 		displayName: 'Search by Custom Activity ID',
 		name: 'customActivityId',
 		type: 'string',

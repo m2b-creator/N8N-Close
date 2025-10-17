@@ -2096,6 +2096,7 @@ export class Close implements INodeType {
 
 					if (operation === 'find') {
 						const leadId = this.getNodeParameter('leadId', i, '') as string;
+						const customActivityTypeId = this.getNodeParameter('customActivityTypeId', i, '') as string;
 						const customActivityId = this.getNodeParameter('customActivityId', i, '') as string;
 						const returnAll = this.getNodeParameter('returnAll', i);
 						const dateCreated = this.getNodeParameter('dateCreated', i, '') as string;
@@ -2115,6 +2116,9 @@ export class Close implements INodeType {
 						qs._type = 'Custom';
 						if (leadId) {
 							qs.lead_id = leadId;
+						}
+						if (customActivityTypeId) {
+							qs.custom_activity_type_id = customActivityTypeId;
 						}
 						if (dateCreated) {
 							qs.date_created__gte = dateCreated;
