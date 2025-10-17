@@ -82,68 +82,27 @@ export const customActivityFields: INodeProperties[] = [
 			'The type of custom activity to create. Choose from the list, or specify an ID using an <a href="https://docs.n8n.io/code-examples/expressions/">expression</a>.',
 	},
 	{
-		displayName: 'Additional Fields',
-		name: 'additionalFields',
-		type: 'collection',
-		placeholder: 'Add Field',
-		default: {},
+		displayName: 'Status',
+		name: 'status',
+		type: 'options',
+		options: [
+			{
+				name: 'Draft',
+				value: 'draft',
+			},
+			{
+				name: 'Published',
+				value: 'published',
+			},
+		],
 		displayOptions: {
 			show: {
 				resource: ['customActivity'],
 				operation: ['create'],
 			},
 		},
-		options: [
-			{
-				displayName: 'Status',
-				name: 'status',
-				type: 'options',
-				options: [
-					{
-						name: 'Draft',
-						value: 'draft',
-					},
-					{
-						name: 'Published',
-						value: 'published',
-					},
-				],
-				default: 'published',
-				description: 'The status of the activity. Use "draft" to create without all required fields.',
-			},
-			{
-				displayName: 'Custom Fields',
-				name: 'customFieldsUi',
-				placeholder: 'Add Custom Field',
-				type: 'fixedCollection',
-				typeOptions: {
-					multipleValues: true,
-				},
-				default: {},
-				options: [
-					{
-						name: 'customFieldsValues',
-						displayName: 'Custom Field',
-						values: [
-							{
-								displayName: 'Field ID',
-								name: 'fieldId',
-								type: 'string',
-								default: '',
-								description: 'The custom field ID (e.g., "cf_xxxx")',
-							},
-							{
-								displayName: 'Value',
-								name: 'value',
-								type: 'string',
-								default: '',
-								description: 'The value for this custom field',
-							},
-						],
-					},
-				],
-			},
-		],
+		default: 'published',
+		description: 'The status of the activity. Use "draft" to create without all required fields.',
 	},
 
 	// UPDATE OPERATION FIELDS
@@ -160,6 +119,46 @@ export const customActivityFields: INodeProperties[] = [
 		default: '',
 		required: true,
 		description: 'The ID of the custom activity to update',
+	},
+	{
+		displayName: 'Custom Activity Type Name or ID',
+		name: 'customActivityTypeId',
+		type: 'options',
+		typeOptions: {
+			loadOptionsMethod: 'getCustomActivityTypes',
+		},
+		displayOptions: {
+			show: {
+				resource: ['customActivity'],
+				operation: ['update'],
+			},
+		},
+		default: '',
+		description:
+			'The type of custom activity. Choose from the list, or specify an ID using an <a href="https://docs.n8n.io/code-examples/expressions/">expression</a>.',
+	},
+	{
+		displayName: 'Status',
+		name: 'status',
+		type: 'options',
+		options: [
+			{
+				name: 'Draft',
+				value: 'draft',
+			},
+			{
+				name: 'Published',
+				value: 'published',
+			},
+		],
+		displayOptions: {
+			show: {
+				resource: ['customActivity'],
+				operation: ['update'],
+			},
+		},
+		default: 'published',
+		description: 'The status of the activity',
 	},
 	{
 		displayName: 'Update Fields',

@@ -2026,6 +2026,7 @@ export class Close implements INodeType {
 					if (operation === 'create') {
 						const leadId = this.getNodeParameter('leadId', i) as string;
 						const customActivityTypeId = this.getNodeParameter('customActivityTypeId', i) as string;
+						const status = this.getNodeParameter('status', i, 'published') as string;
 
 						if (!leadId) {
 							throw new NodeOperationError(
@@ -2043,29 +2044,8 @@ export class Close implements INodeType {
 						const body: JsonObject = {
 							lead_id: leadId,
 							custom_activity_type_id: customActivityTypeId,
+							status,
 						};
-
-						// Add additional fields if provided
-						const additionalFields = this.getNodeParameter('additionalFields', i) as JsonObject;
-						if (additionalFields.status) {
-							body.status = additionalFields.status;
-						}
-
-						// Add custom fields if provided (backwards compatibility)
-						const customFields = additionalFields.customFieldsUi as {
-							customFieldsValues?: Array<{
-								fieldId: string;
-								value: string;
-							}>;
-						};
-
-						if (customFields?.customFieldsValues?.length) {
-							for (const field of customFields.customFieldsValues) {
-								if (field.fieldId && field.value) {
-									body[`custom.${field.fieldId}`] = field.value;
-								}
-							}
-						}
 
 						// Add custom fields from the new structure
 						try {
@@ -2090,6 +2070,9 @@ export class Close implements INodeType {
 
 					if (operation === 'update') {
 						const activityId = this.getNodeParameter('activityId', i) as string;
+						const customActivityTypeId = this.getNodeParameter('customActivityTypeId', i, '') as string;
+						const status = this.getNodeParameter('status', i, '') as string;
+
 						if (!activityId) {
 							throw new NodeOperationError(
 								this.getNode(),
@@ -2097,30 +2080,13 @@ export class Close implements INodeType {
 							);
 						}
 
-						const updateFields = this.getNodeParameter('updateFields', i) as JsonObject;
 						const body: JsonObject = {};
 
-						if (updateFields.leadId) {
-							body.lead_id = updateFields.leadId;
+						if (customActivityTypeId) {
+							body.custom_activity_type_id = customActivityTypeId;
 						}
-						if (updateFields.status) {
-							body.status = updateFields.status;
-						}
-
-						// Add custom fields if provided (backwards compatibility)
-						const customFields = updateFields.customFieldsUi as {
-							customFieldsValues?: Array<{
-								fieldId: string;
-								value: string;
-							}>;
-						};
-
-						if (customFields?.customFieldsValues?.length) {
-							for (const field of customFields.customFieldsValues) {
-								if (field.fieldId && field.value) {
-									body[`custom.${field.fieldId}`] = field.value;
-								}
-							}
+						if (status) {
+							body.status = status;
 						}
 
 						// Add custom fields from the new structure
