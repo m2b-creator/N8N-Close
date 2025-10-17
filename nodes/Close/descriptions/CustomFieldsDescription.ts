@@ -1092,31 +1092,6 @@ export const customFieldsLoadMethods = {
 			}));
 	},
 
-	/**
-	 * Get contact single contact fields
-	 */
-	async getContactSingleContactFields(context: any): Promise<INodePropertyOptions[]> {
-		const fields = await this.getCachedContactCustomFields(context);
-		return fields
-			.filter(field => field.type === 'contact' && !field.accepts_multiple_values)
-			.map(field => ({
-				name: field.name,
-				value: field.id,
-			}));
-	},
-
-	/**
-	 * Get contact multiple contact fields
-	 */
-	async getContactMultipleContactFields(context: any): Promise<INodePropertyOptions[]> {
-		const fields = await this.getCachedContactCustomFields(context);
-		return fields
-			.filter(field => field.type === 'contact' && field.accepts_multiple_values)
-			.map(field => ({
-				name: field.name,
-				value: field.id,
-			}));
-	},
 };
 
 /**
@@ -1492,14 +1467,6 @@ export function constructContactCustomFieldsPayload(contactData: any, fields: Cu
 
 	if (contactData.contactCustomUserMultipleFields?.userMultipleFields) {
 		processFields(contactData.contactCustomUserMultipleFields.userMultipleFields, 'userMultiple');
-	}
-
-	if (contactData.contactCustomContactSingleFields?.contactSingleFields) {
-		processFields(contactData.contactCustomContactSingleFields.contactSingleFields, 'contactSingle');
-	}
-
-	if (contactData.contactCustomContactMultipleFields?.contactMultipleFields) {
-		processFields(contactData.contactCustomContactMultipleFields.contactMultipleFields, 'contactMultiple');
 	}
 
 	return payload;

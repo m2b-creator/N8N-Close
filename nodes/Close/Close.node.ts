@@ -285,14 +285,6 @@ export class Close implements INodeType {
 				return customFieldsLoadMethods.getContactMultipleUserFields(this);
 			},
 
-			async getContactSingleContactFields(this: ILoadOptionsFunctions): Promise<INodePropertyOptions[]> {
-				return customFieldsLoadMethods.getContactSingleContactFields(this);
-			},
-
-			async getContactMultipleContactFields(this: ILoadOptionsFunctions): Promise<INodePropertyOptions[]> {
-				return customFieldsLoadMethods.getContactMultipleContactFields(this);
-			},
-
 			async getCustomActivityTypes(this: ILoadOptionsFunctions): Promise<INodePropertyOptions[]> {
 				const returnData: INodePropertyOptions[] = [];
 				const types = await closeApiRequest.call(this, 'GET', '/custom_activity/');
@@ -391,9 +383,7 @@ export class Close implements INodeType {
 									contact.contactCustomChoiceSingleFields?.choiceSingleFields?.length ||
 									contact.contactCustomChoiceMultipleFields?.choiceMultipleFields?.length ||
 									contact.contactCustomUserSingleFields?.userSingleFields?.length ||
-									contact.contactCustomUserMultipleFields?.userMultipleFields?.length ||
-									contact.contactCustomContactSingleFields?.contactSingleFields?.length ||
-									contact.contactCustomContactMultipleFields?.contactMultipleFields?.length;
+									contact.contactCustomUserMultipleFields?.userMultipleFields?.length;
 
 								if (hasCustomFields) {
 									try {
