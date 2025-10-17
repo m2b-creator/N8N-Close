@@ -112,16 +112,6 @@ export const customActivityFields: INodeProperties[] = [
 				description: 'The status of the activity. Use "draft" to create without all required fields.',
 			},
 			{
-				displayName: 'Note',
-				name: 'note',
-				type: 'string',
-				typeOptions: {
-					alwaysOpenEditWindow: true,
-				},
-				default: '',
-				description: 'Notes or description for this activity',
-			},
-			{
 				displayName: 'Custom Fields',
 				name: 'customFieldsUi',
 				placeholder: 'Add Custom Field',
@@ -207,16 +197,6 @@ export const customActivityFields: INodeProperties[] = [
 				],
 				default: 'published',
 				description: 'The status of the activity',
-			},
-			{
-				displayName: 'Note',
-				name: 'note',
-				type: 'string',
-				typeOptions: {
-					alwaysOpenEditWindow: true,
-				},
-				default: '',
-				description: 'Notes or description for this activity',
 			},
 			{
 				displayName: 'Custom Fields',

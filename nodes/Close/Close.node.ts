@@ -2006,9 +2006,6 @@ export class Close implements INodeType {
 						if (additionalFields.status) {
 							body.status = additionalFields.status;
 						}
-						if (additionalFields.note) {
-							body.note = additionalFields.note;
-						}
 
 						// Add custom fields if provided
 						const customFields = additionalFields.customFieldsUi as {
@@ -2046,9 +2043,6 @@ export class Close implements INodeType {
 						}
 						if (updateFields.status) {
 							body.status = updateFields.status;
-						}
-						if (updateFields.note) {
-							body.note = updateFields.note;
 						}
 
 						// Add custom fields if provided
