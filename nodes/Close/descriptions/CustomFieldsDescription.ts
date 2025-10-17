@@ -1534,11 +1534,15 @@ export async function getCachedCustomActivityCustomFields(context: any, customAc
 			else if (field.type === 'user') fieldType = 'user';
 			else if (field.type === 'contact') fieldType = 'contact';
 
+			// The API might return either 'multiple' or 'accepts_multiple_values'
+			// We need to check both to ensure compatibility
+			const acceptsMultipleValues = field.accepts_multiple_values ?? field.multiple ?? false;
+
 			fieldsData.push({
 				id: fieldId,
 				name: field.name,
 				type: fieldType,
-				accepts_multiple_values: field.multiple || false,
+				accepts_multiple_values: acceptsMultipleValues,
 				choices: field.choices || undefined,
 			});
 		}
@@ -1983,24 +1987,23 @@ export const customActivityCustomFieldsLoadMethods = {
 			const fields = await getCachedCustomActivityCustomFields(context);
 			const choiceFields = fields.filter(f => f.type === 'choices' && f.choices && Array.isArray(f.choices));
 
-			// Return all choices from all fields with field name label
-			const allChoices = new Map<string, string>();
+			// Collect unique choices (same choice value only appears once)
+			const uniqueChoices = new Set<string>();
 
 			for (const field of choiceFields) {
 				if (field.choices) {
 					for (const choice of field.choices) {
-						const key = `${choice}__${field.id}`;
-						allChoices.set(key, `${choice} (from ${field.name})`);
+						uniqueChoices.add(choice);
 					}
 				}
 			}
 
-			const result = Array.from(allChoices.entries()).map(([key, name]) => ({
-				name,
-				value: key.split('__')[0], // Extract the actual choice value
+			const result = Array.from(uniqueChoices).map(choice => ({
+				name: choice,
+				value: choice,
 			}));
 
-			// Sort alphabetically by display name
+			// Sort alphabetically
 			result.sort((a, b) => a.name.localeCompare(b.name));
 
 			return result;
