@@ -2099,8 +2099,10 @@ export function constructCustomActivityCustomFieldsPayload(customActivityData: a
 		if (fieldType === 'richText' && field.type === 'richtextarea' && typeof value === 'string' && value.trim()) {
 			// Check if the value doesn't already contain HTML body tags
 			if (!value.includes('<body>') && !value.includes('<body ')) {
-				// Wrap plain text in proper HTML structure
-				value = `<body><p>${value}</p></body>`;
+				// Split text by newlines and wrap each line in a paragraph tag (including empty lines)
+				const lines = value.split('\n');
+				const paragraphs = lines.map(line => `<p>${line.trim()}</p>`).join('');
+				value = `<body>${paragraphs}</body>`;
 			}
 		}
 			// Skip if value is empty
