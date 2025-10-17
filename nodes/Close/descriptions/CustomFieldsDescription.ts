@@ -2091,6 +2091,15 @@ export function constructCustomActivityCustomFieldsPayload(customActivityData: a
 					continue;
 			}
 
+
+		// Apply HTML formatting for rich text fields
+		if (fieldType === 'richText' && field.type === 'richtextarea' && typeof value === 'string' && value.trim()) {
+			// Check if the value doesn't already contain HTML body tags
+			if (!value.includes('<body>') && !value.includes('<body ')) {
+				// Wrap plain text in proper HTML structure
+				value = `<body><p>${value}</p></body>`;
+			}
+		}
 			// Skip if value is empty
 			if (value === undefined || value === null || value === '' || (Array.isArray(value) && value.length === 0)) {
 				continue;
@@ -2101,6 +2110,7 @@ export function constructCustomActivityCustomFieldsPayload(customActivityData: a
 
 			switch (field.type) {
 				case 'text':
+				case 'richtextarea':
 					validationError = customFieldValidators.validateText(value);
 					break;
 				case 'number':
