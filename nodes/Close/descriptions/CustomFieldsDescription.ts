@@ -1474,14 +1474,29 @@ export function constructContactCustomFieldsPayload(contactData: any, fields: Cu
 
 /**
  * Get cached custom activity custom fields with workspace isolation
- * Custom activity fields are fetched from all custom activity types
+ * Custom activity fields are fetched for a specific custom activity type
  */
-export async function getCachedCustomActivityCustomFields(context: any): Promise<CustomField[]> {
+export async function getCachedCustomActivityCustomFields(context: any, customActivityTypeId?: string): Promise<CustomField[]> {
 	const credentials = context.getCredentials?.('closeApi');
 	const workspaceId = credentials?.apiKey ?
 		Buffer.from(credentials.apiKey).toString('base64').substring(0, 16) :
 		'default';
-	const cacheKey = `${workspaceId}_custom_activity`;
+
+	// Try to get the custom activity type ID from context if not provided
+	if (!customActivityTypeId) {
+		try {
+			customActivityTypeId = context.getNodeParameter?.('customActivityTypeId', 0) as string;
+		} catch {
+			// Ignore if we can't get it from context
+		}
+	}
+
+	// If we still don't have a type ID, return empty array
+	if (!customActivityTypeId) {
+		return [];
+	}
+
+	const cacheKey = `${workspaceId}_custom_activity_${customActivityTypeId}`;
 	const cached = customFieldsCache.get(cacheKey);
 
 	if (cached && isCacheValid(cached.timestamp, FIELD_CACHE_TTL)) {
@@ -1489,51 +1504,45 @@ export async function getCachedCustomActivityCustomFields(context: any): Promise
 	}
 
 	try {
-		// Fetch all custom activity types to get their field definitions
-		const typesResponse = await (closeApiRequest as any).call(context, 'GET', '/custom_activity/');
-		const types = typesResponse.data || [];
+		// Fetch the specific custom activity type to get its field definitions
+		const typeResponse = await (closeApiRequest as any).call(context, 'GET', `/custom_activity/${customActivityTypeId}/`);
 
-		// Collect all unique custom fields from all activity types
-		const fieldsMap = new Map<string, CustomField>();
-
-		for (const type of types) {
-			if (type.fields && Array.isArray(type.fields)) {
-				for (const field of type.fields) {
-					// Skip if field doesn't have an id or name
-					if (!field.id || !field.name) {
-						continue;
-					}
-
-					// Use the field id directly (it's already the custom field ID like "cf_xxxx")
-					const fieldId = field.id;
-
-					// Map field types from custom activity to our standard types
-					let fieldType: CustomField['type'] = 'text';
-					if (field.type === 'text') fieldType = 'text';
-					else if (field.type === 'number') fieldType = 'number';
-					else if (field.type === 'date') fieldType = 'date';
-					else if (field.type === 'datetime') fieldType = 'datetime';
-					else if (field.type === 'choices') fieldType = 'choices';
-					else if (field.type === 'user') fieldType = 'user';
-					else if (field.type === 'contact') fieldType = 'contact';
-
-					// Only add if not already in map (avoid duplicates)
-					if (!fieldsMap.has(fieldId)) {
-						fieldsMap.set(fieldId, {
-							id: fieldId,
-							name: field.name,
-							type: fieldType,
-							accepts_multiple_values: field.multiple || false,
-							choices: field.choices || undefined,
-						});
-					}
-				}
-			}
+		if (!typeResponse || !typeResponse.fields || !Array.isArray(typeResponse.fields)) {
+			return [];
 		}
 
-		const fieldsData = Array.from(fieldsMap.values());
+		// Process fields for this specific activity type
+		const fieldsData: CustomField[] = [];
 
-		// Cache the results with resource-specific key
+		for (const field of typeResponse.fields) {
+			// Skip if field doesn't have an id or name
+			if (!field.id || !field.name) {
+				continue;
+			}
+
+			// Use the field id directly (it's already the custom field ID like "cf_xxxx")
+			const fieldId = field.id;
+
+			// Map field types from custom activity to our standard types
+			let fieldType: CustomField['type'] = 'text';
+			if (field.type === 'text') fieldType = 'text';
+			else if (field.type === 'number') fieldType = 'number';
+			else if (field.type === 'date') fieldType = 'date';
+			else if (field.type === 'datetime') fieldType = 'datetime';
+			else if (field.type === 'choices') fieldType = 'choices';
+			else if (field.type === 'user') fieldType = 'user';
+			else if (field.type === 'contact') fieldType = 'contact';
+
+			fieldsData.push({
+				id: fieldId,
+				name: field.name,
+				type: fieldType,
+				accepts_multiple_values: field.multiple || false,
+				choices: field.choices || undefined,
+			});
+		}
+
+		// Cache the results with type-specific key
 		customFieldsCache.set(cacheKey, {
 			timestamp: Date.now(),
 			fields: fieldsData,
