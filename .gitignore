@@ -42,3 +42,4 @@ coverage/
 # Claude and MCP files
 .claude/
 .serena/
+.mcp.json
