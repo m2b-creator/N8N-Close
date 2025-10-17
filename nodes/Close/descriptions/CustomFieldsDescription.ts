@@ -1474,6 +1474,7 @@ export function constructContactCustomFieldsPayload(contactData: any, fields: Cu
 
 /**
  * Get cached custom activity custom fields with workspace isolation
+ * Custom activity fields are fetched from all custom activity types
  */
 export async function getCachedCustomActivityCustomFields(context: any): Promise<CustomField[]> {
 	const credentials = context.getCredentials?.('closeApi');
@@ -1488,23 +1489,49 @@ export async function getCachedCustomActivityCustomFields(context: any): Promise
 	}
 
 	try {
-		// Use the custom activity custom fields endpoint
-		const endpoint = '/custom_field/activity.custom/';
+		// Fetch all custom activity types to get their field definitions
+		const typesResponse = await (closeApiRequest as any).call(context, 'GET', '/custom_activity/');
+		const types = typesResponse.data || [];
 
-		// Prefer the all-items helper to flatten pagination and match JSON shapes
-		let fieldsData: CustomField[] = [];
-		try {
-			fieldsData = await (closeApiRequestAllItems as any).call(context, 'data', 'GET', endpoint);
-		} catch {
-			// Fallback to single request and normalization
-			const raw = await (closeApiRequest as any).call(context, 'GET', endpoint);
-			fieldsData = normalizeCustomFieldsResponse(raw);
+		// Collect all unique custom fields from all activity types
+		const fieldsMap = new Map<string, CustomField>();
+
+		for (const type of types) {
+			if (type.fields && Array.isArray(type.fields)) {
+				for (const field of type.fields) {
+					// Skip if not a custom field (custom fields start with 'custom.')
+					if (!field.id || !field.id.startsWith('custom.')) {
+						continue;
+					}
+
+					// Extract the actual field ID (remove 'custom.' prefix)
+					const fieldId = field.id.replace('custom.', '');
+
+					// Map field types from custom activity to our standard types
+					let fieldType: CustomField['type'] = 'text';
+					if (field.type === 'text') fieldType = 'text';
+					else if (field.type === 'number') fieldType = 'number';
+					else if (field.type === 'date') fieldType = 'date';
+					else if (field.type === 'datetime') fieldType = 'datetime';
+					else if (field.type === 'choices') fieldType = 'choices';
+					else if (field.type === 'user') fieldType = 'user';
+					else if (field.type === 'contact') fieldType = 'contact';
+
+					// Only add if not already in map (avoid duplicates)
+					if (!fieldsMap.has(fieldId)) {
+						fieldsMap.set(fieldId, {
+							id: fieldId,
+							name: field.name || field.id,
+							type: fieldType,
+							accepts_multiple_values: field.multiple || false,
+							choices: field.choices || undefined,
+						});
+					}
+				}
+			}
 		}
 
-		if (!Array.isArray(fieldsData)) {
-			console.error('Unexpected custom fields response format:', fieldsData);
-			return [];
-		}
+		const fieldsData = Array.from(fieldsMap.values());
 
 		// Cache the results with resource-specific key
 		customFieldsCache.set(cacheKey, {
