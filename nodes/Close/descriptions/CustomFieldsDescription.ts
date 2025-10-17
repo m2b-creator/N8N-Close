@@ -1499,13 +1499,13 @@ export async function getCachedCustomActivityCustomFields(context: any): Promise
 		for (const type of types) {
 			if (type.fields && Array.isArray(type.fields)) {
 				for (const field of type.fields) {
-					// Skip if not a custom field (custom fields start with 'custom.')
-					if (!field.id || !field.id.startsWith('custom.')) {
+					// Skip if field doesn't have an id or name
+					if (!field.id || !field.name) {
 						continue;
 					}
 
-					// Extract the actual field ID (remove 'custom.' prefix)
-					const fieldId = field.id.replace('custom.', '');
+					// Use the field id directly (it's already the custom field ID like "cf_xxxx")
+					const fieldId = field.id;
 
 					// Map field types from custom activity to our standard types
 					let fieldType: CustomField['type'] = 'text';
@@ -1521,7 +1521,7 @@ export async function getCachedCustomActivityCustomFields(context: any): Promise
 					if (!fieldsMap.has(fieldId)) {
 						fieldsMap.set(fieldId, {
 							id: fieldId,
-							name: field.name || field.id,
+							name: field.name,
 							type: fieldType,
 							accepts_multiple_values: field.multiple || false,
 							choices: field.choices || undefined,
