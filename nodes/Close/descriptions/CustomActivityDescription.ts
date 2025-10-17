@@ -45,7 +45,7 @@ export const customActivityOperations: INodeProperties[] = [
 		],
 		default: 'find',
 	},
-];;
+];
 
 export const customActivityFields: INodeProperties[] = [
 	// CREATE OPERATION FIELDS
@@ -280,4 +280,4 @@ export const customActivityFields: INodeProperties[] = [
 		default: 50,
 		description: 'Max number of results to return',
 	},
-];;
+];
