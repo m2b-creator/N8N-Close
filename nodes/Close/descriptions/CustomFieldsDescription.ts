@@ -1312,10 +1312,10 @@ export function constructCustomFieldsPayload(customFieldsData: any, fields: Cust
 /**
  * Utility function to construct contact custom field payload
  */
-export function constructContactCustomFieldsPayload(customFieldsData: any, fields: CustomField[]): Record<string, any> {
+export function constructContactCustomFieldsPayload(contactData: any, fields: CustomField[]): Record<string, any> {
 	const payload: Record<string, any> = {};
 
-	if (!customFieldsData) {
+	if (!contactData) {
 		return payload;
 	}
 
@@ -1393,25 +1393,25 @@ export function constructContactCustomFieldsPayload(customFieldsData: any, field
 		}
 	};
 
-	// Process each field type collection
-	if (customFieldsData.textField?.textFields) {
-		processFields(customFieldsData.textField.textFields, 'text');
+	// Process each field type - using the new flat structure
+	if (contactData.contactCustomTextFields?.textFields) {
+		processFields(contactData.contactCustomTextFields.textFields, 'text');
 	}
 
-	if (customFieldsData.numberField?.numberFields) {
-		processFields(customFieldsData.numberField.numberFields, 'number');
+	if (contactData.contactCustomNumberFields?.numberFields) {
+		processFields(contactData.contactCustomNumberFields.numberFields, 'number');
 	}
 
-	if (customFieldsData.dateField?.dateFields) {
-		processFields(customFieldsData.dateField.dateFields, 'date');
+	if (contactData.contactCustomDateFields?.dateFields) {
+		processFields(contactData.contactCustomDateFields.dateFields, 'date');
 	}
 
-	if (customFieldsData.choiceSingleField?.choiceSingleFields) {
-		processFields(customFieldsData.choiceSingleField.choiceSingleFields, 'choiceSingle');
+	if (contactData.contactCustomChoiceSingleFields?.choiceSingleFields) {
+		processFields(contactData.contactCustomChoiceSingleFields.choiceSingleFields, 'choiceSingle');
 	}
 
-	if (customFieldsData.choiceMultipleField?.choiceMultipleFields) {
-		processFields(customFieldsData.choiceMultipleField.choiceMultipleFields, 'choiceMultiple');
+	if (contactData.contactCustomChoiceMultipleFields?.choiceMultipleFields) {
+		processFields(contactData.contactCustomChoiceMultipleFields.choiceMultipleFields, 'choiceMultiple');
 	}
 
 	return payload;

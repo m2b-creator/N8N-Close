@@ -368,10 +368,17 @@ export class Close implements INodeType {
 								if (contact.title) contactObj.title = contact.title;
 
 								// Add custom fields for contact if provided
-								if (contact.customFields && Object.keys(contact.customFields).length > 0) {
+								const hasCustomFields =
+									contact.contactCustomTextFields?.textFields?.length ||
+									contact.contactCustomNumberFields?.numberFields?.length ||
+									contact.contactCustomDateFields?.dateFields?.length ||
+									contact.contactCustomChoiceSingleFields?.choiceSingleFields?.length ||
+									contact.contactCustomChoiceMultipleFields?.choiceMultipleFields?.length;
+
+								if (hasCustomFields) {
 									try {
 										const contactFields = await customFieldsLoadMethods.getCachedContactCustomFields(this);
-										const contactCustomFieldsPayload = constructContactCustomFieldsPayload(contact.customFields, contactFields);
+										const contactCustomFieldsPayload = constructContactCustomFieldsPayload(contact, contactFields);
 										Object.assign(contactObj, contactCustomFieldsPayload);
 									} catch (error) {
 										console.error('Error processing contact custom fields:', error);
