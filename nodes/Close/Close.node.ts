@@ -2117,9 +2117,6 @@ export class Close implements INodeType {
 						if (leadId) {
 							qs.lead_id = leadId;
 						}
-						if (customActivityTypeId) {
-							qs.custom_activity_type_id = customActivityTypeId;
-						}
 						if (dateCreated) {
 							qs.date_created__gte = dateCreated;
 						}
@@ -2138,6 +2135,13 @@ export class Close implements INodeType {
 							qs._limit = this.getNodeParameter('limit', i);
 							responseData = await closeApiRequest.call(this, 'GET', '/activity/', {}, qs);
 							responseData = responseData.data;
+						}
+
+						// Apply client-side filtering by custom activity type if specified
+						if (customActivityTypeId && Array.isArray(responseData)) {
+							responseData = responseData.filter((activity: JsonObject) =>
+								activity.custom_activity_type_id === customActivityTypeId
+							);
 						}
 					}
 				}
