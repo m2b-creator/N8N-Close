@@ -1065,6 +1065,58 @@ export const customFieldsLoadMethods = {
 			return [];
 		}
 	},
+
+	/**
+	 * Get contact single user fields
+	 */
+	async getContactSingleUserFields(context: any): Promise<INodePropertyOptions[]> {
+		const fields = await this.getCachedContactCustomFields(context);
+		return fields
+			.filter(field => field.type === 'user' && !field.accepts_multiple_values)
+			.map(field => ({
+				name: field.name,
+				value: field.id,
+			}));
+	},
+
+	/**
+	 * Get contact multiple user fields
+	 */
+	async getContactMultipleUserFields(context: any): Promise<INodePropertyOptions[]> {
+		const fields = await this.getCachedContactCustomFields(context);
+		return fields
+			.filter(field => field.type === 'user' && field.accepts_multiple_values)
+			.map(field => ({
+				name: field.name,
+				value: field.id,
+			}));
+	},
+
+	/**
+	 * Get contact single contact fields
+	 */
+	async getContactSingleContactFields(context: any): Promise<INodePropertyOptions[]> {
+		const fields = await this.getCachedContactCustomFields(context);
+		return fields
+			.filter(field => field.type === 'contact' && !field.accepts_multiple_values)
+			.map(field => ({
+				name: field.name,
+				value: field.id,
+			}));
+	},
+
+	/**
+	 * Get contact multiple contact fields
+	 */
+	async getContactMultipleContactFields(context: any): Promise<INodePropertyOptions[]> {
+		const fields = await this.getCachedContactCustomFields(context);
+		return fields
+			.filter(field => field.type === 'contact' && field.accepts_multiple_values)
+			.map(field => ({
+				name: field.name,
+				value: field.id,
+			}));
+	},
 };
 
 /**
@@ -1342,6 +1394,8 @@ export function constructContactCustomFieldsPayload(contactData: any, fields: Cu
 				case 'text':
 				case 'date':
 				case 'choiceSingle':
+				case 'userSingle':
+				case 'contactSingle':
 					value = fieldValue;
 					break;
 
@@ -1353,7 +1407,19 @@ export function constructContactCustomFieldsPayload(contactData: any, fields: Cu
 					break;
 
 				case 'choiceMultiple':
+				case 'userMultiple':
 					value = fieldValues;
+					break;
+
+				case 'contactMultiple':
+					// Handle comma-separated string to array conversion
+					if (typeof fieldValues === 'string') {
+						value = String(fieldValues).split(',').map(id => id.trim()).filter(id => id);
+					} else if (Array.isArray(fieldValues)) {
+						value = fieldValues;
+					} else {
+						value = [];
+					}
 					break;
 
 				default:
@@ -1381,6 +1447,12 @@ export function constructContactCustomFieldsPayload(contactData: any, fields: Cu
 					break;
 				case 'choices':
 					validationError = customFieldValidators.validateChoice(value, field);
+					break;
+				case 'user':
+					validationError = customFieldValidators.validateUser(value, field);
+					break;
+				case 'contact':
+					validationError = customFieldValidators.validateContact(value, field);
 					break;
 			}
 
@@ -1412,6 +1484,22 @@ export function constructContactCustomFieldsPayload(contactData: any, fields: Cu
 
 	if (contactData.contactCustomChoiceMultipleFields?.choiceMultipleFields) {
 		processFields(contactData.contactCustomChoiceMultipleFields.choiceMultipleFields, 'choiceMultiple');
+	}
+
+	if (contactData.contactCustomUserSingleFields?.userSingleFields) {
+		processFields(contactData.contactCustomUserSingleFields.userSingleFields, 'userSingle');
+	}
+
+	if (contactData.contactCustomUserMultipleFields?.userMultipleFields) {
+		processFields(contactData.contactCustomUserMultipleFields.userMultipleFields, 'userMultiple');
+	}
+
+	if (contactData.contactCustomContactSingleFields?.contactSingleFields) {
+		processFields(contactData.contactCustomContactSingleFields.contactSingleFields, 'contactSingle');
+	}
+
+	if (contactData.contactCustomContactMultipleFields?.contactMultipleFields) {
+		processFields(contactData.contactCustomContactMultipleFields.contactMultipleFields, 'contactMultiple');
 	}
 
 	return payload;

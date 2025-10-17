@@ -349,6 +349,164 @@ export const leadFields: INodeProperties[] = [
 							},
 						],
 					},
+					{
+						displayName: 'Contact Custom User Fields (Single)',
+						name: 'contactCustomUserSingleFields',
+						type: 'fixedCollection',
+						typeOptions: {
+							multipleValues: true,
+						},
+						default: {},
+						description: 'Add custom single-user fields for this contact',
+						options: [
+							{
+								name: 'userSingleFields',
+								displayName: 'Single User Field',
+								values: [
+									{
+										displayName: 'Field Name',
+										name: 'fieldId',
+										type: 'options',
+										typeOptions: {
+											loadOptionsMethod: 'getContactSingleUserFields',
+										},
+										default: '',
+										description: 'Select the user field',
+									},
+									{
+										displayName: 'User',
+										name: 'fieldValue',
+										type: 'options',
+										typeOptions: {
+											loadOptionsMethod: 'getUsers',
+										},
+										default: '',
+										description: 'Select a user',
+										displayOptions: {
+											hide: {
+												fieldId: [''],
+											},
+										},
+									},
+								],
+							},
+						],
+					},
+					{
+						displayName: 'Contact Custom User Fields (Multiple)',
+						name: 'contactCustomUserMultipleFields',
+						type: 'fixedCollection',
+						typeOptions: {
+							multipleValues: true,
+						},
+						default: {},
+						description: 'Add custom multiple-user fields for this contact',
+						options: [
+							{
+								name: 'userMultipleFields',
+								displayName: 'Multiple User Field',
+								values: [
+									{
+										displayName: 'Field Name',
+										name: 'fieldId',
+										type: 'options',
+										typeOptions: {
+											loadOptionsMethod: 'getContactMultipleUserFields',
+										},
+										default: '',
+										description: 'Select the user field',
+									},
+									{
+										displayName: 'Users',
+										name: 'fieldValues',
+										type: 'multiOptions',
+										typeOptions: {
+											loadOptionsMethod: 'getUsers',
+										},
+										default: [],
+										description: 'Select multiple users',
+										displayOptions: {
+											hide: {
+												fieldId: [''],
+											},
+										},
+									},
+								],
+							},
+						],
+					},
+					{
+						displayName: 'Contact Custom Contact Fields (Single)',
+						name: 'contactCustomContactSingleFields',
+						type: 'fixedCollection',
+						typeOptions: {
+							multipleValues: true,
+						},
+						default: {},
+						description: 'Add custom single-contact reference fields for this contact',
+						options: [
+							{
+								name: 'contactSingleFields',
+								displayName: 'Single Contact Field',
+								values: [
+									{
+										displayName: 'Field Name',
+										name: 'fieldId',
+										type: 'options',
+										typeOptions: {
+											loadOptionsMethod: 'getContactSingleContactFields',
+										},
+										default: '',
+										description: 'Select the contact field',
+									},
+									{
+										displayName: 'Contact ID',
+										name: 'fieldValue',
+										type: 'string',
+										default: '',
+										description: 'Enter the contact ID',
+										placeholder: 'cont_xxxxxxxxxxxxxxxx',
+									},
+								],
+							},
+						],
+					},
+					{
+						displayName: 'Contact Custom Contact Fields (Multiple)',
+						name: 'contactCustomContactMultipleFields',
+						type: 'fixedCollection',
+						typeOptions: {
+							multipleValues: true,
+						},
+						default: {},
+						description: 'Add custom multiple-contact reference fields for this contact',
+						options: [
+							{
+								name: 'contactMultipleFields',
+								displayName: 'Multiple Contact Field',
+								values: [
+									{
+										displayName: 'Field Name',
+										name: 'fieldId',
+										type: 'options',
+										typeOptions: {
+											loadOptionsMethod: 'getContactMultipleContactFields',
+										},
+										default: '',
+										description: 'Select the contact field',
+									},
+									{
+										displayName: 'Contact IDs',
+										name: 'fieldValues',
+										type: 'string',
+										default: '',
+										description: 'Enter contact IDs separated by commas',
+										placeholder: 'cont_xxx..., cont_yyy...',
+									},
+								],
+							},
+						],
+					},
 				],
 			},
 		],
