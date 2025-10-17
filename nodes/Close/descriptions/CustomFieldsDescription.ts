@@ -26,7 +26,7 @@ const USER_CACHE_TTL = 15 * 60 * 1000; // 15 minutes
 interface CustomField {
 	id: string;
 	name: string;
-	type: 'choices' | 'text' | 'number' | 'date' | 'datetime' | 'user' | 'contact';
+	type: 'choices' | 'text' | 'richtextarea' | 'number' | 'date' | 'datetime' | 'user' | 'contact';
 	accepts_multiple_values: boolean;
 	choices?: string[];
 }
@@ -1526,6 +1526,7 @@ export async function getCachedCustomActivityCustomFields(context: any, customAc
 			// Map field types from custom activity to our standard types
 			let fieldType: CustomField['type'] = 'text';
 			if (field.type === 'text') fieldType = 'text';
+			else if (field.type === 'richtextarea') fieldType = 'richtextarea';
 			else if (field.type === 'number') fieldType = 'number';
 			else if (field.type === 'date') fieldType = 'date';
 			else if (field.type === 'datetime') fieldType = 'datetime';
@@ -1603,6 +1604,41 @@ export const customActivityCustomFieldsCreateSections: INodeProperties[] = [
 								type: 'string',
 								default: '',
 								description: 'Enter the text value',
+							},
+						],
+					},
+				],
+			},
+			{
+				displayName: 'Rich Text Field',
+				name: 'richTextField',
+				type: 'fixedCollection',
+				typeOptions: {
+					multipleValues: true,
+				},
+				default: {},
+				description: 'Add rich text custom fields',
+				options: [
+					{
+						name: 'richTextFields',
+						displayName: 'Rich Text Fields',
+						values: [
+							{
+								displayName: 'Field Name',
+								name: 'fieldId',
+								type: 'options',
+								typeOptions: {
+									loadOptionsMethod: 'getCustomActivityRichTextFields',
+								},
+								default: '',
+								description: 'Select the rich text field',
+							},
+							{
+								displayName: 'Value',
+								name: 'fieldValue',
+								type: 'string',
+								default: '',
+								description: 'Enter the rich text value',
 							},
 						],
 					},
@@ -1875,6 +1911,19 @@ export const customActivityCustomFieldsLoadMethods = {
 	},
 
 	/**
+	 * Get Custom Activity rich text fields
+	 */
+	async getCustomActivityRichTextFields(context: any): Promise<INodePropertyOptions[]> {
+		const fields = await getCachedCustomActivityCustomFields(context);
+		return fields
+			.filter(field => field.type === 'richtextarea')
+			.map(field => ({
+				name: field.name,
+				value: field.id,
+			}));
+	},
+
+	/**
 	 * Get Custom Activity number fields
 	 */
 	async getCustomActivityNumberFields(context: any): Promise<INodePropertyOptions[]> {
@@ -2019,6 +2068,7 @@ export function constructCustomActivityCustomFieldsPayload(customActivityData: a
 			// Determine the value based on field type
 			switch (fieldType) {
 				case 'text':
+				case 'richText':
 				case 'date':
 				case 'choiceSingle':
 				case 'userSingle':
@@ -2080,6 +2130,10 @@ export function constructCustomActivityCustomFieldsPayload(customActivityData: a
 	// Process each field type
 	if (customActivityData.textField?.textFields) {
 		processFields(customActivityData.textField.textFields, 'text');
+	}
+
+	if (customActivityData.richTextField?.richTextFields) {
+		processFields(customActivityData.richTextField.richTextFields, 'richText');
 	}
 
 	if (customActivityData.numberField?.numberFields) {
