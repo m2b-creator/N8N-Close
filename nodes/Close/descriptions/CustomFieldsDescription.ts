@@ -921,6 +921,150 @@ export const customFieldsLoadMethods = {
 	async getUsers(context: any): Promise<INodePropertyOptions[]> {
 		return this.getCachedUsers(context);
 	},
+
+	/**
+	 * Get cached contact custom fields with workspace isolation
+	 */
+	async getCachedContactCustomFields(context: any): Promise<CustomField[]> {
+		const workspaceId = getWorkspaceId(context);
+		const cacheKey = `${workspaceId}_contact`;
+		const cached = customFieldsCache.get(cacheKey);
+
+		if (cached && isCacheValid(cached.timestamp, FIELD_CACHE_TTL)) {
+			return cached.fields;
+		}
+
+		try {
+			// Use the contact custom fields endpoint
+			const endpoint = '/custom_field/contact/';
+
+			// Prefer the all-items helper to flatten pagination and match JSON shapes
+			let fieldsData: CustomField[] = [];
+			try {
+				fieldsData = await (closeApiRequestAllItems as any).call(context, 'data', 'GET', endpoint);
+			} catch {
+				// Fallback to single request and normalization
+				const raw = await (closeApiRequest as any).call(context, 'GET', endpoint);
+				fieldsData = normalizeCustomFieldsResponse(raw);
+			}
+
+			if (!Array.isArray(fieldsData)) {
+				console.error('Unexpected custom fields response format:', fieldsData);
+				return [];
+			}
+
+			// Cache the results with resource-specific key
+			customFieldsCache.set(cacheKey, {
+				timestamp: Date.now(),
+				fields: fieldsData,
+			});
+
+			return fieldsData;
+		} catch (error) {
+			console.error('Error fetching contact custom fields:', error);
+			return [];
+		}
+	},
+
+	/**
+	 * Get contact text fields
+	 */
+	async getContactTextFields(context: any): Promise<INodePropertyOptions[]> {
+		const fields = await this.getCachedContactCustomFields(context);
+		return fields
+			.filter(field => field.type === 'text')
+			.map(field => ({
+				name: field.name,
+				value: field.id,
+			}));
+	},
+
+	/**
+	 * Get contact number fields
+	 */
+	async getContactNumberFields(context: any): Promise<INodePropertyOptions[]> {
+		const fields = await this.getCachedContactCustomFields(context);
+		return fields
+			.filter(field => field.type === 'number')
+			.map(field => ({
+				name: field.name,
+				value: field.id,
+			}));
+	},
+
+	/**
+	 * Get contact date fields (includes both date and datetime)
+	 */
+	async getContactDateFields(context: any): Promise<INodePropertyOptions[]> {
+		const fields = await this.getCachedContactCustomFields(context);
+		return fields
+			.filter(field => field.type === 'date' || field.type === 'datetime')
+			.map(field => ({
+				name: field.name,
+				value: field.id,
+			}));
+	},
+
+	/**
+	 * Get contact single choice fields
+	 */
+	async getContactSingleChoiceFields(context: any): Promise<INodePropertyOptions[]> {
+		const fields = await this.getCachedContactCustomFields(context);
+		return fields
+			.filter(field => field.type === 'choices' && !field.accepts_multiple_values)
+			.map(field => ({
+				name: field.name,
+				value: field.id,
+			}));
+	},
+
+	/**
+	 * Get contact multiple choice fields
+	 */
+	async getContactMultipleChoiceFields(context: any): Promise<INodePropertyOptions[]> {
+		const fields = await this.getCachedContactCustomFields(context);
+		return fields
+			.filter(field => field.type === 'choices' && field.accepts_multiple_values)
+			.map(field => ({
+				name: field.name,
+				value: field.id,
+			}));
+	},
+
+	/**
+	 * Get all contact choice values from all choice fields
+	 */
+	async getContactAllChoiceValues(context: any): Promise<INodePropertyOptions[]> {
+		try {
+			const fields = await this.getCachedContactCustomFields(context);
+			const choiceFields = fields.filter(f => f.type === 'choices' && f.choices && Array.isArray(f.choices));
+
+			// Return all choices from all fields with field name label
+			const allChoices = new Map<string, string>();
+
+			for (const field of choiceFields) {
+				if (field.choices) {
+					for (const choice of field.choices) {
+						const key = `${choice}__${field.id}`;
+						allChoices.set(key, `${choice} (from ${field.name})`);
+					}
+				}
+			}
+
+			const result = Array.from(allChoices.entries()).map(([key, name]) => ({
+				name,
+				value: key.split('__')[0], // Extract the actual choice value
+			}));
+
+			// Sort alphabetically by display name
+			result.sort((a, b) => a.name.localeCompare(b.name));
+
+			return result;
+		} catch (error) {
+			console.error('[getContactAllChoiceValues] Error:', error);
+			return [];
+		}
+	},
 };
 
 /**
@@ -1160,6 +1304,114 @@ export function constructCustomFieldsPayload(customFieldsData: any, fields: Cust
 
 	if (customFields.contactMultipleField?.contactMultipleFields) {
 		processFields(customFields.contactMultipleField.contactMultipleFields, 'contactMultiple');
+	}
+
+	return payload;
+}
+
+/**
+ * Utility function to construct contact custom field payload
+ */
+export function constructContactCustomFieldsPayload(customFieldsData: any, fields: CustomField[]): Record<string, any> {
+	const payload: Record<string, any> = {};
+
+	if (!customFieldsData) {
+		return payload;
+	}
+
+	// Helper function to process field values
+	const processFields = (fieldsArray: any[], fieldType: string) => {
+		if (!Array.isArray(fieldsArray)) return;
+
+		for (const fieldData of fieldsArray) {
+			const { fieldId, fieldValue, fieldValues } = fieldData;
+
+			if (!fieldId) {
+				continue;
+			}
+
+			const field = fields.find(f => f.id === fieldId);
+			if (!field) {
+				continue;
+			}
+
+			let value: any;
+
+			// Determine the value based on field type
+			switch (fieldType) {
+				case 'text':
+				case 'date':
+				case 'choiceSingle':
+					value = fieldValue;
+					break;
+
+				case 'number':
+					value = Number(fieldValue);
+					if (isNaN(value)) {
+						throw new Error(`Custom field "${field.name}" validation error: Number field value must be a valid number`);
+					}
+					break;
+
+				case 'choiceMultiple':
+					value = fieldValues;
+					break;
+
+				default:
+					continue;
+			}
+
+			// Skip if value is empty
+			if (value === undefined || value === null || value === '' || (Array.isArray(value) && value.length === 0)) {
+				continue;
+			}
+
+			// Validate the value based on field type
+			let validationError: string | null = null;
+
+			switch (field.type) {
+				case 'text':
+					validationError = customFieldValidators.validateText(value);
+					break;
+				case 'number':
+					validationError = customFieldValidators.validateNumber(value);
+					break;
+				case 'date':
+				case 'datetime':
+					validationError = customFieldValidators.validateDate(value);
+					break;
+				case 'choices':
+					validationError = customFieldValidators.validateChoice(value, field);
+					break;
+			}
+
+			if (validationError) {
+				throw new Error(`Custom field "${field.name}" validation error: ${validationError}`);
+			}
+
+			// Add to payload with proper key format
+			payload[`custom.${fieldId}`] = value;
+		}
+	};
+
+	// Process each field type collection
+	if (customFieldsData.textField?.textFields) {
+		processFields(customFieldsData.textField.textFields, 'text');
+	}
+
+	if (customFieldsData.numberField?.numberFields) {
+		processFields(customFieldsData.numberField.numberFields, 'number');
+	}
+
+	if (customFieldsData.dateField?.dateFields) {
+		processFields(customFieldsData.dateField.dateFields, 'date');
+	}
+
+	if (customFieldsData.choiceSingleField?.choiceSingleFields) {
+		processFields(customFieldsData.choiceSingleField.choiceSingleFields, 'choiceSingle');
+	}
+
+	if (customFieldsData.choiceMultipleField?.choiceMultipleFields) {
+		processFields(customFieldsData.choiceMultipleField.choiceMultipleFields, 'choiceMultiple');
 	}
 
 	return payload;

@@ -35,6 +35,7 @@ import { smsFields, smsOperations } from './descriptions/SmsDescription';
 import { customActivityFields, customActivityOperations, } from './descriptions/CustomActivityDescription';
 
 import {
+	constructContactCustomFieldsPayload,
 	constructCustomFieldsPayload,
 	customFieldsCreateSections,
 	customFieldsLoadMethods,
@@ -251,6 +252,31 @@ export class Close implements INodeType {
 				return customFieldsLoadMethods.getCachedUsers(this);
 			},
 
+			// Contact Custom Fields Load Methods
+			async getContactTextFields(this: ILoadOptionsFunctions): Promise<INodePropertyOptions[]> {
+				return customFieldsLoadMethods.getContactTextFields(this);
+			},
+
+			async getContactNumberFields(this: ILoadOptionsFunctions): Promise<INodePropertyOptions[]> {
+				return customFieldsLoadMethods.getContactNumberFields(this);
+			},
+
+			async getContactDateFields(this: ILoadOptionsFunctions): Promise<INodePropertyOptions[]> {
+				return customFieldsLoadMethods.getContactDateFields(this);
+			},
+
+			async getContactSingleChoiceFields(this: ILoadOptionsFunctions): Promise<INodePropertyOptions[]> {
+				return customFieldsLoadMethods.getContactSingleChoiceFields(this);
+			},
+
+			async getContactMultipleChoiceFields(this: ILoadOptionsFunctions): Promise<INodePropertyOptions[]> {
+				return customFieldsLoadMethods.getContactMultipleChoiceFields(this);
+			},
+
+			async getContactAllChoiceValues(this: ILoadOptionsFunctions): Promise<INodePropertyOptions[]> {
+				return customFieldsLoadMethods.getContactAllChoiceValues(this);
+			},
+
 			async getCustomActivityTypes(this: ILoadOptionsFunctions): Promise<INodePropertyOptions[]> {
 				const returnData: INodePropertyOptions[] = [];
 				const types = await closeApiRequest.call(this, 'GET', '/custom_activity/');
@@ -322,11 +348,11 @@ export class Close implements INodeType {
 						};
 
 						if (contacts.contactsValues?.length) {
-							body.contacts = contacts.contactsValues.map((contact) => {
+							body.contacts = await Promise.all(contacts.contactsValues.map(async (contact: any) => {
 								const contactObj: JsonObject = {};
 								if (contact.name) contactObj.name = contact.name;
 								if (contact.email) contactObj.emails = [{ type: 'office', email: contact.email }];
-								
+
 								// Handle phones array with both office and mobile numbers
 								const phones: Array<{ type: string; phone: string }> = [];
 								if (contact.phone) {
@@ -338,10 +364,22 @@ export class Close implements INodeType {
 								if (phones.length > 0) {
 									contactObj.phones = phones;
 								}
-								
+
 								if (contact.title) contactObj.title = contact.title;
+
+								// Add custom fields for contact if provided
+								if (contact.customFields && Object.keys(contact.customFields).length > 0) {
+									try {
+										const contactFields = await customFieldsLoadMethods.getCachedContactCustomFields(this);
+										const contactCustomFieldsPayload = constructContactCustomFieldsPayload(contact.customFields, contactFields);
+										Object.assign(contactObj, contactCustomFieldsPayload);
+									} catch (error) {
+										console.error('Error processing contact custom fields:', error);
+									}
+								}
+
 								return contactObj;
-							});
+							}));
 						}
 
 						// Add address if provided
