@@ -1941,8 +1941,6 @@ describe('Close', () => {
 					{},
 					{
 						user_id: 'user_123',
-						date_created__gt: '2024-01-01T00:00:00Z',
-						date_created__lt: '2024-12-31T23:59:59Z',
 						_limit: 25,
 					},
 				);

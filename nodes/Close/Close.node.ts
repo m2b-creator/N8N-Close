@@ -1948,25 +1948,33 @@ export class Close implements INodeType {
 						// Check if activity_at filters are used
 						const useActivityAt = additionalFilters.activityAtGt || additionalFilters.activityAtLt;
 
-						if (useActivityAt) {
-							// When using activity_at filters, use activity_at for filtering and sorting
-							if (additionalFilters.activityAtGt) {
-								qs.activity_at__gt = additionalFilters.activityAtGt;
+						// Store filter values for client-side filtering when leadId is empty
+						const activityAtGt = additionalFilters.activityAtGt as string;
+						const activityAtLt = additionalFilters.activityAtLt as string;
+						const dateCreatedGt = additionalFilters.dateCreatedGt as string;
+						const dateCreatedLt = additionalFilters.dateCreatedLt as string;
+
+						// Only use API filters when leadId is provided (API requirement for activity_at sorting)
+						if (leadId && useActivityAt) {
+							// When using activity_at filters with a lead_id, use activity_at for filtering and sorting
+							if (activityAtGt) {
+								qs.activity_at__gt = activityAtGt;
 							}
-							if (additionalFilters.activityAtLt) {
-								qs.activity_at__lt = additionalFilters.activityAtLt;
+							if (activityAtLt) {
+								qs.activity_at__lt = activityAtLt;
 							}
 							// Set sorting to activity_at to avoid API conflict with date_created
 							qs._order_by = '-activity_at';
-						} else {
-							// Use date_created filters when activity_at is not used
-							if (additionalFilters.dateCreatedGt) {
-								qs.date_created__gt = additionalFilters.dateCreatedGt;
+						} else if (leadId && !useActivityAt) {
+							// Use date_created filters when activity_at is not used and leadId is provided
+							if (dateCreatedGt) {
+								qs.date_created__gt = dateCreatedGt;
 							}
-							if (additionalFilters.dateCreatedLt) {
-								qs.date_created__lt = additionalFilters.dateCreatedLt;
+							if (dateCreatedLt) {
+								qs.date_created__lt = dateCreatedLt;
 							}
 						}
+						// When leadId is empty, we fetch all meetings and filter client-side
 
 						if (returnAll) {
 							responseData = await closeApiRequestAllItems.call(
@@ -1982,6 +1990,43 @@ export class Close implements INodeType {
 							qs._limit = this.getNodeParameter('limit', i);
 							responseData = await closeApiRequest.call(this, 'GET', '/activity/meeting/', {}, qs);
 							responseData = responseData.data;
+						}
+
+						// Apply client-side filtering when leadId is empty
+						if (!leadId && (useActivityAt || dateCreatedGt || dateCreatedLt)) {
+							responseData = (responseData as any[]).filter((meeting: any) => {
+								let isValid = true;
+
+								// Filter by activity_at if specified
+								if (useActivityAt) {
+									const activityAt = meeting.activity_at ? new Date(meeting.activity_at).getTime() : null;
+
+									if (activityAtGt && activityAt) {
+										const filterDate = new Date(activityAtGt).getTime();
+										isValid = isValid && activityAt > filterDate;
+									}
+
+									if (activityAtLt && activityAt) {
+										const filterDate = new Date(activityAtLt).getTime();
+										isValid = isValid && activityAt < filterDate;
+									}
+								} else {
+									// Filter by date_created if activity_at filters are not used
+									const dateCreated = meeting.date_created ? new Date(meeting.date_created).getTime() : null;
+
+									if (dateCreatedGt && dateCreated) {
+										const filterDate = new Date(dateCreatedGt).getTime();
+										isValid = isValid && dateCreated > filterDate;
+									}
+
+									if (dateCreatedLt && dateCreated) {
+										const filterDate = new Date(dateCreatedLt).getTime();
+										isValid = isValid && dateCreated < filterDate;
+									}
+								}
+
+								return isValid;
+							});
 						}
 					}
 				}
