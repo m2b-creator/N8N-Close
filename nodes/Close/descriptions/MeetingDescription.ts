@@ -123,14 +123,14 @@ export const meetingFields: INodeProperties[] = [
 		},
 		options: [
 			{
-				displayName: 'User Note (HTML)',
-				name: 'userNoteHtml',
+				displayName: 'User Note',
+				name: 'userNote',
 				type: 'string',
 				typeOptions: {
 					rows: 4,
 				},
 				default: '',
-				description: 'Rich-text note about the meeting (HTML format)',
+				description: 'Note about the meeting (will be converted to Portable Text format)',
 			},
 			{
 				displayName: 'Outcome ID',

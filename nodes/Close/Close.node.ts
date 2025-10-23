@@ -45,6 +45,7 @@ import {
 	customActivityCustomFieldsLoadMethods,
 	constructCustomActivityCustomFieldsPayload,
 	getCachedCustomActivityCustomFields,
+	convertPlainTextToHTML,
 } from './descriptions/CustomFieldsDescription';
 
 export class Close implements INodeType {
@@ -1822,8 +1823,10 @@ export class Close implements INodeType {
 
 						const body: JsonObject = {};
 
-						if (updateFields.userNoteHtml) {
-							body.user_note_html = updateFields.userNoteHtml;
+						if (updateFields.userNote) {
+							// Convert plain text to Portable Text format (HTML with body tags)
+							const noteText = updateFields.userNote as string;
+							body.user_note = convertPlainTextToHTML(noteText);
 						}
 						if (updateFields.outcomeId) {
 							body.outcome_id = updateFields.outcomeId;

@@ -1842,7 +1842,7 @@ describe('Close', () => {
 			it('should update a meeting with fields', async () => {
 				const mockResponse = {
 					id: 'acti_meeting123',
-					user_note_html: '<p>Great meeting with promising lead</p>',
+					user_note: '<body><p>Great meeting with promising lead</p></body>',
 					outcome_id: 'outcome_456',
 				};
 
@@ -1851,7 +1851,7 @@ describe('Close', () => {
 					.mockReturnValueOnce('update') // operation
 					.mockReturnValueOnce('acti_meeting123') // meetingId
 					.mockReturnValueOnce({
-						userNoteHtml: '<p>Great meeting with promising lead</p>',
+						userNote: 'Great meeting with promising lead',
 						outcomeId: 'outcome_456',
 					}); // updateFields
 
@@ -1860,7 +1860,7 @@ describe('Close', () => {
 				await close.execute.call(mockExecuteFunctions);
 
 				expect(closeApiRequest).toHaveBeenCalledWith('PUT', '/activity/meeting/acti_meeting123/', {
-					user_note_html: '<p>Great meeting with promising lead</p>',
+					user_note: '<body><p>Great meeting with promising lead</p></body>',
 					outcome_id: 'outcome_456',
 				});
 			});

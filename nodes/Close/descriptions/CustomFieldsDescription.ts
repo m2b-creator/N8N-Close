@@ -52,7 +52,7 @@ function isCacheValid(timestamp: number, ttl: number): boolean {
 /**
  * Convert plain text with newlines to Portable Text format and then to HTML
  */
-function convertPlainTextToHTML(text: string): string {
+export function convertPlainTextToHTML(text: string): string {
 	// Split text by newlines to create blocks
 	const lines = text.split('\n');
 
