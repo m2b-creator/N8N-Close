@@ -1139,6 +1139,7 @@ describe('Close', () => {
 				.mockReturnValueOnce('lead_xyz789') // leadId
 					.mockReturnValueOnce('') // statusId
 					.mockReturnValueOnce('') // assignedTo
+					.mockReturnValueOnce('') // statusType
 					.mockReturnValueOnce({}) // additionalFilters
 					.mockReturnValueOnce(false) // returnAll
 					.mockReturnValueOnce(10); // limit
@@ -1168,6 +1169,7 @@ describe('Close', () => {
 				.mockReturnValueOnce('') // leadId
 					.mockReturnValueOnce('') // statusId
 					.mockReturnValueOnce('') // assignedTo
+					.mockReturnValueOnce('') // statusType
 					.mockReturnValueOnce({}) // additionalFilters
 					.mockReturnValueOnce(true); // returnAll
 

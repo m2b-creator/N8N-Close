@@ -209,6 +209,36 @@ export const opportunityFields: INodeProperties[] = [
 			'Filter opportunities by status. Choose from the list, or specify an ID using an <a href="https://docs.n8n.io/code-examples/expressions/">expression</a>.',
 	},
 	{
+		displayName: 'Status Type',
+		name: 'statusType',
+		type: 'options',
+		options: [
+			{
+				name: 'Active',
+				value: 'active',
+				description: 'Active opportunities',
+			},
+			{
+				name: 'Lost',
+				value: 'lost',
+				description: 'Lost opportunities',
+			},
+			{
+				name: 'Won',
+				value: 'won',
+				description: 'Won opportunities',
+			},
+		],
+		displayOptions: {
+			show: {
+				resource: ['opportunity'],
+				operation: ['find'],
+			},
+		},
+		default: '',
+		description: 'Filter opportunities by status type',
+	},
+	{
 		displayName: 'Assigned to User',
 		name: 'assignedTo',
 		type: 'options',

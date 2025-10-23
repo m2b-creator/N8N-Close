@@ -955,6 +955,7 @@ export class Close implements INodeType {
 						const leadId = this.getNodeParameter('leadId', i, '') as string;
 						const statusId = this.getNodeParameter('statusId', i, '') as string;
 						const assignedTo = this.getNodeParameter('assignedTo', i, '') as string;
+						const statusType = this.getNodeParameter('statusType', i, '') as string;
 						const additionalFilters = this.getNodeParameter('additionalFilters', i, {}) as JsonObject;
 						const returnAll = this.getNodeParameter('returnAll', i);
 
@@ -970,6 +971,9 @@ export class Close implements INodeType {
 							}
 							if (assignedTo) {
 								qs.user_id = assignedTo;
+							}
+							if (statusType) {
+								qs.status_type = statusType;
 							}
 							if (additionalFilters.confidence !== undefined) {
 								// Note: Close API doesn't directly support confidence filtering
