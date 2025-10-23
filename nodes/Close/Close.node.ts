@@ -754,6 +754,84 @@ export class Close implements INodeType {
 							body.url = updateFields.url;
 						}
 
+						// Add contacts if provided
+						const contacts = this.getNodeParameter('contactsUi', i, {}) as {
+							contactsValues?: Array<{
+								name?: string;
+								email?: string;
+								phone?: string;
+								mobilePhone?: string;
+								title?: string;
+							}>;
+						};
+
+						if (contacts.contactsValues?.length) {
+							body.contacts = await Promise.all(contacts.contactsValues.map(async (contact: any) => {
+								const contactObj: JsonObject = {};
+								if (contact.name) contactObj.name = contact.name;
+								if (contact.email) contactObj.emails = [{ type: 'office', email: contact.email }];
+
+								// Handle phones array with both office and mobile numbers
+								const phones: Array<{ type: string; phone: string }> = [];
+								if (contact.phone) {
+									phones.push({ type: 'office', phone: contact.phone });
+								}
+								if (contact.mobilePhone) {
+									phones.push({ type: 'mobile', phone: contact.mobilePhone });
+								}
+								if (phones.length > 0) {
+									contactObj.phones = phones;
+								}
+
+								if (contact.title) contactObj.title = contact.title;
+
+								// Add custom fields for contact if provided
+								const hasCustomFields =
+									contact.contactCustomTextFields?.textFields?.length ||
+									contact.contactCustomNumberFields?.numberFields?.length ||
+									contact.contactCustomDateFields?.dateFields?.length ||
+									contact.contactCustomChoiceSingleFields?.choiceSingleFields?.length ||
+									contact.contactCustomChoiceMultipleFields?.choiceMultipleFields?.length ||
+									contact.contactCustomUserSingleFields?.userSingleFields?.length ||
+									contact.contactCustomUserMultipleFields?.userMultipleFields?.length;
+
+								if (hasCustomFields) {
+									try {
+										const contactFields = await customFieldsLoadMethods.getCachedContactCustomFields(this);
+										const contactCustomFieldsPayload = constructContactCustomFieldsPayload(contact, contactFields);
+										Object.assign(contactObj, contactCustomFieldsPayload);
+									} catch (error) {
+										console.error('Error processing contact custom fields:', error);
+									}
+								}
+
+								return contactObj;
+							}));
+						}
+
+						// Add address if provided
+						const address = this.getNodeParameter('addressUi', i, {}) as {
+							street?: string;
+							city?: string;
+							state?: string;
+							zipcode?: string;
+							country?: string;
+						};
+
+						if (address && (address.street || address.city || address.state || address.zipcode || address.country)) {
+							const addressesArray: JsonObject[] = [];
+							const addressObj: JsonObject = { type: 'office' };
+
+							if (address.street) addressObj.address_1 = address.street;
+							if (address.city) addressObj.city = address.city;
+							if (address.state) addressObj.state = address.state;
+							if (address.zipcode) addressObj.zipcode = address.zipcode;
+							if (address.country) addressObj.country = address.country;
+
+							addressesArray.push(addressObj);
+							body.addresses = addressesArray;
+						}
+
 						// Add custom fields if provided (backwards compatibility)
 						const customFields = this.getNodeParameter('customFieldsUi', i, {}) as {
 							customFieldsValues?: Array<{

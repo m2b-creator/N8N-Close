@@ -593,7 +593,10 @@ describe('Close', () => {
 						name: 'Updated Company',
 						description: 'Updated Description',
 					}) // updateFields
-					.mockReturnValueOnce({}); // customFieldsUi
+					.mockReturnValueOnce({}) // contactsUi
+					.mockReturnValueOnce({}) // addressUi
+					.mockReturnValueOnce({}) // customFieldsUi
+					.mockReturnValueOnce({}); // customFields
 
 				(closeApiRequest as jest.Mock).mockResolvedValue(mockResponse);
 

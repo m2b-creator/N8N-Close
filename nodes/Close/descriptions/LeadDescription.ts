@@ -712,4 +712,390 @@ export const leadFields: INodeProperties[] = [
 			},
 		],
 	},
+	{
+		displayName: 'Contacts',
+		name: 'contactsUi',
+		placeholder: 'Add Contact',
+		type: 'fixedCollection',
+		typeOptions: {
+			multipleValues: true,
+		},
+		displayOptions: {
+			show: {
+				resource: ['lead'],
+				operation: ['update'],
+			},
+		},
+		default: {},
+		options: [
+			{
+				name: 'contactsValues',
+				displayName: 'Contact',
+				values: [
+					{
+						displayName: 'Contact Name',
+						name: 'name',
+						type: 'string',
+						default: '',
+						description: 'The name of the contact',
+					},
+					{
+						displayName: 'Contact Office Email',
+						name: 'email',
+						type: 'string',
+						default: '',
+						description: 'The office email of the contact',
+					},
+					{
+						displayName: 'Contact Office Phone',
+						name: 'phone',
+						type: 'string',
+						default: '',
+						description: 'The office phone number of the contact',
+					},
+					{
+						displayName: 'Contact Mobile Phone',
+						name: 'mobilePhone',
+						type: 'string',
+						default: '',
+						description: 'The mobile phone number of the contact',
+					},
+					{
+						displayName: 'Title',
+						name: 'title',
+						type: 'string',
+						default: '',
+						description: 'The job title of the contact',
+					},
+					{
+						displayName: 'Contact Custom Text Fields',
+						name: 'contactCustomTextFields',
+						type: 'fixedCollection',
+						typeOptions: {
+							multipleValues: true,
+						},
+						default: {},
+						description: 'Add custom text fields for this contact',
+						options: [
+							{
+								name: 'textFields',
+								displayName: 'Text Field',
+								values: [
+									{
+										displayName: 'Field Name',
+										name: 'fieldId',
+										type: 'options',
+										typeOptions: {
+											loadOptionsMethod: 'getContactTextFields',
+										},
+										default: '',
+										description: 'Select the text field',
+									},
+									{
+										displayName: 'Value',
+										name: 'fieldValue',
+										type: 'string',
+										default: '',
+										description: 'Enter the text value',
+									},
+								],
+							},
+						],
+					},
+					{
+						displayName: 'Contact Custom Number Fields',
+						name: 'contactCustomNumberFields',
+						type: 'fixedCollection',
+						typeOptions: {
+							multipleValues: true,
+						},
+						default: {},
+						description: 'Add custom number fields for this contact',
+						options: [
+							{
+								name: 'numberFields',
+								displayName: 'Number Field',
+								values: [
+									{
+										displayName: 'Field Name',
+										name: 'fieldId',
+										type: 'options',
+										typeOptions: {
+											loadOptionsMethod: 'getContactNumberFields',
+										},
+										default: '',
+										description: 'Select the number field',
+									},
+									{
+										displayName: 'Value',
+										name: 'fieldValue',
+										type: 'number',
+										default: 0,
+										description: 'Enter the numeric value',
+									},
+								],
+							},
+						],
+					},
+					{
+						displayName: 'Contact Custom Date Fields',
+						name: 'contactCustomDateFields',
+						type: 'fixedCollection',
+						typeOptions: {
+							multipleValues: true,
+						},
+						default: {},
+						description: 'Add custom date fields for this contact',
+						options: [
+							{
+								name: 'dateFields',
+								displayName: 'Date Field',
+								values: [
+									{
+										displayName: 'Field Name',
+										name: 'fieldId',
+										type: 'options',
+										typeOptions: {
+											loadOptionsMethod: 'getContactDateFields',
+										},
+										default: '',
+										description: 'Select the date field',
+									},
+									{
+										displayName: 'Value',
+										name: 'fieldValue',
+										type: 'dateTime',
+										default: '',
+										description: 'Select the date value',
+									},
+								],
+							},
+						],
+					},
+					{
+						displayName: 'Contact Custom Choice Fields (Single)',
+						name: 'contactCustomChoiceSingleFields',
+						type: 'fixedCollection',
+						typeOptions: {
+							multipleValues: true,
+						},
+						default: {},
+						description: 'Add custom single-choice fields for this contact',
+						options: [
+							{
+								name: 'choiceSingleFields',
+								displayName: 'Single Choice Field',
+								values: [
+									{
+										displayName: 'Field Name',
+										name: 'fieldId',
+										type: 'options',
+										typeOptions: {
+											loadOptionsMethod: 'getContactSingleChoiceFields',
+										},
+										default: '',
+										description: 'Select the choice field',
+									},
+									{
+										displayName: 'Value',
+										name: 'fieldValue',
+										type: 'options',
+										typeOptions: {
+											loadOptionsMethod: 'getContactAllChoiceValues',
+										},
+										default: '',
+										description: 'Select a value',
+										displayOptions: {
+											hide: {
+												fieldId: [''],
+											},
+										},
+									},
+								],
+							},
+						],
+					},
+					{
+						displayName: 'Contact Custom Choice Fields (Multiple)',
+						name: 'contactCustomChoiceMultipleFields',
+						type: 'fixedCollection',
+						typeOptions: {
+							multipleValues: true,
+						},
+						default: {},
+						description: 'Add custom multiple-choice fields for this contact',
+						options: [
+							{
+								name: 'choiceMultipleFields',
+								displayName: 'Multiple Choice Field',
+								values: [
+									{
+										displayName: 'Field Name',
+										name: 'fieldId',
+										type: 'options',
+										typeOptions: {
+											loadOptionsMethod: 'getContactMultipleChoiceFields',
+										},
+										default: '',
+										description: 'Select the choice field',
+									},
+									{
+										displayName: 'Values',
+										name: 'fieldValues',
+										type: 'multiOptions',
+										typeOptions: {
+											loadOptionsMethod: 'getContactAllChoiceValues',
+										},
+										default: [],
+										description: 'Select multiple values',
+										displayOptions: {
+											hide: {
+												fieldId: [''],
+											},
+										},
+									},
+								],
+							},
+						],
+					},
+					{
+						displayName: 'Contact Custom User Fields (Single)',
+						name: 'contactCustomUserSingleFields',
+						type: 'fixedCollection',
+						typeOptions: {
+							multipleValues: true,
+						},
+						default: {},
+						description: 'Add custom single-user fields for this contact',
+						options: [
+							{
+								name: 'userSingleFields',
+								displayName: 'Single User Field',
+								values: [
+									{
+										displayName: 'Field Name',
+										name: 'fieldId',
+										type: 'options',
+										typeOptions: {
+											loadOptionsMethod: 'getContactSingleUserFields',
+										},
+										default: '',
+										description: 'Select the user field',
+									},
+									{
+										displayName: 'User',
+										name: 'fieldValue',
+										type: 'options',
+										typeOptions: {
+											loadOptionsMethod: 'getUsers',
+										},
+										default: '',
+										description: 'Select a user',
+										displayOptions: {
+											hide: {
+												fieldId: [''],
+											},
+										},
+									},
+								],
+							},
+						],
+					},
+					{
+						displayName: 'Contact Custom User Fields (Multiple)',
+						name: 'contactCustomUserMultipleFields',
+						type: 'fixedCollection',
+						typeOptions: {
+							multipleValues: true,
+						},
+						default: {},
+						description: 'Add custom multiple-user fields for this contact',
+						options: [
+							{
+								name: 'userMultipleFields',
+								displayName: 'Multiple User Field',
+								values: [
+									{
+										displayName: 'Field Name',
+										name: 'fieldId',
+										type: 'options',
+										typeOptions: {
+											loadOptionsMethod: 'getContactMultipleUserFields',
+										},
+										default: '',
+										description: 'Select the user field',
+									},
+									{
+										displayName: 'Users',
+										name: 'fieldValues',
+										type: 'multiOptions',
+										typeOptions: {
+											loadOptionsMethod: 'getUsers',
+										},
+										default: [],
+										description: 'Select multiple users',
+										displayOptions: {
+											hide: {
+												fieldId: [''],
+											},
+										},
+									},
+								],
+							},
+						],
+					},
+				],
+			},
+		],
+	},
+	{
+		displayName: 'Address',
+		name: 'addressUi',
+		type: 'collection',
+		placeholder: 'Add Address Field',
+		default: {},
+		displayOptions: {
+			show: {
+				resource: ['lead'],
+				operation: ['update'],
+			},
+		},
+		options: [
+			{
+				displayName: 'Address Street',
+				name: 'street',
+				type: 'string',
+				default: '',
+				description: 'The street address',
+			},
+			{
+				displayName: 'Address City',
+				name: 'city',
+				type: 'string',
+				default: '',
+				description: 'The city',
+			},
+			{
+				displayName: 'Address State',
+				name: 'state',
+				type: 'string',
+				default: '',
+				description: 'The state or province',
+			},
+			{
+				displayName: 'Address ZIP Code',
+				name: 'zipcode',
+				type: 'string',
+				default: '',
+				description: 'The ZIP or postal code',
+			},
+			{
+				displayName: 'Address Country',
+				name: 'country',
+				type: 'string',
+				default: '',
+				description: 'The country',
+			},
+		],
+	},
 ];
