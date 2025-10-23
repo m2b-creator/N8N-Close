@@ -195,6 +195,20 @@ export const meetingFields: INodeProperties[] = [
 				default: '',
 				description: 'Filter meetings created before this date',
 			},
+			{
+				displayName: 'Activity at (After)',
+				name: 'activityAtGt',
+				type: 'dateTime',
+				default: '',
+				description: 'Filter meetings with activity after this date',
+			},
+			{
+				displayName: 'Activity at (Before)',
+				name: 'activityAtLt',
+				type: 'dateTime',
+				default: '',
+				description: 'Filter meetings with activity before this date',
+			},
 		],
 	},
 	{

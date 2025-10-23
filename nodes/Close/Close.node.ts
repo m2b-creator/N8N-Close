@@ -1856,11 +1856,27 @@ export class Close implements INodeType {
 						if (userId) {
 							qs.user_id = userId;
 						}
-						if (additionalFilters.dateCreatedGt) {
-							qs.date_created__gt = additionalFilters.dateCreatedGt;
-						}
-						if (additionalFilters.dateCreatedLt) {
-							qs.date_created__lt = additionalFilters.dateCreatedLt;
+						// Check if activity_at filters are used
+						const useActivityAt = additionalFilters.activityAtGt || additionalFilters.activityAtLt;
+
+						if (useActivityAt) {
+							// When using activity_at filters, use activity_at for filtering and sorting
+							if (additionalFilters.activityAtGt) {
+								qs.activity_at__gt = additionalFilters.activityAtGt;
+							}
+							if (additionalFilters.activityAtLt) {
+								qs.activity_at__lt = additionalFilters.activityAtLt;
+							}
+							// Set sorting to activity_at to avoid API conflict with date_created
+							qs._order_by = '-activity_at';
+						} else {
+							// Use date_created filters when activity_at is not used
+							if (additionalFilters.dateCreatedGt) {
+								qs.date_created__gt = additionalFilters.dateCreatedGt;
+							}
+							if (additionalFilters.dateCreatedLt) {
+								qs.date_created__lt = additionalFilters.dateCreatedLt;
+							}
 						}
 
 						if (returnAll) {
