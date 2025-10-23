@@ -766,8 +766,19 @@ export class Close implements INodeType {
 						};
 
 						if (contacts.contactsValues?.length) {
-							body.contacts = await Promise.all(contacts.contactsValues.map(async (contact: any) => {
+							// Fetch the existing lead to get current contacts
+							const existingLead = await closeApiRequest.call(this, 'GET', `/lead/${leadId}/`);
+							const existingContacts = existingLead.contacts || [];
+
+							// Map contacts by position: first contact updates first existing contact, etc.
+							body.contacts = await Promise.all(contacts.contactsValues.map(async (contact: any, index: number) => {
 								const contactObj: JsonObject = {};
+
+								// If there's an existing contact at this position, include its ID for update
+								if (existingContacts[index]?.id) {
+									contactObj.id = existingContacts[index].id;
+								}
+
 								if (contact.name) contactObj.name = contact.name;
 								if (contact.email) contactObj.emails = [{ type: 'office', email: contact.email }];
 
