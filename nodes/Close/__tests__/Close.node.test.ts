@@ -5,6 +5,7 @@ import { Close } from '../Close.node';
 jest.mock('../GenericFunctions', () => ({
 	closeApiRequest: jest.fn(),
 	closeApiRequestAllItems: jest.fn(),
+	convertPlainTextToHTML: jest.fn((text: string) => `<body><p>${text}</p></body>`),
 }));
 
 import { closeApiRequest, closeApiRequestAllItems } from '../GenericFunctions';
@@ -68,7 +69,7 @@ describe('Close', () => {
 			);
 			expect(resourceProperty).toBeDefined();
 			expect(resourceProperty?.type).toBe('options');
-			expect(resourceProperty?.options).toHaveLength(11);
+			expect(resourceProperty?.options).toHaveLength(12);
 		});
 
 		it('should have all lead operations', () => {
@@ -131,6 +132,18 @@ describe('Close', () => {
 			expect(operationValues).toContain('find');
 			expect(operationValues).toContain('get');
 			expect(operationValues).toContain('update');
+		});
+
+		it('should have all contact operations', () => {
+			const operationProperty = close.description.properties.find(
+				(prop) =>
+					prop.name === 'operation' && prop.displayOptions?.show?.resource?.includes('contact'),
+			);
+			expect(operationProperty).toBeDefined();
+			expect(operationProperty?.options).toHaveLength(1);
+
+			const operationValues = operationProperty?.options?.map((op: any) => op.value);
+			expect(operationValues).toContain('delete');
 		});
 
 		it('should have all email operations', () => {

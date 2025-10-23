@@ -10,7 +10,7 @@ import type {
 } from 'n8n-workflow';
 import { NodeOperationError } from 'n8n-workflow';
 
-import { closeApiRequest, closeApiRequestAllItems } from './GenericFunctions';
+import { closeApiRequest, closeApiRequestAllItems, convertPlainTextToHTML } from './GenericFunctions';
 
 import { leadFields, leadOperations } from './descriptions/LeadDescription';
 
@@ -34,6 +34,8 @@ import { smsFields, smsOperations } from './descriptions/SmsDescription';
 
 import { customActivityFields, customActivityOperations, } from './descriptions/CustomActivityDescription';
 
+import { contactFields, contactOperations } from './descriptions/ContactDescription';
+
 import {
 	constructContactCustomFieldsPayload,
 	constructCustomFieldsPayload,
@@ -45,7 +47,6 @@ import {
 	customActivityCustomFieldsLoadMethods,
 	constructCustomActivityCustomFieldsPayload,
 	getCachedCustomActivityCustomFields,
-	convertPlainTextToHTML,
 } from './descriptions/CustomFieldsDescription';
 
 export class Close implements INodeType {
@@ -82,6 +83,10 @@ export class Close implements INodeType {
 					{
 						name: 'Lead Status',
 						value: 'leadStatus',
+					},
+					{
+						name: 'Contact',
+						value: 'contact',
 					},
 					{
 						name: 'Opportunity',
@@ -126,6 +131,8 @@ export class Close implements INodeType {
 			...leadFields,
 			...leadStatusOperations,
 			...leadStatusFields,
+			...contactOperations,
+			...contactFields,
 			...opportunityOperations,
 			...opportunityFields,
 			...opportunityStatusOperations,
@@ -962,6 +969,20 @@ export class Close implements INodeType {
 						}
 
 						responseData = await closeApiRequest.call(this, 'DELETE', `/status/lead/${statusId}/`);
+					}
+				}
+
+				if (resource === 'contact') {
+					if (operation === 'delete') {
+						const contactId = this.getNodeParameter('contactId', i) as string;
+						if (!contactId) {
+							throw new NodeOperationError(
+								this.getNode(),
+								'Contact ID is required for delete operation',
+							);
+						}
+
+						responseData = await closeApiRequest.call(this, 'DELETE', `/contact/${contactId}/`);
 					}
 				}
 

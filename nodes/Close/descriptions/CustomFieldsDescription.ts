@@ -1,7 +1,6 @@
 import type { INodeProperties, INodePropertyOptions } from 'n8n-workflow';
-import { toHTML } from '@portabletext/to-html';
 
-import { closeApiRequest, closeApiRequestAllItems } from '../GenericFunctions';
+import { closeApiRequest, closeApiRequestAllItems, convertPlainTextToHTML } from '../GenericFunctions';
 
 /**
  * Cache for storing custom field definitions with workspace isolation
@@ -47,113 +46,6 @@ function getWorkspaceId(context: any): string {
  */
 function isCacheValid(timestamp: number, ttl: number): boolean {
 	return Date.now() - timestamp < ttl;
-}
-
-/**
- * Parse HTML tags within text and convert to Portable Text spans with marks
- */
-function parseHTMLToSpans(text: string): Array<{ _type: string; text: string; marks: string[] }> {
-	const spans: Array<{ _type: string; text: string; marks: string[] }> = [];
-
-	// Map of HTML tags to Portable Text marks
-	const tagToMark: { [key: string]: string } = {
-		'b': 'strong',
-		'strong': 'strong',
-		'i': 'em',
-		'em': 'em',
-		'u': 'underline',
-		'strike': 'strike-through',
-		's': 'strike-through',
-		'code': 'code'
-	};
-
-	// Regular expression to match HTML tags
-	const htmlTagRegex = /<(\/)?(b|strong|i|em|u|strike|s|code)>/gi;
-
-	let lastIndex = 0;
-	let currentMarks: string[] = [];
-	const markStack: string[] = [];
-
-	// Replace matches
-	let match;
-	while ((match = htmlTagRegex.exec(text)) !== null) {
-		const isClosing = match[1] === '/';
-		const tagName = match[2].toLowerCase();
-		const mark = tagToMark[tagName];
-
-		// Add text before this tag
-		if (match.index > lastIndex) {
-			const textContent = text.substring(lastIndex, match.index);
-			if (textContent) {
-				spans.push({
-					_type: 'span',
-					text: textContent,
-					marks: [...currentMarks]
-				});
-			}
-		}
-
-		// Update marks
-		if (isClosing) {
-			// Remove the mark
-			const index = currentMarks.indexOf(mark);
-			if (index > -1) {
-				currentMarks.splice(index, 1);
-				markStack.pop();
-			}
-		} else {
-			// Add the mark
-			currentMarks.push(mark);
-			markStack.push(mark);
-		}
-
-		lastIndex = match.index + match[0].length;
-	}
-
-	// Add remaining text
-	if (lastIndex < text.length) {
-		const textContent = text.substring(lastIndex);
-		if (textContent) {
-			spans.push({
-				_type: 'span',
-				text: textContent,
-				marks: [...currentMarks]
-			});
-		}
-	}
-
-	// If no HTML tags were found, return single span with plain text
-	if (spans.length === 0 && text.trim()) {
-		spans.push({
-			_type: 'span',
-			text: text.trim(),
-			marks: []
-		});
-	}
-
-	return spans;
-}
-
-/**
- * Convert plain text with newlines and HTML formatting to Portable Text format and then to HTML
- */
-export function convertPlainTextToHTML(text: string): string {
-	// Split text by newlines to create blocks
-	const lines = text.split('\n');
-
-	// Convert each line to a Portable Text block
-	const blocks = lines.map(line => ({
-		_type: 'block',
-		_key: Math.random().toString(36).substring(7), // Generate random key
-		style: 'normal',
-		children: parseHTMLToSpans(line)
-	}));
-
-	// Convert Portable Text to HTML
-	const html = toHTML(blocks);
-
-	// Wrap in body tags and return
-	return `<body>${html}</body>`;
 }
 
 /**
