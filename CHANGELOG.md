@@ -13,24 +13,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **HTML to Portable Text**: Implemented HTML parsing to Portable Text format conversion
 - **Meeting Filters**: Added activity_at filters for meetings
 - **Opportunity Filtering**: Added statusType parameter for enhanced opportunity filtering
+
+### Changed
+- **Date Filters**: Updated display names for date filters in Meeting, Note, SMS, and Task operations for improved clarity
+- **User Notes**: Changed user note field from plain text to user_note_html format
+- **User Notes**: Enhanced user note handling to convert plain text to Portable Text format
+
+### Technical
+- Updated package dependencies to latest versions
+- Enhanced PNPM package manager configuration
+
+## [1.3.0] - 2024-12-15
+
+### Added
+- **Custom Fields**: Implemented Portable Text conversion for rich text custom fields
 - **Custom Activity**: Added status field for custom activities
 - **Custom Fields**: Comprehensive support for custom activity rich text fields
 - **Custom Fields**: Enhanced compatibility for multiple value fields
 - **Custom Fields**: Added HTML formatting for rich text fields
 
 ### Changed
-- **Date Filters**: Updated display names for date filters in Meeting, Note, SMS, and Task operations for improved clarity
-- **User Notes**: Changed user note field from plain text to user_note_html format
-- **User Notes**: Enhanced user note handling to convert plain text to Portable Text format
 - **Custom Fields**: Improved HTML wrapping for rich text fields
-- **Custom Fields**: Implemented Portable Text conversion for rich text custom fields
 
 ### Removed
 - **Custom Fields**: Removed unused updateFields section for cleaner code organization
 
 ### Technical
-- Updated package dependencies to latest versions
-- Enhanced PNPM package manager configuration
 - Improved code quality with syntax fixes and linting updates
 
 ## [1.2.0] - 2025-10-04
