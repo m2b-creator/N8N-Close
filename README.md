@@ -13,7 +13,7 @@
 [![npm version](https://badge.fury.io/js/n8n-nodes-close-crm.svg)](https://www.npmjs.com/package/n8n-nodes-close-crm)
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 
-[Installation](#installation) • [Features](#features) • [Credentials](#credentials) • [Usage Examples](#usage-examples) • [Resources](#resources)
+[What's New](#-whats-new-in-140) • [Installation](#installation) • [Features](#features) • [Credentials](#credentials) • [Usage Examples](#usage-examples) • [Resources](#resources)
 
 </div>
 
@@ -23,7 +23,19 @@
 
 This n8n community node provides comprehensive integration with **Close CRM**, a sales CRM built for high-growth companies that need to scale their sales operations.
 
+**Current Version: 1.4.0** - Now with enhanced lead contact handling, HTML to Portable Text conversion, advanced filtering options, and improved custom field support!
+
 **What is n8n?** [n8n](https://n8n.io/) is a [fair-code licensed](https://docs.n8n.io/reference/license/) workflow automation platform that lets you connect different services and automate tasks.
+
+## 🆕 What's New in 1.4.0
+
+- **Enhanced Lead Management**: Preserve existing contacts on update operations and add contacts/address fields
+- **HTML to Portable Text**: Automatic conversion for rich text fields
+- **Advanced Filtering**: New activity_at filters for meetings and statusType parameter for opportunities
+- **Improved User Experience**: Better date filter display names across all activity types
+- **User Notes Enhancement**: Support for user_note_html field with plain text to Portable Text conversion
+
+See the [CHANGELOG](CHANGELOG.md) for complete version history.
 
 ## 🚀 Installation
 
@@ -83,7 +95,12 @@ docker exec -it n8n npm install n8n-nodes-close-crm
 | Delete | Remove existing leads |
 | Find | Direct lookup by Lead ID for detailed information |
 | Merge | Combine two leads into one |
-| Update | Modify lead information including URL and custom fields |
+| Update | Modify lead information including contacts, address fields, URL, and custom fields with preservation of existing contacts |
+
+**Enhanced Features:**
+- ✨ Preserve existing contacts on update operations
+- ✨ Support for contacts and address fields in lead updates
+- ✨ HTML to Portable Text format conversion for rich text fields
 
 </details>
 
@@ -106,8 +123,11 @@ docker exec -it n8n npm install n8n-nodes-close-crm
 |-----------|-------------|
 | Create | Create opportunities with assigned user, confidence, value period, close date |
 | Delete | Remove existing opportunities |
-| Find | Advanced filtering by ID, user, confidence, value period, close date |
+| Find | Advanced filtering by ID, user, confidence, value period, close date, and status type |
 | Update | Modify opportunity details including status, value, and notes |
+
+**Enhanced Features:**
+- ✨ Status type parameter for enhanced opportunity filtering (Active, Won, Lost)
 
 </details>
 
@@ -135,6 +155,9 @@ docker exec -it n8n npm install n8n-nodes-close-crm
 | Update | Modify task details including completion status |
 | Bulk Update | Update multiple tasks with filtering |
 
+**Enhanced Features:**
+- ✨ Improved date filter display names for better clarity
+
 </details>
 
 ### 📞 Activity Management
@@ -143,8 +166,10 @@ docker exec -it n8n npm install n8n-nodes-close-crm
 <summary><b>Communication Activities (Note, Call, Email, Meeting, SMS)</b></summary>
 
 **Note Activities**
-- Create (plain text or rich HTML)
+- Create (plain text or rich HTML with Portable Text conversion)
 - Delete, Find, Get, Update
+- ✨ Enhanced user_note_html field support
+- ✨ Automatic plain text to Portable Text format conversion
 
 **Call Activities**
 - Create (log calls made outside Close VoIP)
@@ -155,13 +180,15 @@ docker exec -it n8n npm install n8n-nodes-close-crm
 - Delete, Find, Get, Update (modify drafts or change status)
 
 **Meeting Activities**
-- Delete, Find
+- Delete, Find (with activity_at date filters)
 - Get (with optional transcripts)
 - Update (including notes and outcomes)
+- ✨ Improved date filter display names for better clarity
 
 **SMS Activities**
 - Create (draft, send, schedule, or log with MMS support)
 - Delete, Find, Get, Update
+- ✨ Improved date filter display names for better clarity
 
 </details>
 
@@ -170,19 +197,120 @@ docker exec -it n8n npm install n8n-nodes-close-crm
 
 | Operation | Description |
 |-----------|-------------|
+| Create | Create custom activities with custom fields and status |
+| Delete | Remove custom activities |
 | Find | Search by Lead ID, Custom Activity ID, or date filters |
+| Get | Fetch a single custom activity with details |
+| Update | Modify custom activity details and custom fields |
+
+**Enhanced Features:**
+- ✨ Status field support for custom activities
+- ✨ Comprehensive rich text field support with HTML formatting
+- ✨ Portable Text conversion for rich text custom fields
+- ✨ Enhanced compatibility for multiple value fields
+- ✨ Improved HTML wrapping for rich text content
 
 </details>
 
-### 🔔 Workflow Triggers
+### 🔔 Workflow Triggers (Webhooks)
 
-| Trigger | Description |
-|---------|-------------|
-| New Lead in SmartView | Fires when leads are added to a specific SmartView |
-| New Lead in Status | Fires when leads are created with a specific status |
-| Opportunity in new Status | Fires when opportunities enter a new status (with optional filtering) |
-| New Task | Fires when tasks are created or completed (with task type filtering) |
-| Published Custom Activity | Fires when custom activities are published with secure webhook signature verification |
+The Close CRM Trigger node provides comprehensive webhook-based triggers with **secure signature verification**. You can monitor events for:
+
+<details>
+<summary><b>Lead Triggers</b></summary>
+
+- Lead Created
+- Lead Updated
+- Lead Deleted
+- Lead in New Status (status change)
+
+</details>
+
+<details>
+<summary><b>Contact Triggers</b></summary>
+
+- Contact Created
+- Contact Updated
+- Contact Deleted
+
+</details>
+
+<details>
+<summary><b>Opportunity Triggers</b></summary>
+
+- Opportunity Created
+- Opportunity Updated
+- Opportunity Deleted
+- Opportunity Status Change
+
+</details>
+
+<details>
+<summary><b>Task Triggers</b></summary>
+
+- Task Created
+- Task Updated
+- Task Deleted
+- Task Completed
+
+</details>
+
+<details>
+<summary><b>Activity Triggers</b></summary>
+
+**Custom Activity:**
+- Custom Activity Created
+- Custom Activity Updated
+- Custom Activity Deleted
+
+**Email:**
+- Email Created
+- Email Updated
+- Email Deleted
+- Email Template Created
+- Email Template Updated
+- Email Template Deleted
+
+**Meeting:**
+- Meeting Created
+- Meeting Updated
+- Meeting Deleted
+
+**Call:**
+- Call Created
+- Call Updated
+- Call Deleted
+
+**SMS:**
+- SMS Created
+- SMS Updated
+- SMS Deleted
+
+</details>
+
+<details>
+<summary><b>System & Admin Triggers</b></summary>
+
+**Export:**
+- Export Started
+- Export Completed
+- Export Failed
+
+**Bulk Actions:**
+- Bulk Delete, Edit, Email, Sequence Subscription (Started, Completed, Failed)
+
+**Account Setup:**
+- Custom Field Changes (Lead, Contact, Opportunity, Activity)
+- Custom Activity Type Changes
+- Status Changes (Lead, Opportunity)
+- Membership Changes (Activated, Deactivated)
+- Group Changes (Created, Updated, Deleted)
+- Saved Search Changes (Created, Updated)
+- Phone Number Changes (Created, Updated, Deleted)
+
+</details>
+
+**Security:** All webhook triggers include robust signature verification to ensure authenticity and prevent unauthorized access.
 
 ## 🔐 Credentials
 
