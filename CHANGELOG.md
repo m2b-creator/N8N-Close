@@ -5,6 +5,34 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.4.0] - 2025-10-23
+
+### Added
+- **Lead Update**: Enhanced contact handling to preserve existing contacts on update operations
+- **Lead Update**: Added contacts and address fields to lead update functionality
+- **HTML to Portable Text**: Implemented HTML parsing to Portable Text format conversion
+- **Meeting Filters**: Added activity_at filters for meetings
+- **Opportunity Filtering**: Added statusType parameter for enhanced opportunity filtering
+- **Custom Activity**: Added status field for custom activities
+- **Custom Fields**: Comprehensive support for custom activity rich text fields
+- **Custom Fields**: Enhanced compatibility for multiple value fields
+- **Custom Fields**: Added HTML formatting for rich text fields
+
+### Changed
+- **Date Filters**: Updated display names for date filters in Meeting, Note, SMS, and Task operations for improved clarity
+- **User Notes**: Changed user note field from plain text to user_note_html format
+- **User Notes**: Enhanced user note handling to convert plain text to Portable Text format
+- **Custom Fields**: Improved HTML wrapping for rich text fields
+- **Custom Fields**: Implemented Portable Text conversion for rich text custom fields
+
+### Removed
+- **Custom Fields**: Removed unused updateFields section for cleaner code organization
+
+### Technical
+- Updated package dependencies to latest versions
+- Enhanced PNPM package manager configuration
+- Improved code quality with syntax fixes and linting updates
+
 ## [1.2.0] - 2025-10-04
 
 ### Fixed
