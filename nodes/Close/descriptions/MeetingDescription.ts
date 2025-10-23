@@ -182,14 +182,14 @@ export const meetingFields: INodeProperties[] = [
 		},
 		options: [
 			{
-				displayName: 'Date Created After',
+				displayName: 'Date Created (After)',
 				name: 'dateCreatedGt',
 				type: 'dateTime',
 				default: '',
 				description: 'Filter meetings created after this date',
 			},
 			{
-				displayName: 'Date Created Before',
+				displayName: 'Date Created (Before)',
 				name: 'dateCreatedLt',
 				type: 'dateTime',
 				default: '',
