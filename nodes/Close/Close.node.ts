@@ -1826,7 +1826,7 @@ export class Close implements INodeType {
 						if (updateFields.userNote) {
 							// Convert plain text to Portable Text format (HTML with body tags)
 							const noteText = updateFields.userNote as string;
-							body.user_note = convertPlainTextToHTML(noteText);
+							body.user_note_html = convertPlainTextToHTML(noteText);
 						}
 						if (updateFields.outcomeId) {
 							body.outcome_id = updateFields.outcomeId;

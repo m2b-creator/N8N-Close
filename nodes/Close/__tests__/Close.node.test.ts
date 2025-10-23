@@ -1842,7 +1842,7 @@ describe('Close', () => {
 			it('should update a meeting with fields', async () => {
 				const mockResponse = {
 					id: 'acti_meeting123',
-					user_note: '<body><p>Great meeting with promising lead</p></body>',
+					user_note_html: '<body><p>Great meeting with promising lead</p></body>',
 					outcome_id: 'outcome_456',
 				};
 
@@ -1860,7 +1860,7 @@ describe('Close', () => {
 				await close.execute.call(mockExecuteFunctions);
 
 				expect(closeApiRequest).toHaveBeenCalledWith('PUT', '/activity/meeting/acti_meeting123/', {
-					user_note: '<body><p>Great meeting with promising lead</p></body>',
+					user_note_html: '<body><p>Great meeting with promising lead</p></body>',
 					outcome_id: 'outcome_456',
 				});
 			});
