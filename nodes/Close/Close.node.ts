@@ -973,6 +973,77 @@ export class Close implements INodeType {
 				}
 
 				if (resource === 'contact') {
+					if (operation === 'create') {
+						const leadId = this.getNodeParameter('leadId', i) as string;
+						if (!leadId) {
+							throw new NodeOperationError(
+								this.getNode(),
+								'Lead ID is required for contact creation',
+							);
+						}
+
+						const body: JsonObject = {
+							lead_id: leadId,
+						};
+
+						// Add additional fields if provided
+						const additionalFields = this.getNodeParameter('additionalFields', i) as JsonObject;
+
+						if (additionalFields.name) {
+							body.name = additionalFields.name;
+						}
+						if (additionalFields.title) {
+							body.title = additionalFields.title;
+						}
+
+						// Add emails if provided
+						if (additionalFields.emails) {
+							const emailsData = additionalFields.emails as { emailsValues?: Array<{ type: string; email: string }> };
+							if (emailsData.emailsValues?.length) {
+								body.emails = emailsData.emailsValues.map(e => ({
+									type: e.type,
+									email: e.email,
+								}));
+							}
+						}
+
+						// Add phones if provided
+						if (additionalFields.phones) {
+							const phonesData = additionalFields.phones as { phonesValues?: Array<{ type: string; phone: string }> };
+							if (phonesData.phonesValues?.length) {
+								body.phones = phonesData.phonesValues.map(p => ({
+									type: p.type,
+									phone: p.phone,
+								}));
+							}
+						}
+
+						// Add URLs if provided
+						if (additionalFields.urls) {
+							const urlsData = additionalFields.urls as { urlsValues?: Array<{ type: string; url: string }> };
+							if (urlsData.urlsValues?.length) {
+								body.urls = urlsData.urlsValues.map(u => ({
+									type: u.type,
+									url: u.url,
+								}));
+							}
+						}
+
+						// Add custom fields if provided
+						const customFieldsData = this.getNodeParameter('contactCustomFields', i, {}) as any;
+						if (customFieldsData && Object.keys(customFieldsData).length > 0) {
+							try {
+								const contactFields = await customFieldsLoadMethods.getCachedContactCustomFields(this);
+								const contactCustomFieldsPayload = constructContactCustomFieldsPayload(customFieldsData, contactFields);
+								Object.assign(body, contactCustomFieldsPayload);
+							} catch (error) {
+								console.error('Error processing contact custom fields:', error);
+							}
+						}
+
+						responseData = await closeApiRequest.call(this, 'POST', '/contact/', body);
+					}
+
 					if (operation === 'delete') {
 						const contactId = this.getNodeParameter('contactId', i) as string;
 						if (!contactId) {
@@ -983,6 +1054,115 @@ export class Close implements INodeType {
 						}
 
 						responseData = await closeApiRequest.call(this, 'DELETE', `/contact/${contactId}/`);
+					}
+
+					if (operation === 'get') {
+						const contactId = this.getNodeParameter('contactId', i) as string;
+						if (!contactId) {
+							throw new NodeOperationError(
+								this.getNode(),
+								'Contact ID is required for get operation',
+							);
+						}
+
+						responseData = await closeApiRequest.call(this, 'GET', `/contact/${contactId}/`);
+					}
+
+					if (operation === 'list') {
+						const returnAll = this.getNodeParameter('returnAll', i);
+						const filters = this.getNodeParameter('filters', i, {}) as JsonObject;
+
+						const qs: JsonObject = {};
+
+						// Add filters
+						if (filters.lead_id) {
+							qs.lead_id = filters.lead_id;
+						}
+						if (filters.query) {
+							qs._q = filters.query;
+						}
+
+						if (returnAll) {
+							responseData = await closeApiRequestAllItems.call(
+								this,
+								'data',
+								'GET',
+								'/contact/',
+								{},
+								qs,
+							);
+						} else {
+							qs._limit = this.getNodeParameter('limit', i);
+							responseData = await closeApiRequest.call(this, 'GET', '/contact/', {}, qs);
+							responseData = responseData.data;
+						}
+					}
+
+					if (operation === 'update') {
+						const contactId = this.getNodeParameter('contactId', i) as string;
+						if (!contactId) {
+							throw new NodeOperationError(
+								this.getNode(),
+								'Contact ID is required for update operation',
+							);
+						}
+
+						const updateFields = this.getNodeParameter('updateFields', i) as JsonObject;
+						const body: JsonObject = {};
+
+						if (updateFields.name) {
+							body.name = updateFields.name;
+						}
+						if (updateFields.title) {
+							body.title = updateFields.title;
+						}
+
+						// Add emails if provided
+						if (updateFields.emails) {
+							const emailsData = updateFields.emails as { emailsValues?: Array<{ type: string; email: string }> };
+							if (emailsData.emailsValues?.length) {
+								body.emails = emailsData.emailsValues.map(e => ({
+									type: e.type,
+									email: e.email,
+								}));
+							}
+						}
+
+						// Add phones if provided
+						if (updateFields.phones) {
+							const phonesData = updateFields.phones as { phonesValues?: Array<{ type: string; phone: string }> };
+							if (phonesData.phonesValues?.length) {
+								body.phones = phonesData.phonesValues.map(p => ({
+									type: p.type,
+									phone: p.phone,
+								}));
+							}
+						}
+
+						// Add URLs if provided
+						if (updateFields.urls) {
+							const urlsData = updateFields.urls as { urlsValues?: Array<{ type: string; url: string }> };
+							if (urlsData.urlsValues?.length) {
+								body.urls = urlsData.urlsValues.map(u => ({
+									type: u.type,
+									url: u.url,
+								}));
+							}
+						}
+
+						// Add custom fields if provided
+						const customFieldsData = this.getNodeParameter('contactCustomFields', i, {}) as any;
+						if (customFieldsData && Object.keys(customFieldsData).length > 0) {
+							try {
+								const contactFields = await customFieldsLoadMethods.getCachedContactCustomFields(this);
+								const contactCustomFieldsPayload = constructContactCustomFieldsPayload(customFieldsData, contactFields);
+								Object.assign(body, contactCustomFieldsPayload);
+							} catch (error) {
+								console.error('Error processing contact custom fields:', error);
+							}
+						}
+
+						responseData = await closeApiRequest.call(this, 'PUT', `/contact/${contactId}/`, body);
 					}
 				}
 

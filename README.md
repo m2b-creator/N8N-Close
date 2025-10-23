@@ -23,17 +23,16 @@
 
 This n8n community node provides comprehensive integration with **Close CRM**, a sales CRM built for high-growth companies that need to scale their sales operations.
 
-**Current Version: 1.4.0** - Now with enhanced lead contact handling, HTML to Portable Text conversion, advanced filtering options, and improved custom field support!
+**Current Version: 1.5.0** - Now with full Contact resource support, enhanced lead contact handling, HTML to Portable Text conversion, advanced filtering options, and improved custom field support!
 
 **What is n8n?** [n8n](https://n8n.io/) is a [fair-code licensed](https://docs.n8n.io/reference/license/) workflow automation platform that lets you connect different services and automate tasks.
 
-## 🆕 What's New in 1.4.0
+## 🆕 What's New in 1.5.0
 
-- **Enhanced Lead Management**: Preserve existing contacts on update operations and add contacts/address fields
-- **HTML to Portable Text**: Automatic conversion for rich text fields
-- **Advanced Filtering**: New activity_at filters for meetings and statusType parameter for opportunities
-- **Improved User Experience**: Better date filter display names across all activity types
-- **User Notes Enhancement**: Support for user_note_html field with plain text to Portable Text conversion
+- **Contact Resource Operations**: Full CRUD support for contacts (Create, List, Get, Update, Delete)
+- **Contact Custom Fields**: Complete custom field support for all contact operations
+- **Enhanced Contact Management**: Create and manage contacts with emails, phones, URLs, and custom fields
+- **Flexible Filtering**: List contacts by lead ID or search query with pagination support
 
 See the [CHANGELOG](CHANGELOG.md) for complete version history.
 
@@ -113,6 +112,25 @@ docker exec -it n8n npm install n8n-nodes-close-crm
 | Delete | Remove lead statuses (ensures no dependencies) |
 | List | View all lead statuses for your organization |
 | Update | Rename and modify lead statuses |
+
+</details>
+
+<details>
+<summary><b>Contact Management</b></summary>
+
+| Operation | Description |
+|-----------|-------------|
+| Create | Create contacts with name, title, emails, phones, URLs, and custom fields |
+| Delete | Remove existing contacts |
+| Get | Fetch a single contact by ID with all details |
+| List | Search contacts with filters (lead ID, query) and pagination |
+| Update | Modify contact information including emails, phones, URLs, and custom fields |
+
+**Features:**
+- ✨ Full custom field support (text, number, date, choice, user fields)
+- ✨ Multiple emails, phones, and URLs per contact
+- ✨ Flexible filtering by lead ID or search query
+- ✨ Pagination support for large contact lists
 
 </details>
 
@@ -365,6 +383,52 @@ Address:
 Resource: Lead
 Operation: Find
 Lead ID: lead_abc123
+```
+
+</details>
+
+<details>
+<summary><b>Create a Contact with Multiple Communication Channels</b></summary>
+
+```yaml
+Resource: Contact
+Operation: Create
+Lead ID: lead_abc123
+
+Additional Fields:
+  Name: "Jane Doe"
+  Title: "VP of Sales"
+
+  Emails:
+    - Type: Office
+      Email: "jane.doe@acme.com"
+    - Type: Personal
+      Email: "jane@example.com"
+
+  Phones:
+    - Type: Office
+      Phone: "+1-555-0123"
+    - Type: Mobile
+      Phone: "+1-555-0124"
+
+  URLs:
+    - Type: LinkedIn
+      URL: "https://linkedin.com/in/janedoe"
+```
+
+</details>
+
+<details>
+<summary><b>List Contacts for a Lead</b></summary>
+
+```yaml
+Resource: Contact
+Operation: List
+Return All: false
+Limit: 50
+
+Filters:
+  Lead ID: lead_abc123
 ```
 
 </details>

@@ -5,6 +5,36 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.5.0] - 2025-10-23
+
+### Added
+- **Contact Resource**: Implemented full CRUD operations for contacts
+  - **Create**: Create new contacts with name, title, emails, phones, URLs, and custom fields
+  - **List**: Search and list contacts with filtering by lead ID or search query
+  - **Get**: Fetch a single contact by ID with complete details
+  - **Update**: Update contact information including all fields and custom fields
+  - **Delete**: Remove contacts (already existed, now part of complete resource)
+- **Contact Custom Fields**: Complete custom field support for contact operations
+  - Text, number, date/datetime fields
+  - Single and multiple choice fields
+  - Single and multiple user fields
+  - Full integration with existing custom field load methods
+- **Contact Filtering**: Advanced filtering capabilities for listing contacts
+  - Filter by lead ID
+  - Search by query string
+  - Pagination support (Return All or limit results)
+
+### Changed
+- **Contact Operations**: Expanded from single delete operation to full CRUD resource
+- **Contact Description**: Updated operation definitions and field descriptions
+- **Tests**: Updated test suite to validate all 5 contact operations
+
+### Technical
+- Enhanced `ContactDescription.ts` with comprehensive field definitions
+- Implemented contact operations in `Close.node.ts` following existing patterns
+- Added custom field support using existing `constructContactCustomFieldsPayload` utility
+- All operations follow Close CRM API specifications from developer.close.com
+
 ## [1.4.0] - 2025-10-23
 
 ### Added

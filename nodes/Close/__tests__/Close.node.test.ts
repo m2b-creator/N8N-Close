@@ -140,10 +140,14 @@ describe('Close', () => {
 					prop.name === 'operation' && prop.displayOptions?.show?.resource?.includes('contact'),
 			);
 			expect(operationProperty).toBeDefined();
-			expect(operationProperty?.options).toHaveLength(1);
+			expect(operationProperty?.options).toHaveLength(5);
 
 			const operationValues = operationProperty?.options?.map((op: any) => op.value);
+			expect(operationValues).toContain('create');
 			expect(operationValues).toContain('delete');
+			expect(operationValues).toContain('get');
+			expect(operationValues).toContain('list');
+			expect(operationValues).toContain('update');
 		});
 
 		it('should have all email operations', () => {
