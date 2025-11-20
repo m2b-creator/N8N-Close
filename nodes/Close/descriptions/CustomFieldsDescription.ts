@@ -2128,6 +2128,11 @@ export function constructCustomActivityCustomFieldsPayload(customActivityData: a
 		if (fieldType === 'richText' && field.type === 'richtextarea' && typeof value === 'string' && value.trim()) {
 			// Check if the value doesn't already contain HTML body tags
 			if (!value.includes('<body>') && !value.includes('<body ')) {
+				// Validate plain text length BEFORE HTML conversion
+				const plainTextValidation = customFieldValidators.validateText(value);
+				if (plainTextValidation) {
+					throw new Error(`Custom field "${field.name}" validation error: ${plainTextValidation}`);
+				}
 				// Convert plain text to HTML using Portable Text
 				value = convertPlainTextToHTML(value);
 			}
@@ -2142,8 +2147,11 @@ export function constructCustomActivityCustomFieldsPayload(customActivityData: a
 
 			switch (field.type) {
 				case 'text':
-				case 'richtextarea':
 					validationError = customFieldValidators.validateText(value);
+					break;
+				case 'richtextarea':
+					// Rich text fields are validated before HTML conversion (see above)
+					// Skip validation here to avoid checking the HTML length
 					break;
 				case 'number':
 					validationError = customFieldValidators.validateNumber(value);
