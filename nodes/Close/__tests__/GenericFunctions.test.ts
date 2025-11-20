@@ -145,5 +145,25 @@ Potenziale für Personalgewinnung und Kundenakquise
 			expect(result).toContain('<li>Überprüfung der Möglichkeiten</li>');
 			expect(result).toContain('<li>Verbesserungspotenzial für Kundenakquise</li>');
 		});
+
+		it('should handle text with inline HTML tags like strong', () => {
+			const input = '<strong>Simatic Unternehmenshintergrund und Kontaktanbahnung</strong>\n- Der Besuch erfolgte im Simatic Showroom in Bad Homburg.\n- Die Einladung an den Geschäftsführer Joachim Krampe wurde an seinen anwesenden Vertreter übergeben.\n- Der Vertreter sagte zu, die Einladung an Herrn Krampe weiterzuleiten, weitere Kontaktaufnahme wird erwartet.\n- Simatic betreibt zwei Filialen (Bad Homburg und Kelkheim), beide unter der Leitung von Herrn Krampe.\n- Das Unternehmen scheint ein Familienunternehmen zu sein, da eine zweite Person mit dem Namen Krampe im Team vertreten ist (Daniel Krampe, Name ohne Gewähr).\n\n<strong>Potenziale für Personalgewinnung und Kundenakquise</strong>\n- Aufgrund krankheitsbedingter Ausfälle besteht aktuell Personalbedarf, wodurch Social Recruiting oder Personalbeschaffung ein potenzieller Angriffspunkt darstellt.\n- Die geringe Besucherfrequenz im Showroom (Eingangstür war versperrt) indiziert Verbesserungspotenzial in der Kundenakquise.\n- Eine Steigerung der Besucheranzahl im Showroom ist ein möglicher Ansatzpunkt.';
+			const result = convertPlainTextToHTML(input);
+
+			// Verify it starts with body tag
+			expect(result).toMatch(/^<body>/);
+			expect(result).toMatch(/<\/body>$/);
+
+			// Verify the strong tags are preserved
+			expect(result).toContain('<strong>Simatic Unternehmenshintergrund und Kontaktanbahnung</strong>');
+			expect(result).toContain('<strong>Potenziale für Personalgewinnung und Kundenakquise</strong>');
+
+			// This text has a single newline between the strong tag and the list items
+			// So it should be treated as a single paragraph with <br> tags
+			expect(result).toContain('<p><strong>Simatic Unternehmenshintergrund und Kontaktanbahnung</strong><br>- Der Besuch erfolgte');
+
+			// The second section also has single newlines, so same behavior
+			expect(result).toContain('<p><strong>Potenziale für Personalgewinnung und Kundenakquise</strong><br>- Aufgrund krankheitsbedingter');
+		});
 	});
 });
