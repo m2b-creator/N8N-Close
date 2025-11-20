@@ -1,6 +1,6 @@
 {
   "name": "n8n-nodes-close-crm",
-  "version": "1.5.1",
+  "version": "1.5.7",
   "description": "N8N community node for Close CRM integration with comprehensive lead, opportunity, task, note, call management, and enhanced triggers for workflow automation",
   "keywords": [
     "n8n-community-node-package",

@@ -10,7 +10,6 @@ import {
 	NodeOperationError,
 } from 'n8n-workflow';
 import { NodeApiError } from 'n8n-workflow';
-import { toHTML } from '@portabletext/to-html';
 
 export async function closeApiRequest(
 	this: IHookFunctions | IExecuteFunctions | ILoadOptionsFunctions | IPollFunctions,
@@ -127,108 +126,86 @@ export async function closeApiRequestAllItems(
 }
 
 /**
- * Convert plain text with newlines and HTML formatting to Portable Text format and then to HTML
+ * Convert plain text with newlines to proper HTML format required by Close CRM
+ * Close CRM expects rich text fields to have proper HTML structure with <p> tags
+ */
+/**
+ * Convert plain text with newlines to proper HTML format required by Close CRM
+ * Close CRM expects rich text fields to have proper HTML structure with <p> tags
  */
 export function convertPlainTextToHTML(text: string): string {
-	// Split text by newlines to create blocks
+	// If the text is already HTML with body tags, return as-is
+	if (text.includes('<body>') || text.includes('<body ')) {
+		return text;
+	}
+
+	// Split by lines first to analyze the structure
 	const lines = text.split('\n');
+	const result: string[] = [];
+	let i = 0;
 
-	// Convert each line to a Portable Text block
-	const blocks = lines.map(line => ({
-		_type: 'block',
-		_key: Math.random().toString(36).substring(7), // Generate random key
-		style: 'normal',
-		children: parseHTMLToSpans(line)
-	}));
+	while (i < lines.length) {
+		const line = lines[i];
+		const trimmed = line.trim();
 
-	// Convert Portable Text to HTML
-	const html = toHTML(blocks);
-
-	// Wrap in body tags and return
-	return `<body>${html}</body>`;
-}
-
-/**
- * Parse HTML tags within text and convert to Portable Text spans with marks
- */
-function parseHTMLToSpans(text: string): Array<{ _type: string; text: string; marks: string[] }> {
-	const spans: Array<{ _type: string; text: string; marks: string[] }> = [];
-
-	// Map of HTML tags to Portable Text marks
-	const tagToMark: { [key: string]: string } = {
-		'b': 'strong',
-		'strong': 'strong',
-		'i': 'em',
-		'em': 'em',
-		'u': 'underline',
-		'strike': 'strike-through',
-		's': 'strike-through',
-		'code': 'code'
-	};
-
-	// Regular expression to match HTML tags
-	const htmlTagRegex = /<(\/)?(b|strong|i|em|u|strike|s|code)>/gi;
-
-	let lastIndex = 0;
-	let currentMarks: string[] = [];
-	const markStack: string[] = [];
-
-	// Replace matches
-	let match;
-	while ((match = htmlTagRegex.exec(text)) !== null) {
-		const isClosing = match[1] === '/';
-		const tagName = match[2].toLowerCase();
-		const mark = tagToMark[tagName];
-
-		// Add text before this tag
-		if (match.index > lastIndex) {
-			const textContent = text.substring(lastIndex, match.index);
-			if (textContent) {
-				spans.push({
-					_type: 'span',
-					text: textContent,
-					marks: [...currentMarks]
-				});
-			}
+		// Skip empty lines
+		if (!trimmed) {
+			i++;
+			continue;
 		}
 
-		// Update marks
-		if (isClosing) {
-			// Remove the mark
-			const index = currentMarks.indexOf(mark);
-			if (index > -1) {
-				currentMarks.splice(index, 1);
-				markStack.pop();
+		// Check if this line starts a list
+		if (trimmed.startsWith('-') || trimmed.startsWith('*')) {
+			// Collect consecutive list items
+			const listItems: string[] = [];
+			while (i < lines.length) {
+				const currentLine = lines[i].trim();
+				if (!currentLine) {
+					i++;
+					break; // Empty line ends the list
+				}
+				if (currentLine.startsWith('-') || currentLine.startsWith('*')) {
+					// Remove the leading - or * and any whitespace
+					const content = currentLine.replace(/^[-*]\s*/, '');
+					listItems.push(`<li>${content}</li>`);
+					i++;
+				} else {
+					// Non-list line ends the list
+					break;
+				}
+			}
+			if (listItems.length > 0) {
+				result.push(`<ul>${listItems.join('')}</ul>`);
 			}
 		} else {
-			// Add the mark
-			currentMarks.push(mark);
-			markStack.push(mark);
+			// Regular paragraph - collect lines until empty line or list
+			const paragraphLines: string[] = [trimmed];
+			i++;
+			
+			while (i < lines.length) {
+				const nextLine = lines[i];
+				const nextTrimmed = nextLine.trim();
+				
+				// Empty line ends paragraph
+				if (!nextTrimmed) {
+					i++;
+					break;
+				}
+				
+				// List item ends paragraph
+				if (nextTrimmed.startsWith('-') || nextTrimmed.startsWith('*')) {
+					break;
+				}
+				
+				paragraphLines.push(nextTrimmed);
+				i++;
+			}
+			
+			result.push(`<p>${paragraphLines.join('<br>')}</p>`);
 		}
-
-		lastIndex = match.index + match[0].length;
 	}
 
-	// Add remaining text
-	if (lastIndex < text.length) {
-		const textContent = text.substring(lastIndex);
-		if (textContent) {
-			spans.push({
-				_type: 'span',
-				text: textContent,
-				marks: [...currentMarks]
-			});
-		}
-	}
-
-	// If no HTML tags were found, return single span with plain text
-	if (spans.length === 0 && text.trim()) {
-		spans.push({
-			_type: 'span',
-			text: text.trim(),
-			marks: []
-		});
-	}
-
-	return spans;
+	// Wrap in body tags
+	return `<body>${result.join('')}</body>`;
 }
+

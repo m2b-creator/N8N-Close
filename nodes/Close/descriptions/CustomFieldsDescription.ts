@@ -2094,20 +2094,13 @@ export function constructCustomActivityCustomFieldsPayload(customActivityData: a
 					continue;
 			}
 
-
-		// Apply HTML formatting for rich text fields using Portable Text
-		if (fieldType === 'richText' && field.type === 'richtextarea' && typeof value === 'string' && value.trim()) {
-			// Check if the value doesn't already contain HTML body tags
-			if (!value.includes('<body>') && !value.includes('<body ')) {
-				// Validate plain text length BEFORE HTML conversion
-				const plainTextValidation = customFieldValidators.validateText(value);
-				if (plainTextValidation) {
-					throw new Error(`Custom field "${field.name}" validation error: ${plainTextValidation}`);
-				}
-				// Convert plain text to HTML using Portable Text
+			// Apply HTML formatting for rich text fields
+			// Note: fieldType is 'richText' (from processFields parameter) and field.type is 'richtextarea' (from API)
+			if (fieldType === 'richText' && typeof value === 'string' && value.trim()) {
+				// Convert plain text to proper HTML format required by Close CRM API
 				value = convertPlainTextToHTML(value);
 			}
-		}
+
 			// Skip if value is empty
 			if (value === undefined || value === null || value === '' || (Array.isArray(value) && value.length === 0)) {
 				continue;
