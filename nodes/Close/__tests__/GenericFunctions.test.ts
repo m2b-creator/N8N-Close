@@ -158,12 +158,17 @@ Potenziale für Personalgewinnung und Kundenakquise
 			expect(result).toContain('<strong>Simatic Unternehmenshintergrund und Kontaktanbahnung</strong>');
 			expect(result).toContain('<strong>Potenziale für Personalgewinnung und Kundenakquise</strong>');
 
-			// This text has a single newline between the strong tag and the list items
-			// So it should be treated as a single paragraph with <br> tags
-			expect(result).toContain('<p><strong>Simatic Unternehmenshintergrund und Kontaktanbahnung</strong><br>- Der Besuch erfolgte');
+			// The function now intelligently detects list items even with single newlines
+			// The strong heading should be in its own paragraph
+			expect(result).toContain('<p><strong>Simatic Unternehmenshintergrund und Kontaktanbahnung</strong></p>');
 
-			// The second section also has single newlines, so same behavior
-			expect(result).toContain('<p><strong>Potenziale für Personalgewinnung und Kundenakquise</strong><br>- Aufgrund krankheitsbedingter');
+			// And the list items should be in a proper ul/li structure
+			expect(result).toContain('<ul><li>Der Besuch erfolgte im Simatic Showroom in Bad Homburg.</li>');
+			expect(result).toContain('<li>Die Einladung an den Geschäftsführer Joachim Krampe');
+
+			// Second section same behavior
+			expect(result).toContain('<p><strong>Potenziale für Personalgewinnung und Kundenakquise</strong></p>');
+			expect(result).toContain('<li>Aufgrund krankheitsbedingter Ausfälle besteht aktuell Personalbedarf');
 		});
 	});
 });
