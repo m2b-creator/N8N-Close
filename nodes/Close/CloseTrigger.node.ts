@@ -10,6 +10,19 @@ import {
 import { closeApiRequest } from './GenericFunctions';
 import * as crypto from 'crypto';
 
+type CloseWebhookPayload = {
+	event?: unknown;
+	data?: {
+		id?: unknown;
+		status?: unknown;
+		old_status?: unknown;
+		previous_status?: unknown;
+		previous?: {
+			status?: unknown;
+		};
+	} & Record<string, unknown>;
+} & Record<string, unknown>;
+
 function timingSafeEqual(a: Buffer, b: Buffer): boolean {
 	if (a.length !== b.length) {
 		return false;
@@ -59,6 +72,69 @@ function mapAccountSetupAction(action: string): { object_type: string; action: s
 	};
 
 	return mapping[action] || null;
+}
+
+function getStatusValue(value: unknown): string | undefined {
+	if (typeof value !== 'string') {
+		return undefined;
+	}
+
+	return value.trim().toLowerCase();
+}
+
+function getCustomActivityAction(eventName: string): string {
+	const eventParts = eventName.split('.');
+	return eventParts[eventParts.length - 1] || '';
+}
+
+function isCustomActivityEvent(eventName: string): boolean {
+	return eventName.startsWith('activity.custom_activity.');
+}
+
+function getPreviousStatusFromPayload(payload: CloseWebhookPayload): string | undefined {
+	return (
+		getStatusValue(payload.data?.old_status) ??
+		getStatusValue(payload.data?.previous_status) ??
+		getStatusValue(payload.data?.previous?.status)
+	);
+}
+
+export function evaluateCustomActivityWebhook(
+	payload: CloseWebhookPayload,
+	cachedStatus?: string,
+): { shouldEmit: boolean; activityId?: string; currentStatus?: string } {
+	const eventName = typeof payload.event === 'string' ? payload.event : '';
+
+	if (!isCustomActivityEvent(eventName)) {
+		return { shouldEmit: true };
+	}
+
+	const action = getCustomActivityAction(eventName);
+	if (action === 'deleted') {
+		return { shouldEmit: true };
+	}
+
+	const currentStatus = getStatusValue(payload.data?.status);
+	const activityId = typeof payload.data?.id === 'string' ? payload.data.id : undefined;
+
+	if (action === 'created') {
+		return {
+			shouldEmit: currentStatus === 'published',
+			activityId,
+			currentStatus,
+		};
+	}
+
+	if (action === 'updated') {
+		const previousStatus = getPreviousStatusFromPayload(payload) ?? getStatusValue(cachedStatus);
+		return {
+			shouldEmit: previousStatus === 'draft' && currentStatus === 'published',
+			activityId,
+			currentStatus,
+		};
+	}
+
+	return { shouldEmit: false, activityId, currentStatus };
 }
 
 function buildEventsArray(triggerOn: string, actions: string[]): Array<{ object_type: string; action: string }> {
@@ -872,6 +948,27 @@ export class CloseTrigger implements INodeType {
 					this.getNode(),
 					'Webhook signature verification failed - invalid signature',
 				);
+			}
+		}
+
+		const payload = req.body as CloseWebhookPayload;
+		const eventName = typeof payload.event === 'string' ? payload.event : '';
+
+		if (isCustomActivityEvent(eventName)) {
+			const statusByActivityId = (webhookData.customActivityStatusById as Record<string, string>) || {};
+			const activityId = typeof payload.data?.id === 'string' ? payload.data.id : undefined;
+			const cachedStatus = activityId ? statusByActivityId[activityId] : undefined;
+			const evaluation = evaluateCustomActivityWebhook(payload, cachedStatus);
+
+			if (evaluation.activityId && evaluation.currentStatus) {
+				statusByActivityId[evaluation.activityId] = evaluation.currentStatus;
+				webhookData.customActivityStatusById = statusByActivityId;
+			}
+
+			if (!evaluation.shouldEmit) {
+				return {
+					workflowData: [[]],
+				};
 			}
 		}
 

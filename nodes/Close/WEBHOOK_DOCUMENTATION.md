@@ -62,6 +62,13 @@ Track custom activity types you've created in Close CRM.
 - Created: `object_type: "custom_activity"`, `action: "created"`
 - Updated/Deleted: `object_type: "activity.custom_activity"`, `action: "updated|deleted"`
 
+**Submit-Only Trigger Behavior:**
+- Draft autosave and draft edit events are ignored.
+- Trigger emits only when a custom activity is actually submitted:
+  - `created` with `data.status = "published"`
+  - `updated` with a `draft -> published` transition
+- When emitted, the full Close webhook payload is forwarded to the workflow.
+
 ### 3. Contact
 
 Monitor contact records within leads.
@@ -312,6 +319,15 @@ When you deactivate a workflow:
 1. This is expected behavior for Close CRM (they may retry failed webhooks)
 2. Implement idempotency in your workflow using the `event.id` field
 3. Use n8n's built-in deduplication features if available
+
+### Custom Activity Draft Edits Don't Trigger
+
+**Problem**: Custom activity edits in draft mode do not trigger the workflow
+
+**Explanation:**
+1. This trigger intentionally ignores draft autosave and draft edit updates
+2. For custom activities, workflow execution happens on submit (`draft -> published`) only
+3. The full activity payload is available when the submit event is emitted
 
 ### Webhook Registration Failed
 
