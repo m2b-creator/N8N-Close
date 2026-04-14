@@ -23,6 +23,14 @@ type CloseWebhookPayload = {
 	} & Record<string, unknown>;
 } & Record<string, unknown>;
 
+type CloseEventObject = {
+	object_type?: unknown;
+	action?: unknown;
+	object_id?: unknown;
+	data?: Record<string, unknown>;
+	previous_data?: Record<string, unknown>;
+} & Record<string, unknown>;
+
 function timingSafeEqual(a: Buffer, b: Buffer): boolean {
 	if (a.length !== b.length) {
 		return false;
@@ -88,7 +96,10 @@ function getCustomActivityAction(eventName: string): string {
 }
 
 function isCustomActivityEvent(eventName: string): boolean {
-	return eventName.startsWith('activity.custom_activity.');
+	return (
+		eventName.startsWith('activity.custom_activity.') ||
+		eventName.startsWith('custom_activity.')
+	);
 }
 
 function getPreviousStatusFromPayload(payload: CloseWebhookPayload): string | undefined {
@@ -99,11 +110,102 @@ function getPreviousStatusFromPayload(payload: CloseWebhookPayload): string | un
 	);
 }
 
+function getEventData(payload: CloseWebhookPayload): Record<string, unknown> | undefined {
+	if (payload.event && typeof payload.event === 'object') {
+		const eventObject = payload.event as CloseEventObject;
+		return eventObject.data;
+	}
+
+	return payload.data as Record<string, unknown> | undefined;
+}
+
+function getEventPreviousData(payload: CloseWebhookPayload): Record<string, unknown> | undefined {
+	if (payload.event && typeof payload.event === 'object') {
+		const eventObject = payload.event as CloseEventObject;
+		return eventObject.previous_data;
+	}
+
+	return undefined;
+}
+
+function getEventObjectId(payload: CloseWebhookPayload): string | undefined {
+	if (payload.event && typeof payload.event === 'object') {
+		const eventObject = payload.event as CloseEventObject;
+		return typeof eventObject.object_id === 'string' ? eventObject.object_id : undefined;
+	}
+
+	return undefined;
+}
+
+function getEventName(payload: CloseWebhookPayload): string {
+	if (typeof payload.event === 'string') {
+		return payload.event;
+	}
+
+	if (payload.event && typeof payload.event === 'object') {
+		const eventObject = payload.event as CloseEventObject;
+		const objectType = typeof eventObject.object_type === 'string' ? eventObject.object_type : '';
+		const action = typeof eventObject.action === 'string' ? eventObject.action : '';
+
+		if (objectType && action) {
+			return `${objectType}.${action}`;
+		}
+	}
+
+	return '';
+}
+
+async function waitForCustomActivityPublished(
+	context: IWebhookFunctions,
+	activityId: string,
+): Promise<boolean> {
+	const maxAttempts = 24;
+	const waitMs = 5000;
+
+	for (let attempt = 0; attempt < maxAttempts; attempt++) {
+		try {
+			const activity = await closeApiRequest.call(
+				context as any,
+				'GET',
+				`/activity/custom/${activityId}/`,
+			);
+			const status = getStatusValue((activity as Record<string, unknown>)?.status);
+			if (status === 'published') {
+				return true;
+			}
+		} catch {
+			// Ignore transient API errors during polling and continue trying.
+		}
+
+		if (attempt < maxAttempts - 1) {
+			await new Promise((resolve) => setTimeout(resolve, waitMs));
+		}
+	}
+
+	return false;
+}
+
+async function fetchCustomActivity(
+	context: IWebhookFunctions,
+	activityId: string,
+): Promise<Record<string, unknown> | null> {
+	try {
+		const activity = await closeApiRequest.call(
+			context as any,
+			'GET',
+			`/activity/custom/${activityId}/`,
+		);
+		return activity as Record<string, unknown>;
+	} catch {
+		return null;
+	}
+}
+
 export function evaluateCustomActivityWebhook(
 	payload: CloseWebhookPayload,
 	cachedStatus?: string,
 ): { shouldEmit: boolean; activityId?: string; currentStatus?: string } {
-	const eventName = typeof payload.event === 'string' ? payload.event : '';
+	const eventName = getEventName(payload);
 
 	if (!isCustomActivityEvent(eventName)) {
 		return { shouldEmit: true };
@@ -114,8 +216,12 @@ export function evaluateCustomActivityWebhook(
 		return { shouldEmit: true };
 	}
 
-	const currentStatus = getStatusValue(payload.data?.status);
-	const activityId = typeof payload.data?.id === 'string' ? payload.data.id : undefined;
+	const eventData = getEventData(payload);
+	const eventPreviousData = getEventPreviousData(payload);
+	const eventObjectId = getEventObjectId(payload);
+
+	const currentStatus = getStatusValue(eventData?.status);
+	const activityId = typeof eventData?.id === 'string' ? eventData.id : eventObjectId;
 
 	if (action === 'created') {
 		return {
@@ -126,7 +232,11 @@ export function evaluateCustomActivityWebhook(
 	}
 
 	if (action === 'updated') {
-		const previousStatus = getPreviousStatusFromPayload(payload) ?? getStatusValue(cachedStatus);
+		const previousStatus = (
+			getStatusValue(eventPreviousData?.status) ??
+			getPreviousStatusFromPayload(payload) ??
+			getStatusValue(cachedStatus)
+		);
 		return {
 			shouldEmit: previousStatus === 'draft' && currentStatus === 'published',
 			activityId,
@@ -952,11 +1062,12 @@ export class CloseTrigger implements INodeType {
 		}
 
 		const payload = req.body as CloseWebhookPayload;
-		const eventName = typeof payload.event === 'string' ? payload.event : '';
+		const eventName = getEventName(payload);
 
 		if (isCustomActivityEvent(eventName)) {
 			const statusByActivityId = (webhookData.customActivityStatusById as Record<string, string>) || {};
-			const activityId = typeof payload.data?.id === 'string' ? payload.data.id : undefined;
+			const eventData = getEventData(payload);
+			const activityId = typeof eventData?.id === 'string' ? eventData.id : undefined;
 			const cachedStatus = activityId ? statusByActivityId[activityId] : undefined;
 			const evaluation = evaluateCustomActivityWebhook(payload, cachedStatus);
 
@@ -966,6 +1077,33 @@ export class CloseTrigger implements INodeType {
 			}
 
 			if (!evaluation.shouldEmit) {
+				// Close may emit a draft update first and skip a dedicated publish update.
+				// Poll the activity status briefly to emit as soon as it is actually submitted.
+				if (evaluation.activityId) {
+					const isNowPublished = await waitForCustomActivityPublished(
+						this,
+						evaluation.activityId,
+					);
+					if (isNowPublished) {
+						const freshActivity = await fetchCustomActivity(this, evaluation.activityId);
+						if (freshActivity) {
+							if (payload.event && typeof payload.event === 'object') {
+								const eventObject = payload.event as CloseEventObject;
+								payload.event = {
+									...eventObject,
+									data: freshActivity,
+								};
+							} else {
+								payload.data = freshActivity as any;
+							}
+						}
+
+						return {
+							workflowData: [this.helpers.returnJsonArray(payload as any)],
+						};
+					}
+				}
+
 				return {
 					workflowData: [[]],
 				};
