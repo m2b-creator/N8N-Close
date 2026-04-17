@@ -1682,7 +1682,7 @@ export class Close implements INodeType {
 							if (!noteHtml) {
 								throw new NodeOperationError(this.getNode(), 'Note HTML content is required');
 							}
-							body.note_html = noteHtml;
+							body.note_html = convertPlainTextToHTML(noteHtml);
 						} else {
 							const note = this.getNodeParameter('note', i) as string;
 							if (!note) {
@@ -1732,7 +1732,7 @@ export class Close implements INodeType {
 						if (updateContentType === 'html') {
 							const noteHtml = this.getNodeParameter('noteHtml', i) as string;
 							if (noteHtml) {
-								body.note_html = noteHtml;
+								body.note_html = convertPlainTextToHTML(noteHtml);
 							}
 						} else {
 							const note = this.getNodeParameter('note', i) as string;
@@ -1807,7 +1807,7 @@ export class Close implements INodeType {
 							body.duration = additionalFields.duration;
 						}
 						if (additionalFields.noteHtml) {
-							body.note_html = additionalFields.noteHtml;
+							body.note_html = convertPlainTextToHTML(additionalFields.noteHtml as string);
 						}
 						if (additionalFields.note) {
 							body.note = additionalFields.note;
@@ -1859,7 +1859,7 @@ export class Close implements INodeType {
 						const body: JsonObject = {};
 
 						if (updateFields.noteHtml) {
-							body.note_html = updateFields.noteHtml;
+							body.note_html = convertPlainTextToHTML(updateFields.noteHtml as string);
 						}
 						if (updateFields.note) {
 							body.note = updateFields.note;
