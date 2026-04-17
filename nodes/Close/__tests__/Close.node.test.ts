@@ -1313,7 +1313,7 @@ describe('Close', () => {
 					_type: 'Call',
 					direction: 'outbound',
 					duration: 300,
-					note_html: '<p>Great call</p>',
+					note_html: '<body><p><p>Great call</p></p></body>',
 					phone: '+1234567890',
 				});
 			});
@@ -1401,7 +1401,7 @@ describe('Close', () => {
 			it('should update a call with fields', async () => {
 				const mockResponse = {
 					id: 'acti_call123',
-					note_html: '<p>Updated note</p>',
+					note_html: '<body><p><p>Updated note</p></p></body>',
 					outcome_id: 'outcome_123',
 				};
 
@@ -1419,7 +1419,7 @@ describe('Close', () => {
 				await close.execute.call(mockExecuteFunctions);
 
 				expect(closeApiRequest).toHaveBeenCalledWith('PUT', '/activity/call/acti_call123/', {
-					note_html: '<p>Updated note</p>',
+					note_html: '<body><p><p>Updated note</p></p></body>',
 					outcome_id: 'outcome_123',
 				});
 			});
@@ -1939,8 +1939,8 @@ describe('Close', () => {
 				mockExecuteFunctions.getNodeParameter
 					.mockReturnValueOnce('meeting') // resource
 					.mockReturnValueOnce('find') // operation
-					.mockReturnValueOnce('') // leadId
-					.mockReturnValueOnce('user_123') // userId
+					.mockReturnValueOnce('lead_xyz789') // leadId
+					.mockReturnValueOnce('') // userId
 					.mockReturnValueOnce(false) // returnAll
 					.mockReturnValueOnce({
 						dateCreatedGt: '2024-01-01T00:00:00Z',
@@ -1957,7 +1957,9 @@ describe('Close', () => {
 					'/activity/meeting/',
 					{},
 					{
-						user_id: 'user_123',
+						lead_id: 'lead_xyz789',
+						date_created__gt: '2024-01-01T00:00:00Z',
+						date_created__lt: '2024-12-31T23:59:59Z',
 						_limit: 25,
 					},
 				);
@@ -1977,7 +1979,7 @@ describe('Close', () => {
 					.mockReturnValueOnce(true) // returnAll
 					.mockReturnValueOnce({}); // additionalFilters
 
-				(closeApiRequestAllItems as jest.Mock).mockResolvedValue(mockMeetings);
+								(closeApiRequestAllItems as jest.Mock).mockResolvedValue(mockMeetings);
 
 				await close.execute.call(mockExecuteFunctions);
 
@@ -2047,7 +2049,7 @@ describe('Close', () => {
 				expect(closeApiRequest).toHaveBeenCalledWith('POST', '/activity/note/', {
 					lead_id: 'lead_xyz789',
 					_type: 'Note',
-					note_html: '<p>This is a <strong>rich text</strong> note</p>',
+					note_html: '<body><p><p>This is a <strong>rich text</strong> note</p></p></body>',
 				});
 			});
 
@@ -2172,7 +2174,7 @@ describe('Close', () => {
 			it('should update a note with HTML content', async () => {
 				const mockResponse = {
 					id: 'acti_note123',
-					note_html: '<p>Updated <em>rich</em> content</p>',
+					note_html: '<body><p><p>Updated <em>rich</em> content</p></p></body>',
 				};
 
 				mockExecuteFunctions.getNodeParameter
@@ -2187,7 +2189,7 @@ describe('Close', () => {
 				await close.execute.call(mockExecuteFunctions);
 
 				expect(closeApiRequest).toHaveBeenCalledWith('PUT', '/activity/note/acti_note123/', {
-					note_html: '<p>Updated <em>rich</em> content</p>',
+					note_html: '<body><p><p>Updated <em>rich</em> content</p></p></body>',
 				});
 			});
 
