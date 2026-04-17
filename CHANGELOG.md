@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.6.0] - 2026-04-17
+
+### Fixed
+- **#7**: Fixed an edge-case failure in workflow execution that could cause unstable behavior with specific Close CRM payloads.
+- **#8**: Resolved a follow-up regression that led to inconsistent results in certain node operation scenarios.
+
+### Changed
+- Improved operation flow to provide more predictable execution across varying real-world payload structures.
+- Applied backward-compatible reliability improvements for node behavior and run consistency.
+
+### Technical
+- Added explicit issue traceability for this release (`#7`, `#8`).
+- Completed minor internal maintenance and release housekeeping for npm publication (`1.6.0`).
+
 ## [1.5.0] - 2025-10-23
 
 ### Added
