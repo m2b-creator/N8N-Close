@@ -49,6 +49,16 @@ import {
 	getCachedCustomActivityCustomFields,
 } from './descriptions/CustomFieldsDescription';
 
+function removeNullishValues(payload: JsonObject): JsonObject {
+	return Object.fromEntries(
+		Object.entries(payload).filter(([, value]) => value !== null && value !== undefined),
+	) as JsonObject;
+}
+
+function hasValue(value: unknown): value is Exclude<unknown, null | undefined> {
+	return value !== null && value !== undefined;
+}
+
 export class Close implements INodeType {
 	description: INodeTypeDescription = {
 		displayName: 'Close CRM',
@@ -386,13 +396,13 @@ export class Close implements INodeType {
 
 						// Add additional fields if provided
 						const additionalFields = this.getNodeParameter('additionalFields', i) as JsonObject;
-						if (additionalFields.description) {
+						if (hasValue(additionalFields.description) && additionalFields.description !== '') {
 							body.description = additionalFields.description;
 						}
-						if (additionalFields.statusId) {
+						if (hasValue(additionalFields.statusId) && additionalFields.statusId !== '') {
 							body.status_id = additionalFields.statusId;
 						}
-						if (additionalFields.url) {
+						if (hasValue(additionalFields.url) && additionalFields.url !== '') {
 							body.url = additionalFields.url;
 						}
 
@@ -447,7 +457,7 @@ export class Close implements INodeType {
 									}
 								}
 
-								return contactObj;
+								return removeNullishValues(contactObj);
 							}));
 						}
 
@@ -463,14 +473,14 @@ export class Close implements INodeType {
 						if (address && (address.street || address.city || address.state || address.zipcode || address.country)) {
 							const addressesArray: JsonObject[] = [];
 							const addressObj: JsonObject = { type: 'office' };
-							
+
 							if (address.street) addressObj.address_1 = address.street;
 							if (address.city) addressObj.city = address.city;
 							if (address.state) addressObj.state = address.state;
 							if (address.zipcode) addressObj.zipcode = address.zipcode;
 							if (address.country) addressObj.country = address.country;
-							
-							addressesArray.push(addressObj);
+
+							addressesArray.push(removeNullishValues(addressObj));
 							body.addresses = addressesArray;
 						}
 
@@ -748,16 +758,16 @@ export class Close implements INodeType {
 
 						const body: JsonObject = {};
 
-						if (updateFields.name) {
+						if (hasValue(updateFields.name) && updateFields.name !== '') {
 							body.name = updateFields.name;
 						}
-						if (updateFields.description) {
+						if (hasValue(updateFields.description) && updateFields.description !== '') {
 							body.description = updateFields.description;
 						}
-						if (updateFields.statusId) {
+						if (hasValue(updateFields.statusId) && updateFields.statusId !== '') {
 							body.status_id = updateFields.statusId;
 						}
-						if (updateFields.url) {
+						if (hasValue(updateFields.url) && updateFields.url !== '') {
 							body.url = updateFields.url;
 						}
 
@@ -823,7 +833,7 @@ export class Close implements INodeType {
 									}
 								}
 
-								return contactObj;
+								return removeNullishValues(contactObj);
 							}));
 						}
 
@@ -846,7 +856,7 @@ export class Close implements INodeType {
 							if (address.zipcode) addressObj.zipcode = address.zipcode;
 							if (address.country) addressObj.country = address.country;
 
-							addressesArray.push(addressObj);
+							addressesArray.push(removeNullishValues(addressObj));
 							body.addresses = addressesArray;
 						}
 
@@ -1000,10 +1010,9 @@ export class Close implements INodeType {
 						if (additionalFields.emails) {
 							const emailsData = additionalFields.emails as { emailsValues?: Array<{ type: string; email: string }> };
 							if (emailsData.emailsValues?.length) {
-								body.emails = emailsData.emailsValues.map(e => ({
-									type: e.type,
-									email: e.email,
-								}));
+								body.emails = emailsData.emailsValues
+									.map(e => removeNullishValues({ type: e.type, email: e.email }))
+									.filter(e => hasValue(e.type) && e.type !== '' && hasValue(e.email) && e.email !== '');
 							}
 						}
 
@@ -1011,10 +1020,9 @@ export class Close implements INodeType {
 						if (additionalFields.phones) {
 							const phonesData = additionalFields.phones as { phonesValues?: Array<{ type: string; phone: string }> };
 							if (phonesData.phonesValues?.length) {
-								body.phones = phonesData.phonesValues.map(p => ({
-									type: p.type,
-									phone: p.phone,
-								}));
+								body.phones = phonesData.phonesValues
+									.map(p => removeNullishValues({ type: p.type, phone: p.phone }))
+									.filter(p => hasValue(p.type) && p.type !== '' && hasValue(p.phone) && p.phone !== '');
 							}
 						}
 
@@ -1022,10 +1030,9 @@ export class Close implements INodeType {
 						if (additionalFields.urls) {
 							const urlsData = additionalFields.urls as { urlsValues?: Array<{ type: string; url: string }> };
 							if (urlsData.urlsValues?.length) {
-								body.urls = urlsData.urlsValues.map(u => ({
-									type: u.type,
-									url: u.url,
-								}));
+								body.urls = urlsData.urlsValues
+									.map(u => removeNullishValues({ type: u.type, url: u.url }))
+									.filter(u => hasValue(u.type) && u.type !== '' && hasValue(u.url) && u.url !== '');
 							}
 						}
 
@@ -1041,7 +1048,7 @@ export class Close implements INodeType {
 							}
 						}
 
-						responseData = await closeApiRequest.call(this, 'POST', '/contact/', body);
+						responseData = await closeApiRequest.call(this, 'POST', '/contact/', removeNullishValues(body));
 					}
 
 					if (operation === 'delete') {
@@ -1121,10 +1128,9 @@ export class Close implements INodeType {
 						if (updateFields.emails) {
 							const emailsData = updateFields.emails as { emailsValues?: Array<{ type: string; email: string }> };
 							if (emailsData.emailsValues?.length) {
-								body.emails = emailsData.emailsValues.map(e => ({
-									type: e.type,
-									email: e.email,
-								}));
+								body.emails = emailsData.emailsValues
+									.map(e => removeNullishValues({ type: e.type, email: e.email }))
+									.filter(e => hasValue(e.type) && e.type !== '' && hasValue(e.email) && e.email !== '');
 							}
 						}
 
@@ -1132,10 +1138,9 @@ export class Close implements INodeType {
 						if (updateFields.phones) {
 							const phonesData = updateFields.phones as { phonesValues?: Array<{ type: string; phone: string }> };
 							if (phonesData.phonesValues?.length) {
-								body.phones = phonesData.phonesValues.map(p => ({
-									type: p.type,
-									phone: p.phone,
-								}));
+								body.phones = phonesData.phonesValues
+									.map(p => removeNullishValues({ type: p.type, phone: p.phone }))
+									.filter(p => hasValue(p.type) && p.type !== '' && hasValue(p.phone) && p.phone !== '');
 							}
 						}
 
@@ -1143,10 +1148,9 @@ export class Close implements INodeType {
 						if (updateFields.urls) {
 							const urlsData = updateFields.urls as { urlsValues?: Array<{ type: string; url: string }> };
 							if (urlsData.urlsValues?.length) {
-								body.urls = urlsData.urlsValues.map(u => ({
-									type: u.type,
-									url: u.url,
-								}));
+								body.urls = urlsData.urlsValues
+									.map(u => removeNullishValues({ type: u.type, url: u.url }))
+									.filter(u => hasValue(u.type) && u.type !== '' && hasValue(u.url) && u.url !== '');
 							}
 						}
 
@@ -1162,7 +1166,7 @@ export class Close implements INodeType {
 							}
 						}
 
-						responseData = await closeApiRequest.call(this, 'PUT', `/contact/${contactId}/`, body);
+						responseData = await closeApiRequest.call(this, 'PUT', `/contact/${contactId}/`, removeNullishValues(body));
 					}
 				}
 
@@ -1188,7 +1192,7 @@ export class Close implements INodeType {
 						if (additionalFields.assignedTo) {
 							body.user_id = additionalFields.assignedTo;
 						}
-						if (additionalFields.confidence !== undefined) {
+						if (hasValue(additionalFields.confidence)) {
 							body.confidence = additionalFields.confidence;
 						}
 						if (additionalFields.value) {
@@ -1320,7 +1324,7 @@ export class Close implements INodeType {
 						if (updateFields.assignedTo) {
 							body.user_id = updateFields.assignedTo;
 						}
-						if (updateFields.confidence !== undefined) {
+						if (hasValue(updateFields.confidence)) {
 							body.confidence = updateFields.confidence;
 						}
 						if (updateFields.note) {
@@ -1800,25 +1804,25 @@ export class Close implements INodeType {
 
 						// Add additional fields if provided
 						const additionalFields = this.getNodeParameter('additionalFields', i) as JsonObject;
-						if (additionalFields.direction) {
+						if (hasValue(additionalFields.direction) && additionalFields.direction !== '') {
 							body.direction = additionalFields.direction;
 						}
-						if (additionalFields.duration) {
+						if (hasValue(additionalFields.duration)) {
 							body.duration = additionalFields.duration;
 						}
-						if (additionalFields.noteHtml) {
+						if (hasValue(additionalFields.noteHtml) && additionalFields.noteHtml !== '') {
 							body.note_html = convertPlainTextToHTML(additionalFields.noteHtml as string);
 						}
-						if (additionalFields.note) {
+						if (hasValue(additionalFields.note) && additionalFields.note !== '') {
 							body.note = additionalFields.note;
 						}
-						if (additionalFields.phone) {
+						if (hasValue(additionalFields.phone) && additionalFields.phone !== '') {
 							body.phone = additionalFields.phone;
 						}
-						if (additionalFields.recordingUrl) {
+						if (hasValue(additionalFields.recordingUrl) && additionalFields.recordingUrl !== '') {
 							body.recording_url = additionalFields.recordingUrl;
 						}
-						if (additionalFields.status) {
+						if (hasValue(additionalFields.status) && additionalFields.status !== '') {
 							body.status = additionalFields.status;
 						}
 
@@ -1938,35 +1942,37 @@ export class Close implements INodeType {
 
 						// Add additional fields if provided
 						const additionalFields = this.getNodeParameter('additionalFields', i) as JsonObject;
-						if (additionalFields.bodyHtml) {
+						if (hasValue(additionalFields.bodyHtml) && additionalFields.bodyHtml !== '') {
 							body.body_html = additionalFields.bodyHtml;
 						}
-						if (additionalFields.bodyText) {
+						if (hasValue(additionalFields.bodyText) && additionalFields.bodyText !== '') {
 							body.body_text = additionalFields.bodyText;
 						}
-						if (additionalFields.cc) {
+						if (hasValue(additionalFields.cc) && additionalFields.cc !== '') {
 							body.cc = (additionalFields.cc as string)
 								.split(',')
-								.map((email: string) => email.trim());
+								.map((email: string) => email.trim())
+								.filter((email: string) => email !== '');
 						}
-						if (additionalFields.bcc) {
+						if (hasValue(additionalFields.bcc) && additionalFields.bcc !== '') {
 							body.bcc = (additionalFields.bcc as string)
 								.split(',')
-								.map((email: string) => email.trim());
+								.map((email: string) => email.trim())
+								.filter((email: string) => email !== '');
 						}
-						if (additionalFields.dateScheduled) {
+						if (hasValue(additionalFields.dateScheduled) && additionalFields.dateScheduled !== '') {
 							body.date_scheduled = additionalFields.dateScheduled;
 						}
-						if (additionalFields.followupDate) {
+						if (hasValue(additionalFields.followupDate) && additionalFields.followupDate !== '') {
 							body.followup_date = additionalFields.followupDate;
 						}
-						if (additionalFields.sendIn) {
+						if (hasValue(additionalFields.sendIn)) {
 							body.send_in = additionalFields.sendIn;
 						}
-						if (additionalFields.sender) {
+						if (hasValue(additionalFields.sender) && additionalFields.sender !== '') {
 							body.sender = additionalFields.sender;
 						}
-						if (additionalFields.templateId) {
+						if (hasValue(additionalFields.templateId) && additionalFields.templateId !== '') {
 							body.template_id = additionalFields.templateId;
 						}
 
@@ -2013,19 +2019,19 @@ export class Close implements INodeType {
 
 						const body: JsonObject = {};
 
-						if (updateFields.bodyHtml) {
+						if (hasValue(updateFields.bodyHtml) && updateFields.bodyHtml !== '') {
 							body.body_html = updateFields.bodyHtml;
 						}
-						if (updateFields.bodyText) {
+						if (hasValue(updateFields.bodyText) && updateFields.bodyText !== '') {
 							body.body_text = updateFields.bodyText;
 						}
-						if (updateFields.dateScheduled) {
+						if (hasValue(updateFields.dateScheduled) && updateFields.dateScheduled !== '') {
 							body.date_scheduled = updateFields.dateScheduled;
 						}
-						if (updateFields.status) {
+						if (hasValue(updateFields.status) && updateFields.status !== '') {
 							body.status = updateFields.status;
 						}
-						if (updateFields.subject) {
+						if (hasValue(updateFields.subject) && updateFields.subject !== '') {
 							body.subject = updateFields.subject;
 						}
 
@@ -2267,16 +2273,16 @@ export class Close implements INodeType {
 
 						// Add additional fields if provided
 						const additionalFields = this.getNodeParameter('additionalFields', i) as JsonObject;
-						if (additionalFields.dateScheduled) {
+						if (hasValue(additionalFields.dateScheduled) && additionalFields.dateScheduled !== '') {
 							body.date_scheduled = additionalFields.dateScheduled;
 						}
-						if (additionalFields.direction) {
+						if (hasValue(additionalFields.direction) && additionalFields.direction !== '') {
 							body.direction = additionalFields.direction;
 						}
-						if (additionalFields.sendIn) {
+						if (hasValue(additionalFields.sendIn)) {
 							body.send_in = additionalFields.sendIn;
 						}
-						if (additionalFields.templateId) {
+						if (hasValue(additionalFields.templateId) && additionalFields.templateId !== '') {
 							body.template_id = additionalFields.templateId;
 							// Remove text if template is used
 							delete body.text;

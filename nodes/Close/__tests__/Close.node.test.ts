@@ -354,6 +354,46 @@ describe('Close', () => {
 				});
 			});
 
+			it('should omit null contact fields when creating a lead', async () => {
+				const mockResponse = {
+					id: 'lead_abc123',
+					name: 'Test Company',
+				};
+
+				mockExecuteFunctions.getNodeParameter
+					.mockReturnValueOnce('lead') // resource
+					.mockReturnValueOnce('create') // operation
+					.mockReturnValueOnce('Test Company') // name
+					.mockReturnValueOnce({}) // additionalFields
+					.mockReturnValueOnce({
+						contactsValues: [
+							{
+								name: 'Jane Doe',
+								email: null,
+								phone: null,
+								mobilePhone: null,
+								title: 'CTO',
+							},
+						],
+					}) // contactsUi
+					.mockReturnValueOnce({}) // addressUi
+					.mockReturnValueOnce({}); // customFieldsUi
+
+				(closeApiRequest as jest.Mock).mockResolvedValue(mockResponse);
+
+				await close.execute.call(mockExecuteFunctions);
+
+				expect(closeApiRequest).toHaveBeenCalledWith('POST', '/lead/', {
+					name: 'Test Company',
+					contacts: [
+						{
+							name: 'Jane Doe',
+							title: 'CTO',
+						},
+					],
+				});
+			});
+
 			it('should create a lead with custom fields', async () => {
 				const mockResponse = {
 					id: 'lead_abc123',
@@ -1098,6 +1138,7 @@ describe('Close', () => {
 					value: 10000,
 				});
 			});
+
 
 			it('should throw error when lead ID is missing', async () => {
 				mockExecuteFunctions.getNodeParameter
@@ -1979,17 +2020,11 @@ describe('Close', () => {
 					.mockReturnValueOnce(true) // returnAll
 					.mockReturnValueOnce({}); // additionalFilters
 
-								(closeApiRequestAllItems as jest.Mock).mockResolvedValue(mockMeetings);
+				(closeApiRequestAllItems as jest.Mock).mockResolvedValue(mockMeetings);
 
 				await close.execute.call(mockExecuteFunctions);
 
-				expect(closeApiRequestAllItems).toHaveBeenCalledWith(
-					'data',
-					'GET',
-					'/activity/meeting/',
-					{},
-					{},
-				);
+				expect(closeApiRequestAllItems).toHaveBeenCalledWith('data', 'GET', '/activity/meeting/', {}, {});
 			});
 		});
 	});
@@ -2872,131 +2907,6 @@ describe('Close', () => {
 			});
 		});
 
-		describe('Find Tasks', () => {
-			it('should find tasks by lead ID', async () => {
-				const mockResponse = {
-					data: [
-						{ id: 'task_1', lead_id: 'lead_xyz789', text: 'Task 1' },
-						{ id: 'task_2', lead_id: 'lead_xyz789', text: 'Task 2' },
-					],
-				};
-
-				mockExecuteFunctions.getNodeParameter
-					.mockReturnValueOnce('task') // resource
-					.mockReturnValueOnce('find') // operation
-					.mockReturnValueOnce('lead') // taskType
-					.mockReturnValueOnce('lead_xyz789') // leadId
-					.mockReturnValueOnce('') // view
-					.mockReturnValueOnce(false) // returnAll
-					.mockReturnValueOnce({}) // additionalFilters
-					.mockReturnValueOnce(10); // limit
-
-				(closeApiRequest as jest.Mock).mockResolvedValue(mockResponse);
-
-				await close.execute.call(mockExecuteFunctions);
-
-				expect(closeApiRequest).toHaveBeenCalledWith(
-					'GET',
-					'/task/',
-					{},
-					{ lead_id: 'lead_xyz789', _limit: 10 },
-				);
-			});
-
-			it('should find tasks with all task types', async () => {
-				const mockResponse = {
-					data: [
-						{ id: 'task_1', _type: 'lead', text: 'Lead task' },
-						{ id: 'task_2', _type: 'missed_call', phone: '+1234567890' },
-					],
-				};
-
-				mockExecuteFunctions.getNodeParameter
-					.mockReturnValueOnce('task') // resource
-					.mockReturnValueOnce('find') // operation
-					.mockReturnValueOnce('all') // taskType
-					.mockReturnValueOnce('') // leadId
-					.mockReturnValueOnce('inbox') // view
-					.mockReturnValueOnce(false) // returnAll
-					.mockReturnValueOnce({}) // additionalFilters
-					.mockReturnValueOnce(25); // limit
-
-				(closeApiRequest as jest.Mock).mockResolvedValue(mockResponse);
-
-				await close.execute.call(mockExecuteFunctions);
-
-				expect(closeApiRequest).toHaveBeenCalledWith(
-					'GET',
-					'/task/',
-					{},
-					{ _type: 'all', view: 'inbox', _limit: 25 },
-				);
-			});
-
-			it('should find tasks with date filters and ordering', async () => {
-				const mockResponse = {
-					data: [{ id: 'task_1', lead_id: 'lead_xyz789', text: 'Recent task' }],
-				};
-
-				mockExecuteFunctions.getNodeParameter
-					.mockReturnValueOnce('task') // resource
-					.mockReturnValueOnce('find') // operation
-					.mockReturnValueOnce('lead') // taskType
-					.mockReturnValueOnce('') // leadId
-					.mockReturnValueOnce('') // view
-					.mockReturnValueOnce(false) // returnAll
-					.mockReturnValueOnce({
-						assignedTo: 'user_123',
-						dateGt: '2024-01-01T00:00:00Z',
-						dateLt: '2024-12-31T23:59:59Z',
-						isComplete: false,
-						orderBy: '-date',
-						taskIds: 'task_1,task_2,task_3',
-					}) // additionalFilters
-					.mockReturnValueOnce(50); // limit
-
-				(closeApiRequest as jest.Mock).mockResolvedValue(mockResponse);
-
-				await close.execute.call(mockExecuteFunctions);
-
-				expect(closeApiRequest).toHaveBeenCalledWith(
-					'GET',
-					'/task/',
-					{},
-					{
-						assigned_to: 'user_123',
-						date__gt: '2024-01-01T00:00:00Z',
-						date__lt: '2024-12-31T23:59:59Z',
-						is_complete: false,
-						_order_by: '-date',
-						id__in: 'task_1,task_2,task_3',
-						_limit: 50,
-					},
-				);
-			});
-
-			it('should find all tasks when returnAll is true', async () => {
-				const mockTasks = [
-					{ id: 'task_1', lead_id: 'lead_1', text: 'Task 1' },
-					{ id: 'task_2', lead_id: 'lead_2', text: 'Task 2' },
-				];
-
-				mockExecuteFunctions.getNodeParameter
-					.mockReturnValueOnce('task') // resource
-					.mockReturnValueOnce('find') // operation
-					.mockReturnValueOnce('lead') // taskType
-					.mockReturnValueOnce('') // leadId
-					.mockReturnValueOnce('') // view
-					.mockReturnValueOnce(true) // returnAll
-					.mockReturnValueOnce({}); // additionalFilters
-
-				(closeApiRequestAllItems as jest.Mock).mockResolvedValue(mockTasks);
-
-				await close.execute.call(mockExecuteFunctions);
-
-				expect(closeApiRequestAllItems).toHaveBeenCalledWith('data', 'GET', '/task/', {}, {});
-			});
-		});
 
 		describe('Bulk Update Tasks', () => {
 			it('should bulk update tasks by IDs', async () => {

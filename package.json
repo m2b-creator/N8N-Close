@@ -1,6 +1,6 @@
 {
   "name": "n8n-nodes-close-crm",
-  "version": "1.6.0",
+  "version": "1.6.1",
   "description": "N8N community node for Close CRM integration with comprehensive lead, opportunity, task, note, call management, and enhanced triggers for workflow automation",
   "keywords": [
     "n8n-community-node-package",
@@ -17,6 +17,10 @@
   "author": {
     "name": "M2B-Creator",
     "email": "dev@m2b.solutions"
+  },
+  "funding": {
+    "type": "individual",
+    "url": "https://buymeacoffee.com/m2b_creator"
   },
   "repository": {
     "type": "git",
