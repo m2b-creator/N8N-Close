@@ -49,13 +49,13 @@ import {
 	getCachedCustomActivityCustomFields,
 } from './descriptions/CustomFieldsDescription';
 
-function removeNullishValues<T extends Record<string, any>>(payload: T): T {
+function removeNullishValues(payload: JsonObject): JsonObject {
 	return Object.fromEntries(
 		Object.entries(payload).filter(([, value]) => value !== null && value !== undefined),
-	) as T;
+	) as JsonObject;
 }
 
-function hasValue(value: unknown): boolean {
+function hasValue(value: unknown): value is Exclude<unknown, null | undefined> {
 	return value !== null && value !== undefined;
 }
 
