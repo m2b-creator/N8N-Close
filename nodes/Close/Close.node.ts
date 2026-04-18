@@ -49,6 +49,12 @@ import {
 	getCachedCustomActivityCustomFields,
 } from './descriptions/CustomFieldsDescription';
 
+function removeNullishValues<T extends Record<string, any>>(payload: T): T {
+	return Object.fromEntries(
+		Object.entries(payload).filter(([, value]) => value !== null && value !== undefined),
+	) as T;
+}
+
 export class Close implements INodeType {
 	description: INodeTypeDescription = {
 		displayName: 'Close CRM',
@@ -447,7 +453,7 @@ export class Close implements INodeType {
 									}
 								}
 
-								return contactObj;
+								return removeNullishValues(contactObj);
 							}));
 						}
 
@@ -463,14 +469,14 @@ export class Close implements INodeType {
 						if (address && (address.street || address.city || address.state || address.zipcode || address.country)) {
 							const addressesArray: JsonObject[] = [];
 							const addressObj: JsonObject = { type: 'office' };
-							
+
 							if (address.street) addressObj.address_1 = address.street;
 							if (address.city) addressObj.city = address.city;
 							if (address.state) addressObj.state = address.state;
 							if (address.zipcode) addressObj.zipcode = address.zipcode;
 							if (address.country) addressObj.country = address.country;
-							
-							addressesArray.push(addressObj);
+
+							addressesArray.push(removeNullishValues(addressObj));
 							body.addresses = addressesArray;
 						}
 
@@ -823,7 +829,7 @@ export class Close implements INodeType {
 									}
 								}
 
-								return contactObj;
+								return removeNullishValues(contactObj);
 							}));
 						}
 
@@ -846,7 +852,7 @@ export class Close implements INodeType {
 							if (address.zipcode) addressObj.zipcode = address.zipcode;
 							if (address.country) addressObj.country = address.country;
 
-							addressesArray.push(addressObj);
+							addressesArray.push(removeNullishValues(addressObj));
 							body.addresses = addressesArray;
 						}
 
@@ -1041,7 +1047,7 @@ export class Close implements INodeType {
 							}
 						}
 
-						responseData = await closeApiRequest.call(this, 'POST', '/contact/', body);
+						responseData = await closeApiRequest.call(this, 'POST', '/contact/', removeNullishValues(body));
 					}
 
 					if (operation === 'delete') {
@@ -1162,7 +1168,7 @@ export class Close implements INodeType {
 							}
 						}
 
-						responseData = await closeApiRequest.call(this, 'PUT', `/contact/${contactId}/`, body);
+						responseData = await closeApiRequest.call(this, 'PUT', `/contact/${contactId}/`, removeNullishValues(body));
 					}
 				}
 
