@@ -1,8 +1,8 @@
-<div style="text-align:center">
+<div align="center">
 
 # n8n-nodes-close-crm
 
-<p style="text-align:center">
+<p align="center">
   <img src="https://raw.githubusercontent.com/n8n-io/n8n/master/assets/n8n-logo.png" alt="n8n" height="100" />
   &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
   <img src="./nodes/Close/close.svg" alt="Close CRM" height="100" />
