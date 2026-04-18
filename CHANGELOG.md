@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.6.1] - 2026-04-18
+
+### Fixed
+- **#12**: Close CRM now discards `null`/`undefined` values from lead and contact create/update payloads before sending requests.
+- Prevented API validation errors when optional contact fields such as email or phone are intentionally left blank.
+- Applied the same nullish cleanup to related contact/address bodies to keep payload handling consistent.
+
+### Changed
+- Extended request-body sanitization across the Close node's lead and contact create/update flows.
+- Added regression coverage for null contact fields in the test suite.
+
+### Technical
+- Introduced a small internal helper to strip nullish values from request payloads.
+- Verified the Close node test suite after the payload cleanup changes.
+
 ## [1.6.0] - 2026-04-17
 
 ### Fixed

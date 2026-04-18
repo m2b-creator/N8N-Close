@@ -1,8 +1,8 @@
-<div align="center">
+<div style="text-align:center">
 
 # n8n-nodes-close-crm
 
-<p align="center">
+<p style="text-align:center">
   <img src="https://raw.githubusercontent.com/n8n-io/n8n/master/assets/n8n-logo.png" alt="n8n" height="100" />
   &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
   <img src="./nodes/Close/close.svg" alt="Close CRM" height="100" />
@@ -13,7 +13,7 @@
 [![npm version](https://badge.fury.io/js/n8n-nodes-close-crm.svg)](https://www.npmjs.com/package/n8n-nodes-close-crm)
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 
-[What's New](#-whats-new-in-160) • [Installation](#-installation) • [Features](#-features) • [Credentials](#-credentials) • [Usage Examples](#-usage-examples) • [Resources](#-resources)
+[What's New](#-whats-new-in-161) • [Installation](#-installation) • [Features](#-features) • [Credentials](#-credentials) • [Usage Examples](#-usage-examples) • [Resources](#-resources) • [Contributing](#-contributing) • [Code of Conduct](#-code-of-conduct)
 
 </div>
 
@@ -23,16 +23,16 @@
 
 This n8n community node provides comprehensive integration with **Close CRM**, a sales CRM built for high-growth companies that need to scale their sales operations.
 
-**Current Version: 1.6.0** - Includes stability and reliability improvements from issues **#7** and **#8**, with backward-compatible behavior updates.
+**Current Version: 1.6.1** - Includes payload-sanitization fixes for optional fields in lead and contact create/update requests, plus the stability improvements from issues **#7**, **#8**, and **#12**.
 
 **What is n8n?** [n8n](https://n8n.io/) is a [fair-code licensed](https://docs.n8n.io/reference/license/) workflow automation platform that lets you connect different services and automate tasks.
 
-## 🆕 What's New in 1.6.0
+## 🆕 What's New in 1.6.1
 
-- **Issue #7**: Fixed an edge-case workflow execution failure with specific Close CRM payloads.
-- **Issue #8**: Resolved a follow-up regression causing inconsistent node operation behavior.
-- **Execution Reliability**: Improved operation flow for more predictable behavior across varying payload structures.
-- **Release Maintenance**: Added clear issue traceability in changelog and completed npm release housekeeping.
+- **Issue #12**: Close CRM now removes `null`/`undefined` values from lead and contact create/update payloads before sending requests.
+- **Optional Fields**: Prevents API validation errors when optional contact fields like email or phone are left blank.
+- **Payload Cleanup**: Applies the same sanitization to related contact and address objects for consistent behavior.
+- **Regression Coverage**: Added tests for null contact fields to keep the behavior stable.
 
 See the [CHANGELOG](CHANGELOG.md) for complete version history.
 
@@ -100,6 +100,7 @@ docker exec -it n8n npm install n8n-nodes-close-crm
 - ✨ Preserve existing contacts on update operations
 - ✨ Support for contacts and address fields in lead updates
 - ✨ HTML to Portable Text format conversion for rich text fields
+- ✨ Null/undefined values are removed from outgoing lead payloads before API calls
 
 </details>
 
@@ -131,6 +132,7 @@ docker exec -it n8n npm install n8n-nodes-close-crm
 - ✨ Multiple emails, phones, and URLs per contact
 - ✨ Flexible filtering by lead ID or search query
 - ✨ Pagination support for large contact lists
+- ✨ Null/undefined values are removed from outgoing contact payloads before API calls
 
 </details>
 
@@ -532,13 +534,7 @@ Task Type: "New Tasks Only"
 
 ## 🤝 Contributing
 
-We welcome contributions! Here's how to get started:
-
-1. 🍴 Fork the repository
-2. 🌿 Create your feature branch: `git checkout -b feature/amazing-feature`
-3. 💾 Commit your changes: `git commit -m 'Add amazing feature'`
-4. 📤 Push to the branch: `git push origin feature/amazing-feature`
-5. 🔀 Open a Pull Request
+We welcome contributions! Please review our [Contributing Guide](CONTRIBUTING.md) before opening a pull request, and follow our [Code of Conduct](CODE_OF_CONDUCT.md) when participating in project discussions.
 
 ## 💬 Support
 
