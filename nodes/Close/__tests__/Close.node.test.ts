@@ -1139,6 +1139,7 @@ describe('Close', () => {
 				});
 			});
 
+
 			it('should throw error when lead ID is missing', async () => {
 				mockExecuteFunctions.getNodeParameter
 					.mockReturnValueOnce('opportunity') // resource
