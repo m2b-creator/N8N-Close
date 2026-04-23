@@ -937,7 +937,22 @@ export class CloseTrigger implements INodeType {
 				}
 
 				try {
-					await closeApiRequest.call(this, 'GET', `/webhook/${webhookData.webhookId}`);
+					const webhook = await closeApiRequest.call(this, 'GET', `/webhook/${webhookData.webhookId}`);
+
+					// If the registered URL no longer matches (e.g. N8N_WEBHOOK_URL changed),
+					// force delete + recreate so Close delivers to the correct endpoint.
+					const currentUrl = this.getNodeWebhookUrl('default');
+					if (webhook.url !== currentUrl) {
+						return false;
+					}
+
+					// Close CRM automatically pauses webhooks after repeated delivery failures
+					// (e.g. during an n8n server restart). Re-activate without recreating so
+					// the webhook ID and signature key remain stable.
+					if (webhook.status === 'paused') {
+						await closeApiRequest.call(this, 'PUT', `/webhook/${webhookData.webhookId}/`, { status: 'active' });
+					}
+
 					return true;
 				} catch {
 					return false;
