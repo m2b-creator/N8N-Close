@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.6.2] - 2026-04-23
+
+### Changed
+- **#14**: Close CRM webhooks now compare the stored webhook URL with the current n8n webhook URL before reuse, recreate automatically on mismatch, and reactivate paused webhooks in place.
+
+### Technical
+- Preserved webhook ID and signature key when reactivating paused webhooks via `PUT`.
+
 ## [1.6.1] - 2026-04-18
 
 ### Fixed
