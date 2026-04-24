@@ -13,7 +13,7 @@
 [![npm version](https://badge.fury.io/js/n8n-nodes-close-crm.svg)](https://www.npmjs.com/package/n8n-nodes-close-crm)
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 
-[What's New](#-whats-new-in-161) • [Installation](#-installation) • [Features](#-features) • [Credentials](#-credentials) • [Usage Examples](#-usage-examples) • [Resources](#-resources) • [Contributing](#-contributing) • [Code of Conduct](#-code-of-conduct)
+[What's New](#-whats-new-in-162) • [Installation](#-installation) • [Features](#-features) • [Credentials](#-credentials) • [Usage Examples](#-usage-examples) • [Resources](#-resources) • [Contributing](#-contributing) • [Code of Conduct](#-code-of-conduct)
 
 </div>
 
@@ -23,16 +23,14 @@
 
 This n8n community node provides comprehensive integration with **Close CRM**, a sales CRM built for high-growth companies that need to scale their sales operations.
 
-**Current Version: 1.6.1** - Includes payload-sanitization fixes for optional fields in lead and contact create/update requests, plus the stability improvements from issues **#7**, **#8**, and **#12**.
+**Current Version: 1.6.2** - Includes improved webhook lifecycle handling for pull request **#14**.
 
 **What is n8n?** [n8n](https://n8n.io/) is a [fair-code licensed](https://docs.n8n.io/reference/license/) workflow automation platform that lets you connect different services and automate tasks.
 
-## 🆕 What's New in 1.6.1
+## 🆕 What's New in 1.6.2
 
-- **Issue #12**: Close CRM now removes `null`/`undefined` values from lead and contact create/update payloads before sending requests.
-- **Optional Fields**: Prevents API validation errors when optional contact fields like email or phone are left blank.
-- **Payload Cleanup**: Applies the same sanitization to related contact and address objects for consistent behavior.
-- **Regression Coverage**: Added tests for null contact fields to keep the behavior stable.
+- **Webhook URL Sync**: The trigger now checks the stored Close webhook URL against the current n8n webhook URL and recreates the webhook automatically when they differ.
+- **Paused Webhooks**: If Close reports a webhook as `paused`, the node reactivates it in place with `PUT` so the webhook ID and signature key stay stable.
 
 See the [CHANGELOG](CHANGELOG.md) for complete version history.
 
@@ -235,6 +233,8 @@ docker exec -it n8n npm install n8n-nodes-close-crm
 ### 🔔 Workflow Triggers (Webhooks)
 
 The Close CRM Trigger node provides comprehensive webhook-based triggers with **secure signature verification**. You can monitor events for:
+
+At startup, the trigger verifies the registered Close webhook URL against the current n8n webhook URL. If the URL changed, the webhook is recreated automatically so deliveries continue to the correct endpoint. If Close marks a webhook as `paused`, the node reactivates it in place instead of recreating it, preserving the webhook ID and signature key.
 
 <details>
 <summary><b>Lead Triggers</b></summary>
