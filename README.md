@@ -13,7 +13,7 @@
 [![npm version](https://badge.fury.io/js/n8n-nodes-close-crm.svg)](https://www.npmjs.com/package/n8n-nodes-close-crm)
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 
-[What's New](#-whats-new-in-162) • [Installation](#-installation) • [Features](#-features) • [Credentials](#-credentials) • [Usage Examples](#-usage-examples) • [Resources](#-resources) • [Contributing](#-contributing) • [Code of Conduct](#-code-of-conduct)
+[What's New](#-whats-new-in-163) • [Installation](#-installation) • [Features](#-features) • [Credentials](#-credentials) • [Usage Examples](#-usage-examples) • [Resources](#-resources) • [Contributing](#-contributing) • [Code of Conduct](#-code-of-conduct)
 
 </div>
 
@@ -23,14 +23,15 @@
 
 This n8n community node provides comprehensive integration with **Close CRM**, a sales CRM built for high-growth companies that need to scale their sales operations.
 
-**Current Version: 1.6.2** - Includes improved webhook lifecycle handling for pull request **#14**.
+**Current Version: 1.6.3** - Hardens Close Trigger webhook lifecycle to survive Docker/server restarts.
 
 **What is n8n?** [n8n](https://n8n.io/) is a [fair-code licensed](https://docs.n8n.io/reference/license/) workflow automation platform that lets you connect different services and automate tasks.
 
-## 🆕 What's New in 1.6.2
+## 🆕 What's New in 1.6.3
 
-- **Webhook URL Sync**: The trigger now checks the stored Close webhook URL against the current n8n webhook URL and recreates the webhook automatically when they differ.
-- **Paused Webhooks**: If Close reports a webhook as `paused`, the node reactivates it in place with `PUT` so the webhook ID and signature key stay stable.
+- **Restart-Safe Activation**: Trigger activation no longer wedges with `Duplicate active subscription` after a Docker container or n8n server restart, webhooks on Close are cleaned up automatically and the webhook is recreated on retry.
+- **Robust Deactivation**: The `delete` webhook lifecycle now always clears local webhook state, even if Close rejects the `DELETE` (e.g. webhook already gone) — preventing stale state from breaking the next activation.
+- **Self-Healing**: Any combination of lost local state, manually deleted webhooks on Close, or `N8N_WEBHOOK_URL` changes is now recovered automatically on the next activation cycle.
 
 See the [CHANGELOG](CHANGELOG.md) for complete version history.
 
