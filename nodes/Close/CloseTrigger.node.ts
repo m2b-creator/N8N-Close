@@ -939,16 +939,16 @@ export class CloseTrigger implements INodeType {
 				try {
 					const webhook = await closeApiRequest.call(this, 'GET', `/webhook/${webhookData.webhookId}`);
 
-					// If the registered URL no longer matches (e.g. N8N_WEBHOOK_URL changed),
-					// force delete + recreate so Close delivers to the correct endpoint.
 					const currentUrl = this.getNodeWebhookUrl('default');
-					if (webhook.url !== currentUrl) {
+					if (currentUrl && webhook.url !== currentUrl) {
+						try {
+							await closeApiRequest.call(this, 'DELETE', `/webhook/${webhookData.webhookId}`);
+						} catch {}
+						delete webhookData.webhookId;
+						delete webhookData.signatureKey;
 						return false;
 					}
 
-					// Close CRM automatically pauses webhooks after repeated delivery failures
-					// (e.g. during an n8n server restart). Re-activate without recreating so
-					// the webhook ID and signature key remain stable.
 					if (webhook.status === 'paused') {
 						await closeApiRequest.call(this, 'PUT', `/webhook/${webhookData.webhookId}/`, { status: 'active' });
 					}
@@ -985,8 +985,25 @@ export class CloseTrigger implements INodeType {
 					events,
 				};
 
+				const postWebhook = async () => closeApiRequest.call(this, 'POST', '/webhook/', body);
+
 				try {
-					const responseData = await closeApiRequest.call(this, 'POST', '/webhook/', body);
+					let responseData;
+					try {
+						responseData = await postWebhook();
+					} catch (error) {
+						const errorMessage = error instanceof Error ? error.message : '';
+						const duplicateIds = Array.from(errorMessage.matchAll(/whsub_[A-Za-z0-9]+/g), (m) => m[0]);
+						if (duplicateIds.length === 0) {
+							throw error;
+						}
+						for (const duplicateId of duplicateIds) {
+							try {
+								await closeApiRequest.call(this, 'DELETE', `/webhook/${duplicateId}`);
+							} catch {}
+						}
+						responseData = await postWebhook();
+					}
 
 					if (responseData.id === undefined || responseData.signature_key === undefined) {
 						return false;
@@ -1011,9 +1028,7 @@ export class CloseTrigger implements INodeType {
 				if (webhookData.webhookId !== undefined) {
 					try {
 						await closeApiRequest.call(this, 'DELETE', `/webhook/${webhookData.webhookId}`);
-					} catch {
-						return false;
-					}
+					} catch {}
 
 					delete webhookData.webhookId;
 					delete webhookData.signatureKey;
