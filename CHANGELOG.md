@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.6.3] - 2026-04-24
+
+### Fixed
+- Close Trigger activation no longer wedges with `Duplicate active subscription` after Docker container or n8n server restarts; webhooks on Close are cleaned up automatically and the webhook is recreated on retry.
+- Close Trigger deactivation now always clears local webhook state, even if Close rejects the `DELETE` call, so the next activation starts from a clean slate.
+
+### Technical
+- Hardened the webhook lifecycle so lost local state, manually deleted webhooks on Close, or `N8N_WEBHOOK_URL` changes recover automatically on the next activation cycle.
+
 ## [1.6.2] - 2026-04-23
 
 ### Changed
