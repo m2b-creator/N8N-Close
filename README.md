@@ -36,12 +36,6 @@ This n8n community node provides comprehensive integration with **Close CRM**, a
 - **Power-User JSON Inputs**: Full Close advanced filtering (`s_query`), schedule definitions, step lists, opportunity export `params`, and sort arrays are accepted as JSON so the complete Close capability is reachable from n8n.
 - **Quality**: 28 new unit tests (194 total across 4 suites). All checks green: `tsc`, `eslint`, `jest`, `npm run build`.
 
-### 🆕 What's New in 1.6.3
-
-- **Restart-Safe Activation**: Trigger activation no longer wedges with `Duplicate active subscription` after a Docker container or n8n server restart, webhooks on Close are cleaned up automatically and the webhook is recreated on retry.
-- **Robust Deactivation**: The `delete` webhook lifecycle now always clears local webhook state, even if Close rejects the `DELETE` (e.g. webhook already gone) — preventing stale state from breaking the next activation.
-- **Self-Healing**: Any combination of lost local state, manually deleted webhooks on Close, or `N8N_WEBHOOK_URL` changes is now recovered automatically on the next activation cycle.
-
 See the [CHANGELOG](CHANGELOG.md) for complete version history.
 
 ## 🚀 Installation
