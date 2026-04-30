@@ -36,6 +36,14 @@ import { customActivityFields, customActivityOperations, } from './descriptions/
 
 import { contactFields, contactOperations } from './descriptions/ContactDescription';
 
+import { sequenceFields, sequenceOperations } from './descriptions/SequenceDescription';
+
+import { bulkActionFields, bulkActionOperations } from './descriptions/BulkActionDescription';
+
+import { exportFields, exportOperations } from './descriptions/ExportDescription';
+
+import { fieldEnrichmentFields, fieldEnrichmentOperations } from './descriptions/FieldEnrichmentDescription';
+
 import {
 	constructContactCustomFieldsPayload,
 	constructCustomFieldsPayload,
@@ -57,6 +65,27 @@ function removeNullishValues(payload: JsonObject): JsonObject {
 
 function hasValue(value: unknown): value is Exclude<unknown, null | undefined> {
 	return value !== null && value !== undefined;
+}
+
+function parseJsonParam(value: unknown, fieldName: string): unknown {
+	if (value === undefined || value === null || value === '') {
+		return undefined;
+	}
+	if (typeof value === 'object') {
+		return value;
+	}
+	if (typeof value === 'string') {
+		const trimmed = value.trim();
+		if (!trimmed) {
+			return undefined;
+		}
+		try {
+			return JSON.parse(trimmed);
+		} catch (error) {
+			throw new Error(`Invalid JSON in field "${fieldName}": ${(error as Error).message}`);
+		}
+	}
+	return value;
 }
 
 export class Close implements INodeType {
@@ -134,6 +163,22 @@ export class Close implements INodeType {
 						name: 'Custom Activity',
 						value: 'customActivity',
 					},
+					{
+						name: 'Sequence (Automation & Bulk Actions)',
+						value: 'sequence',
+					},
+					{
+						name: 'Bulk Action (Automation & Bulk Actions)',
+						value: 'bulkAction',
+					},
+					{
+						name: 'Export (Automation & Bulk Actions)',
+						value: 'export',
+					},
+					{
+						name: 'Field Enrichment (Automation & Bulk Actions)',
+						value: 'fieldEnrichment',
+					},
 				],
 				default: 'lead',
 			},
@@ -161,6 +206,14 @@ export class Close implements INodeType {
 			...smsFields,
 			...customActivityOperations,
 			...customActivityFields,
+			...sequenceOperations,
+			...sequenceFields,
+			...bulkActionOperations,
+			...bulkActionFields,
+			...exportOperations,
+			...exportFields,
+			...fieldEnrichmentOperations,
+			...fieldEnrichmentFields,
 			...customFieldsCreateSections,
 			...customFieldsUpdateSections,
 			...customActivityCustomFieldsCreateSections,
@@ -2550,6 +2603,559 @@ export class Close implements INodeType {
 								activity.custom_activity_type_id === customActivityTypeId
 							);
 						}
+					}
+				}
+
+				// =====================================================================
+				// Sequences (Automation & Bulk Actions)
+				// =====================================================================
+				if (resource === 'sequence') {
+					if (operation === 'find') {
+						const returnAll = this.getNodeParameter('returnAll', i) as boolean;
+						if (returnAll) {
+							responseData = await closeApiRequestAllItems.call(
+								this,
+								'data',
+								'GET',
+								'/sequence/',
+								{},
+								qs,
+							);
+						} else {
+							qs._limit = this.getNodeParameter('limit', i);
+							responseData = await closeApiRequest.call(this, 'GET', '/sequence/', {}, qs);
+							responseData = responseData.data;
+						}
+					}
+
+					if (operation === 'get') {
+						const sequenceId = this.getNodeParameter('sequenceId', i) as string;
+						if (!sequenceId) {
+							throw new NodeOperationError(this.getNode(), 'Sequence ID is required');
+						}
+						responseData = await closeApiRequest.call(this, 'GET', `/sequence/${sequenceId}/`);
+					}
+
+					if (operation === 'create') {
+						const name = this.getNodeParameter('name', i) as string;
+						const timezone = this.getNodeParameter('timezone', i, '') as string;
+						const scheduleRaw = this.getNodeParameter('schedule', i, '') as unknown;
+						const stepsRaw = this.getNodeParameter('steps', i, '') as unknown;
+
+						if (!name) {
+							throw new NodeOperationError(this.getNode(), 'Name is required to create a sequence');
+						}
+
+						const body: JsonObject = { name };
+						if (timezone) body.timezone = timezone;
+
+						try {
+							const schedule = parseJsonParam(scheduleRaw, 'Schedule');
+							if (schedule !== undefined) body.schedule = schedule as JsonObject;
+							const steps = parseJsonParam(stepsRaw, 'Steps');
+							if (steps !== undefined) body.steps = steps as JsonObject;
+						} catch (error) {
+							throw new NodeOperationError(this.getNode(), (error as Error).message);
+						}
+
+						responseData = await closeApiRequest.call(this, 'POST', '/sequence/', body);
+					}
+
+					if (operation === 'update') {
+						const sequenceId = this.getNodeParameter('sequenceId', i) as string;
+						const updateFields = this.getNodeParameter('updateFields', i, {}) as JsonObject;
+						if (!sequenceId) {
+							throw new NodeOperationError(this.getNode(), 'Sequence ID is required');
+						}
+
+						const body: JsonObject = {};
+						if (hasValue(updateFields.name) && updateFields.name !== '') body.name = updateFields.name;
+						if (hasValue(updateFields.status) && updateFields.status !== '') body.status = updateFields.status;
+						try {
+							const schedule = parseJsonParam(updateFields.schedule, 'Schedule');
+							if (schedule !== undefined) body.schedule = schedule as JsonObject;
+							const steps = parseJsonParam(updateFields.steps, 'Steps');
+							if (steps !== undefined) body.steps = steps as JsonObject;
+						} catch (error) {
+							throw new NodeOperationError(this.getNode(), (error as Error).message);
+						}
+
+						responseData = await closeApiRequest.call(this, 'PUT', `/sequence/${sequenceId}/`, body);
+					}
+
+					if (operation === 'delete') {
+						const sequenceId = this.getNodeParameter('sequenceId', i) as string;
+						if (!sequenceId) {
+							throw new NodeOperationError(this.getNode(), 'Sequence ID is required');
+						}
+						responseData = await closeApiRequest.call(this, 'DELETE', `/sequence/${sequenceId}/`);
+						if (!responseData || (typeof responseData === 'object' && Object.keys(responseData).length === 0)) {
+							responseData = { success: true, id: sequenceId };
+						}
+					}
+
+					if (operation === 'subscribe') {
+						const sequenceId = this.getNodeParameter('sequenceId', i) as string;
+						const contactId = this.getNodeParameter('contactId', i) as string;
+						const contactEmail = this.getNodeParameter('contactEmail', i) as string;
+						const senderAccountId = this.getNodeParameter('senderAccountId', i) as string;
+						const senderName = this.getNodeParameter('senderName', i) as string;
+						const senderEmail = this.getNodeParameter('senderEmail', i) as string;
+						const additional = this.getNodeParameter('subscribeAdditionalFields', i, {}) as JsonObject;
+
+						if (!sequenceId || !contactId || !contactEmail || !senderAccountId || !senderName || !senderEmail) {
+							throw new NodeOperationError(
+								this.getNode(),
+								'Sequence ID, Contact ID, Contact Email, Sender Account ID, Sender Name, and Sender Email are all required to subscribe a contact',
+							);
+						}
+
+						const body: JsonObject = {
+							sequence_id: sequenceId,
+							contact_id: contactId,
+							contact_email: contactEmail,
+							sender_account_id: senderAccountId,
+							sender_name: senderName,
+							sender_email: senderEmail,
+						};
+
+						if (hasValue(additional.callsAssignedTo) && additional.callsAssignedTo !== '') {
+							body.calls_assigned_to = (additional.callsAssignedTo as string)
+								.split(',')
+								.map((id) => id.trim())
+								.filter(Boolean);
+						}
+
+						responseData = await closeApiRequest.call(this, 'POST', '/sequence_subscription/', body);
+					}
+
+					if (operation === 'getSubscription') {
+						const subscriptionId = this.getNodeParameter('subscriptionId', i) as string;
+						if (!subscriptionId) {
+							throw new NodeOperationError(this.getNode(), 'Subscription ID is required');
+						}
+						responseData = await closeApiRequest.call(
+							this,
+							'GET',
+							`/sequence_subscription/${subscriptionId}/`,
+						);
+					}
+
+					if (operation === 'updateSubscription') {
+						const subscriptionId = this.getNodeParameter('subscriptionId', i) as string;
+						const status = this.getNodeParameter('subscriptionStatus', i) as string;
+						if (!subscriptionId) {
+							throw new NodeOperationError(this.getNode(), 'Subscription ID is required');
+						}
+						responseData = await closeApiRequest.call(
+							this,
+							'PUT',
+							`/sequence_subscription/${subscriptionId}/`,
+							{ status },
+						);
+					}
+
+					if (operation === 'findSubscriptions') {
+						const filters = this.getNodeParameter('subscriptionFilters', i, {}) as JsonObject;
+						const returnAll = this.getNodeParameter('returnAll', i) as boolean;
+
+						if (!filters.sequenceId && !filters.contactId && !filters.leadId) {
+							throw new NodeOperationError(
+								this.getNode(),
+								'At least one of Sequence ID, Contact ID, or Lead ID is required to list subscriptions',
+							);
+						}
+
+						if (filters.sequenceId) qs.sequence_id = filters.sequenceId;
+						if (filters.contactId) qs.contact_id = filters.contactId;
+						if (filters.leadId) qs.lead_id = filters.leadId;
+
+						if (returnAll) {
+							responseData = await closeApiRequestAllItems.call(
+								this,
+								'data',
+								'GET',
+								'/sequence_subscription/',
+								{},
+								qs,
+							);
+						} else {
+							qs._limit = this.getNodeParameter('limit', i);
+							responseData = await closeApiRequest.call(
+								this,
+								'GET',
+								'/sequence_subscription/',
+								{},
+								qs,
+							);
+							responseData = responseData.data;
+						}
+					}
+				}
+
+				// =====================================================================
+				// Bulk Actions (Automation & Bulk Actions)
+				// =====================================================================
+				if (resource === 'bulkAction') {
+					const applyCommonBulkOptions = (
+						body: JsonObject,
+						additional: JsonObject,
+						fieldLabel: string,
+					): void => {
+						if (hasValue(additional.sendDoneEmail)) {
+							body.send_done_email = additional.sendDoneEmail;
+						}
+						if (hasValue(additional.resultsLimit) && additional.resultsLimit !== 0) {
+							body.results_limit = additional.resultsLimit;
+						}
+						const sort = parseJsonParam(additional.sort, `${fieldLabel} > Sort`);
+						if (sort !== undefined) body.sort = sort as JsonObject;
+					};
+
+					const listBulk = async (endpoint: string): Promise<unknown> => {
+						const returnAll = this.getNodeParameter('returnAll', i) as boolean;
+						if (returnAll) {
+							return closeApiRequestAllItems.call(this, 'data', 'GET', endpoint, {}, qs);
+						}
+						qs._limit = this.getNodeParameter('limit', i);
+						const data = await closeApiRequest.call(this, 'GET', endpoint, {}, qs);
+						return data.data;
+					};
+
+					if (operation === 'createEmail') {
+						const templateId = this.getNodeParameter('templateId', i) as string;
+						const emailAccountId = this.getNodeParameter('emailAccountId', i) as string;
+						const contactPreference = this.getNodeParameter('contactPreference', i) as string;
+						const sQueryRaw = this.getNodeParameter('sQuery', i, '') as unknown;
+						const additional = this.getNodeParameter('emailAdditionalFields', i, {}) as JsonObject;
+
+						if (!templateId || !emailAccountId) {
+							throw new NodeOperationError(
+								this.getNode(),
+								'Template ID and Email Account ID are required to send a bulk email',
+							);
+						}
+
+						const body: JsonObject = {
+							template_id: templateId,
+							email_account_id: emailAccountId,
+							contact_preference: contactPreference,
+						};
+
+						try {
+							const sQuery = parseJsonParam(sQueryRaw, 'Search Query');
+							if (sQuery !== undefined) body.s_query = sQuery as JsonObject;
+						} catch (error) {
+							throw new NodeOperationError(this.getNode(), (error as Error).message);
+						}
+
+						if (hasValue(additional.sender) && additional.sender !== '') body.sender = additional.sender;
+						applyCommonBulkOptions(body, additional, 'Email Additional Fields');
+
+						responseData = await closeApiRequest.call(this, 'POST', '/bulk_action/email/', body);
+					}
+
+					if (operation === 'listEmail') {
+						responseData = await listBulk('/bulk_action/email/');
+					}
+
+					if (operation === 'getEmail') {
+						const id = this.getNodeParameter('bulkActionId', i) as string;
+						if (!id) throw new NodeOperationError(this.getNode(), 'Bulk Action ID is required');
+						responseData = await closeApiRequest.call(this, 'GET', `/bulk_action/email/${id}/`);
+					}
+
+					if (operation === 'createEdit') {
+						const editType = this.getNodeParameter('editType', i) as string;
+						const body: JsonObject = { type: editType };
+
+						if (editType === 'set_lead_status') {
+							const leadStatusId = this.getNodeParameter('leadStatusId', i) as string;
+							if (!leadStatusId) {
+								throw new NodeOperationError(
+									this.getNode(),
+									'Lead Status is required for "Set Lead Status" bulk edit',
+								);
+							}
+							body.lead_status_id = leadStatusId;
+						} else if (editType === 'set_custom_field' || editType === 'clear_custom_field') {
+							const customFieldId = this.getNodeParameter('customFieldId', i) as string;
+							if (!customFieldId) {
+								throw new NodeOperationError(
+									this.getNode(),
+									'Custom Field ID is required for custom field bulk edits',
+								);
+							}
+							body.custom_field_id = customFieldId;
+
+							if (editType === 'set_custom_field') {
+								const customFieldValue = this.getNodeParameter('customFieldValue', i, '') as string;
+								const customFieldOperation = this.getNodeParameter(
+									'customFieldOperation',
+									i,
+									'replace',
+								) as string;
+								body.custom_field_value = customFieldValue;
+								body.custom_field_operation = customFieldOperation;
+							}
+						}
+
+						const sQueryRaw = this.getNodeParameter('sQuery', i, '') as unknown;
+						const additional = this.getNodeParameter('editAdditionalFields', i, {}) as JsonObject;
+
+						try {
+							const sQuery = parseJsonParam(sQueryRaw, 'Search Query');
+							if (sQuery !== undefined) body.s_query = sQuery as JsonObject;
+						} catch (error) {
+							throw new NodeOperationError(this.getNode(), (error as Error).message);
+						}
+
+						applyCommonBulkOptions(body, additional, 'Edit Additional Fields');
+
+						responseData = await closeApiRequest.call(this, 'POST', '/bulk_action/edit/', body);
+					}
+
+					if (operation === 'listEdit') {
+						responseData = await listBulk('/bulk_action/edit/');
+					}
+
+					if (operation === 'getEdit') {
+						const id = this.getNodeParameter('bulkActionId', i) as string;
+						if (!id) throw new NodeOperationError(this.getNode(), 'Bulk Action ID is required');
+						responseData = await closeApiRequest.call(this, 'GET', `/bulk_action/edit/${id}/`);
+					}
+
+					if (operation === 'createDelete') {
+						const sQueryRaw = this.getNodeParameter('sQuery', i, '') as unknown;
+						const additional = this.getNodeParameter('deleteAdditionalFields', i, {}) as JsonObject;
+
+						const body: JsonObject = {};
+						try {
+							const sQuery = parseJsonParam(sQueryRaw, 'Search Query');
+							if (sQuery !== undefined) body.s_query = sQuery as JsonObject;
+						} catch (error) {
+							throw new NodeOperationError(this.getNode(), (error as Error).message);
+						}
+
+						if (!body.s_query) {
+							throw new NodeOperationError(
+								this.getNode(),
+								'Search Query (s_query) is required for bulk delete to avoid deleting all leads',
+							);
+						}
+
+						applyCommonBulkOptions(body, additional, 'Delete Additional Fields');
+
+						responseData = await closeApiRequest.call(this, 'POST', '/bulk_action/delete/', body);
+					}
+
+					if (operation === 'listDelete') {
+						responseData = await listBulk('/bulk_action/delete/');
+					}
+
+					if (operation === 'getDelete') {
+						const id = this.getNodeParameter('bulkActionId', i) as string;
+						if (!id) throw new NodeOperationError(this.getNode(), 'Bulk Action ID is required');
+						responseData = await closeApiRequest.call(this, 'GET', `/bulk_action/delete/${id}/`);
+					}
+
+					if (operation === 'createSequenceSubscription') {
+						const actionType = this.getNodeParameter('sequenceActionType', i) as string;
+						const body: JsonObject = { action_type: actionType };
+
+						if (actionType === 'subscribe') {
+							const sequenceId = this.getNodeParameter('sequenceId', i) as string;
+							const senderAccountId = this.getNodeParameter('senderAccountId', i) as string;
+							const senderName = this.getNodeParameter('senderName', i) as string;
+							const senderEmail = this.getNodeParameter('senderEmail', i) as string;
+							const contactPreference = this.getNodeParameter('contactPreference', i) as string;
+							if (!sequenceId || !senderAccountId || !senderName || !senderEmail) {
+								throw new NodeOperationError(
+									this.getNode(),
+									'Sequence ID, Sender Account ID, Sender Name, and Sender Email are required to subscribe in bulk',
+								);
+							}
+							body.sequence_id = sequenceId;
+							body.sender_account_id = senderAccountId;
+							body.sender_name = senderName;
+							body.sender_email = senderEmail;
+							body.contact_preference = contactPreference;
+						}
+
+						const sQueryRaw = this.getNodeParameter('sQuery', i, '') as unknown;
+						const additional = this.getNodeParameter(
+							'sequenceSubscriptionAdditionalFields',
+							i,
+							{},
+						) as JsonObject;
+
+						try {
+							const sQuery = parseJsonParam(sQueryRaw, 'Search Query');
+							if (sQuery !== undefined) body.s_query = sQuery as JsonObject;
+						} catch (error) {
+							throw new NodeOperationError(this.getNode(), (error as Error).message);
+						}
+
+						applyCommonBulkOptions(body, additional, 'Sequence Subscription Additional Fields');
+
+						responseData = await closeApiRequest.call(
+							this,
+							'POST',
+							'/bulk_action/sequence_subscription/',
+							body,
+						);
+					}
+
+					if (operation === 'listSequenceSubscription') {
+						responseData = await listBulk('/bulk_action/sequence_subscription/');
+					}
+
+					if (operation === 'getSequenceSubscription') {
+						const id = this.getNodeParameter('bulkActionId', i) as string;
+						if (!id) throw new NodeOperationError(this.getNode(), 'Bulk Action ID is required');
+						responseData = await closeApiRequest.call(
+							this,
+							'GET',
+							`/bulk_action/sequence_subscription/${id}/`,
+						);
+					}
+				}
+
+				// =====================================================================
+				// Exports (Automation & Bulk Actions)
+				// =====================================================================
+				if (resource === 'export') {
+					const applyExportOptions = (body: JsonObject, additional: JsonObject): void => {
+						if (hasValue(additional.dateFormat) && additional.dateFormat !== '') {
+							body.date_format = additional.dateFormat;
+						}
+						if (hasValue(additional.fields) && additional.fields !== '') {
+							body.fields = (additional.fields as string)
+								.split(',')
+								.map((f) => f.trim())
+								.filter(Boolean);
+						}
+						if (hasValue(additional.includeActivities)) {
+							body.include_activities = additional.includeActivities;
+						}
+						if (hasValue(additional.includeSmartFields)) {
+							body.include_smart_fields = additional.includeSmartFields;
+						}
+						if (hasValue(additional.includeAddresses)) {
+							body.include_addresses = additional.includeAddresses;
+						}
+						if (hasValue(additional.includeCustomObjects)) {
+							body.include_custom_objects = additional.includeCustomObjects;
+						}
+						if (hasValue(additional.sendDoneEmail)) {
+							body.send_done_email = additional.sendDoneEmail;
+						}
+						if (hasValue(additional.resultsLimit) && additional.resultsLimit !== 0) {
+							body.results_limit = additional.resultsLimit;
+						}
+					};
+
+					if (operation === 'find') {
+						const returnAll = this.getNodeParameter('returnAll', i) as boolean;
+						if (returnAll) {
+							responseData = await closeApiRequestAllItems.call(
+								this,
+								'data',
+								'GET',
+								'/export/',
+								{},
+								qs,
+							);
+						} else {
+							qs._limit = this.getNodeParameter('limit', i);
+							responseData = await closeApiRequest.call(this, 'GET', '/export/', {}, qs);
+							responseData = responseData.data;
+						}
+					}
+
+					if (operation === 'get') {
+						const exportId = this.getNodeParameter('exportId', i) as string;
+						if (!exportId) {
+							throw new NodeOperationError(this.getNode(), 'Export ID is required');
+						}
+						responseData = await closeApiRequest.call(this, 'GET', `/export/${exportId}/`);
+					}
+
+					if (operation === 'createLead') {
+						const format = this.getNodeParameter('format', i) as string;
+						const exportType = this.getNodeParameter('leadExportType', i) as string;
+						const sQueryRaw = this.getNodeParameter('sQuery', i, '') as unknown;
+						const additional = this.getNodeParameter(
+							'leadExportAdditionalFields',
+							i,
+							{},
+						) as JsonObject;
+
+						const body: JsonObject = { format, type: exportType };
+						try {
+							const sQuery = parseJsonParam(sQueryRaw, 'Search Query');
+							if (sQuery !== undefined) body.s_query = sQuery as JsonObject;
+						} catch (error) {
+							throw new NodeOperationError(this.getNode(), (error as Error).message);
+						}
+						applyExportOptions(body, additional);
+
+						responseData = await closeApiRequest.call(this, 'POST', '/export/lead/', body);
+					}
+
+					if (operation === 'createOpportunity') {
+						const format = this.getNodeParameter('format', i) as string;
+						const paramsRaw = this.getNodeParameter('params', i, '') as unknown;
+						const additional = this.getNodeParameter(
+							'opportunityExportAdditionalFields',
+							i,
+							{},
+						) as JsonObject;
+
+						const body: JsonObject = { format };
+						try {
+							const params = parseJsonParam(paramsRaw, 'Params');
+							if (params !== undefined) body.params = params as JsonObject;
+						} catch (error) {
+							throw new NodeOperationError(this.getNode(), (error as Error).message);
+						}
+						applyExportOptions(body, additional);
+
+						responseData = await closeApiRequest.call(this, 'POST', '/export/opportunity/', body);
+					}
+				}
+
+				// =====================================================================
+				// Field Enrichment (Automation & Bulk Actions)
+				// =====================================================================
+				if (resource === 'fieldEnrichment') {
+					if (operation === 'enrich') {
+						const organizationId = this.getNodeParameter('organizationId', i) as string;
+						const objectType = this.getNodeParameter('objectType', i) as string;
+						const objectId = this.getNodeParameter('objectId', i) as string;
+						const fieldId = this.getNodeParameter('fieldId', i) as string;
+						const additional = this.getNodeParameter('additionalFields', i, {}) as JsonObject;
+
+						if (!organizationId || !objectType || !objectId || !fieldId) {
+							throw new NodeOperationError(
+								this.getNode(),
+								'Organization ID, Object Type, Object ID, and Field ID are required to enrich a field',
+							);
+						}
+
+						const body: JsonObject = {
+							organization_id: organizationId,
+							object_type: objectType,
+							object_id: objectId,
+							field_id: fieldId,
+						};
+
+						if (hasValue(additional.setNewValue)) body.set_new_value = additional.setNewValue;
+						if (hasValue(additional.overwriteExistingValue)) {
+							body.overwrite_existing_value = additional.overwriteExistingValue;
+						}
+
+						responseData = await closeApiRequest.call(this, 'POST', '/enrich_field/', body);
 					}
 				}
 

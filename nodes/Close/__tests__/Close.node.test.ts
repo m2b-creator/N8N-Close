@@ -69,7 +69,16 @@ describe('Close', () => {
 			);
 			expect(resourceProperty).toBeDefined();
 			expect(resourceProperty?.type).toBe('options');
-			expect(resourceProperty?.options).toHaveLength(12);
+			expect(resourceProperty?.options).toHaveLength(16);
+			const resourceValues = resourceProperty?.options?.map((op: any) => op.value);
+			expect(resourceValues).toEqual(
+				expect.arrayContaining([
+					'sequence',
+					'bulkAction',
+					'export',
+					'fieldEnrichment',
+				]),
+			);
 		});
 
 		it('should have all lead operations', () => {
@@ -2996,6 +3005,543 @@ describe('Close', () => {
 					'At least one update field must be provided for bulk update',
 				);
 			});
+		});
+	});
+
+	describe('Sequence Operations', () => {
+		beforeEach(() => {
+			mockExecuteFunctions.getInputData.mockReturnValue([{ json: {} }]);
+		});
+
+		it('should list sequences with a limit', async () => {
+			(closeApiRequest as jest.Mock).mockResolvedValue({
+				data: [{ id: 'seq_1' }, { id: 'seq_2' }],
+				has_more: false,
+			});
+
+			mockExecuteFunctions.getNodeParameter
+				.mockReturnValueOnce('sequence') // resource
+				.mockReturnValueOnce('find') // operation
+				.mockReturnValueOnce(false) // returnAll
+				.mockReturnValueOnce(25); // limit
+
+			await close.execute.call(mockExecuteFunctions);
+
+			expect(closeApiRequest).toHaveBeenCalledWith('GET', '/sequence/', {}, { _limit: 25 });
+		});
+
+		it('should fetch a single sequence', async () => {
+			(closeApiRequest as jest.Mock).mockResolvedValue({ id: 'seq_abc' });
+
+			mockExecuteFunctions.getNodeParameter
+				.mockReturnValueOnce('sequence')
+				.mockReturnValueOnce('get')
+				.mockReturnValueOnce('seq_abc');
+
+			await close.execute.call(mockExecuteFunctions);
+
+			expect(closeApiRequest).toHaveBeenCalledWith('GET', '/sequence/seq_abc/');
+		});
+
+		it('should create a sequence parsing JSON schedule and steps', async () => {
+			(closeApiRequest as jest.Mock).mockResolvedValue({ id: 'seq_new' });
+
+			mockExecuteFunctions.getNodeParameter
+				.mockReturnValueOnce('sequence')
+				.mockReturnValueOnce('create')
+				.mockReturnValueOnce('My Sequence') // name
+				.mockReturnValueOnce('America/Los_Angeles') // timezone
+				.mockReturnValueOnce('{"ranges":[{"weekday":1,"start":"09:00","end":"17:00"}]}')
+				.mockReturnValueOnce(
+					'[{"step_type":"email","delay":0,"required":true,"email_template_id":"tmpl_1"}]',
+				);
+
+			await close.execute.call(mockExecuteFunctions);
+
+			expect(closeApiRequest).toHaveBeenCalledWith('POST', '/sequence/', {
+				name: 'My Sequence',
+				timezone: 'America/Los_Angeles',
+				schedule: { ranges: [{ weekday: 1, start: '09:00', end: '17:00' }] },
+				steps: [
+					{ step_type: 'email', delay: 0, required: true, email_template_id: 'tmpl_1' },
+				],
+			});
+		});
+
+		it('should fail to create a sequence without a name', async () => {
+			mockExecuteFunctions.getNodeParameter
+				.mockReturnValueOnce('sequence')
+				.mockReturnValueOnce('create')
+				.mockReturnValueOnce('') // name
+				.mockReturnValueOnce('UTC')
+				.mockReturnValueOnce('')
+				.mockReturnValueOnce('');
+
+			mockExecuteFunctions.getNode.mockReturnValue({ name: 'Close CRM' } as any);
+
+			await expect(close.execute.call(mockExecuteFunctions)).rejects.toThrow(
+				'Name is required to create a sequence',
+			);
+		});
+
+		it('should fail with a clear message on invalid JSON in schedule', async () => {
+			mockExecuteFunctions.getNodeParameter
+				.mockReturnValueOnce('sequence')
+				.mockReturnValueOnce('create')
+				.mockReturnValueOnce('Sequence')
+				.mockReturnValueOnce('UTC')
+				.mockReturnValueOnce('{not valid json')
+				.mockReturnValueOnce('');
+
+			mockExecuteFunctions.getNode.mockReturnValue({ name: 'Close CRM' } as any);
+
+			await expect(close.execute.call(mockExecuteFunctions)).rejects.toThrow(
+				/Invalid JSON in field "Schedule"/,
+			);
+		});
+
+		it('should update a sequence with partial fields', async () => {
+			(closeApiRequest as jest.Mock).mockResolvedValue({ id: 'seq_abc' });
+
+			mockExecuteFunctions.getNodeParameter
+				.mockReturnValueOnce('sequence')
+				.mockReturnValueOnce('update')
+				.mockReturnValueOnce('seq_abc')
+				.mockReturnValueOnce({ name: 'Renamed', status: 'paused' });
+
+			await close.execute.call(mockExecuteFunctions);
+
+			expect(closeApiRequest).toHaveBeenCalledWith('PUT', '/sequence/seq_abc/', {
+				name: 'Renamed',
+				status: 'paused',
+			});
+		});
+
+		it('should delete a sequence and return success object', async () => {
+			(closeApiRequest as jest.Mock).mockResolvedValue({});
+
+			mockExecuteFunctions.getNodeParameter
+				.mockReturnValueOnce('sequence')
+				.mockReturnValueOnce('delete')
+				.mockReturnValueOnce('seq_abc');
+
+			const result = await close.execute.call(mockExecuteFunctions);
+
+			expect(closeApiRequest).toHaveBeenCalledWith('DELETE', '/sequence/seq_abc/');
+			expect(result[0]).toHaveLength(1);
+		});
+
+		it('should subscribe a contact to a sequence', async () => {
+			(closeApiRequest as jest.Mock).mockResolvedValue({ id: 'sub_1' });
+
+			mockExecuteFunctions.getNodeParameter
+				.mockReturnValueOnce('sequence')
+				.mockReturnValueOnce('subscribe')
+				.mockReturnValueOnce('seq_1') // sequenceId
+				.mockReturnValueOnce('cont_1') // contactId
+				.mockReturnValueOnce('contact@example.com')
+				.mockReturnValueOnce('emailacc_1') // senderAccountId
+				.mockReturnValueOnce('Sales Rep') // senderName
+				.mockReturnValueOnce('rep@example.com')
+				.mockReturnValueOnce({ callsAssignedTo: 'user_1, user_2' });
+
+			await close.execute.call(mockExecuteFunctions);
+
+			expect(closeApiRequest).toHaveBeenCalledWith('POST', '/sequence_subscription/', {
+				sequence_id: 'seq_1',
+				contact_id: 'cont_1',
+				contact_email: 'contact@example.com',
+				sender_account_id: 'emailacc_1',
+				sender_name: 'Sales Rep',
+				sender_email: 'rep@example.com',
+				calls_assigned_to: ['user_1', 'user_2'],
+			});
+		});
+
+		it('should pause a subscription', async () => {
+			(closeApiRequest as jest.Mock).mockResolvedValue({ id: 'sub_1', status: 'paused' });
+
+			mockExecuteFunctions.getNodeParameter
+				.mockReturnValueOnce('sequence')
+				.mockReturnValueOnce('updateSubscription')
+				.mockReturnValueOnce('sub_1')
+				.mockReturnValueOnce('paused');
+
+			await close.execute.call(mockExecuteFunctions);
+
+			expect(closeApiRequest).toHaveBeenCalledWith('PUT', '/sequence_subscription/sub_1/', {
+				status: 'paused',
+			});
+		});
+
+		it('should require at least one filter to list subscriptions', async () => {
+			mockExecuteFunctions.getNodeParameter
+				.mockReturnValueOnce('sequence')
+				.mockReturnValueOnce('findSubscriptions')
+				.mockReturnValueOnce({}) // filters
+				.mockReturnValueOnce(false); // returnAll
+
+			mockExecuteFunctions.getNode.mockReturnValue({ name: 'Close CRM' } as any);
+
+			await expect(close.execute.call(mockExecuteFunctions)).rejects.toThrow(
+				/At least one of Sequence ID, Contact ID, or Lead ID/,
+			);
+		});
+
+		it('should list subscriptions filtered by sequence', async () => {
+			(closeApiRequest as jest.Mock).mockResolvedValue({ data: [], has_more: false });
+
+			mockExecuteFunctions.getNodeParameter
+				.mockReturnValueOnce('sequence')
+				.mockReturnValueOnce('findSubscriptions')
+				.mockReturnValueOnce({ sequenceId: 'seq_1' })
+				.mockReturnValueOnce(false)
+				.mockReturnValueOnce(50);
+
+			await close.execute.call(mockExecuteFunctions);
+
+			expect(closeApiRequest).toHaveBeenCalledWith(
+				'GET',
+				'/sequence_subscription/',
+				{},
+				{ sequence_id: 'seq_1', _limit: 50 },
+			);
+		});
+	});
+
+	describe('Bulk Action Operations', () => {
+		beforeEach(() => {
+			mockExecuteFunctions.getInputData.mockReturnValue([{ json: {} }]);
+		});
+
+		it('should send a bulk email', async () => {
+			(closeApiRequest as jest.Mock).mockResolvedValue({ id: 'bulkemail_1' });
+
+			mockExecuteFunctions.getNodeParameter
+				.mockReturnValueOnce('bulkAction')
+				.mockReturnValueOnce('createEmail')
+				.mockReturnValueOnce('tmpl_1') // templateId
+				.mockReturnValueOnce('emailacc_1') // emailAccountId
+				.mockReturnValueOnce('lead') // contactPreference
+				.mockReturnValueOnce('{"type":"and","queries":[]}')
+				.mockReturnValueOnce({ sendDoneEmail: false, sender: 'sender@example.com' });
+
+			await close.execute.call(mockExecuteFunctions);
+
+			expect(closeApiRequest).toHaveBeenCalledWith('POST', '/bulk_action/email/', {
+				template_id: 'tmpl_1',
+				email_account_id: 'emailacc_1',
+				contact_preference: 'lead',
+				s_query: { type: 'and', queries: [] },
+				sender: 'sender@example.com',
+				send_done_email: false,
+			});
+		});
+
+		it('should require template ID for bulk email', async () => {
+			mockExecuteFunctions.getNodeParameter
+				.mockReturnValueOnce('bulkAction')
+				.mockReturnValueOnce('createEmail')
+				.mockReturnValueOnce('') // templateId missing
+				.mockReturnValueOnce('emailacc_1')
+				.mockReturnValueOnce('lead')
+				.mockReturnValueOnce('{}')
+				.mockReturnValueOnce({});
+
+			mockExecuteFunctions.getNode.mockReturnValue({ name: 'Close CRM' } as any);
+
+			await expect(close.execute.call(mockExecuteFunctions)).rejects.toThrow(
+				/Template ID and Email Account ID/,
+			);
+		});
+
+		it('should bulk edit lead status', async () => {
+			(closeApiRequest as jest.Mock).mockResolvedValue({ id: 'bulkedit_1' });
+
+			mockExecuteFunctions.getNodeParameter
+				.mockReturnValueOnce('bulkAction')
+				.mockReturnValueOnce('createEdit')
+				.mockReturnValueOnce('set_lead_status') // editType
+				.mockReturnValueOnce('stat_1') // leadStatusId
+				.mockReturnValueOnce('{"type":"and","queries":[]}') // sQuery
+				.mockReturnValueOnce({ sendDoneEmail: true });
+
+			await close.execute.call(mockExecuteFunctions);
+
+			expect(closeApiRequest).toHaveBeenCalledWith('POST', '/bulk_action/edit/', {
+				type: 'set_lead_status',
+				lead_status_id: 'stat_1',
+				s_query: { type: 'and', queries: [] },
+				send_done_email: true,
+			});
+		});
+
+		it('should bulk edit set custom field with operation', async () => {
+			(closeApiRequest as jest.Mock).mockResolvedValue({ id: 'bulkedit_2' });
+
+			mockExecuteFunctions.getNodeParameter
+				.mockReturnValueOnce('bulkAction')
+				.mockReturnValueOnce('createEdit')
+				.mockReturnValueOnce('set_custom_field')
+				.mockReturnValueOnce('cf_1') // customFieldId
+				.mockReturnValueOnce('new value') // customFieldValue
+				.mockReturnValueOnce('replace') // customFieldOperation
+				.mockReturnValueOnce('{}') // sQuery
+				.mockReturnValueOnce({});
+
+			await close.execute.call(mockExecuteFunctions);
+
+			expect(closeApiRequest).toHaveBeenCalledWith('POST', '/bulk_action/edit/', {
+				type: 'set_custom_field',
+				custom_field_id: 'cf_1',
+				custom_field_value: 'new value',
+				custom_field_operation: 'replace',
+				s_query: {},
+			});
+		});
+
+		it('should require s_query for bulk delete', async () => {
+			mockExecuteFunctions.getNodeParameter
+				.mockReturnValueOnce('bulkAction')
+				.mockReturnValueOnce('createDelete')
+				.mockReturnValueOnce('') // sQuery empty
+				.mockReturnValueOnce({});
+
+			mockExecuteFunctions.getNode.mockReturnValue({ name: 'Close CRM' } as any);
+
+			await expect(close.execute.call(mockExecuteFunctions)).rejects.toThrow(
+				/Search Query \(s_query\) is required for bulk delete/,
+			);
+		});
+
+		it('should bulk delete with s_query', async () => {
+			(closeApiRequest as jest.Mock).mockResolvedValue({ id: 'bulkdel_1' });
+
+			mockExecuteFunctions.getNodeParameter
+				.mockReturnValueOnce('bulkAction')
+				.mockReturnValueOnce('createDelete')
+				.mockReturnValueOnce('{"type":"and","queries":[{"object_type":"lead"}]}')
+				.mockReturnValueOnce({});
+
+			await close.execute.call(mockExecuteFunctions);
+
+			expect(closeApiRequest).toHaveBeenCalledWith('POST', '/bulk_action/delete/', {
+				s_query: { type: 'and', queries: [{ object_type: 'lead' }] },
+			});
+		});
+
+		it('should run bulk sequence subscription (subscribe)', async () => {
+			(closeApiRequest as jest.Mock).mockResolvedValue({ id: 'bulksub_1' });
+
+			mockExecuteFunctions.getNodeParameter
+				.mockReturnValueOnce('bulkAction')
+				.mockReturnValueOnce('createSequenceSubscription')
+				.mockReturnValueOnce('subscribe') // sequenceActionType
+				.mockReturnValueOnce('seq_1') // sequenceId
+				.mockReturnValueOnce('emailacc_1')
+				.mockReturnValueOnce('Rep')
+				.mockReturnValueOnce('rep@example.com')
+				.mockReturnValueOnce('lead') // contactPreference
+				.mockReturnValueOnce('{}') // sQuery
+				.mockReturnValueOnce({});
+
+			await close.execute.call(mockExecuteFunctions);
+
+			expect(closeApiRequest).toHaveBeenCalledWith(
+				'POST',
+				'/bulk_action/sequence_subscription/',
+				{
+					action_type: 'subscribe',
+					sequence_id: 'seq_1',
+					sender_account_id: 'emailacc_1',
+					sender_name: 'Rep',
+					sender_email: 'rep@example.com',
+					contact_preference: 'lead',
+					s_query: {},
+				},
+			);
+		});
+
+		it('should run bulk sequence pause without sender fields', async () => {
+			(closeApiRequest as jest.Mock).mockResolvedValue({ id: 'bulksub_2' });
+
+			mockExecuteFunctions.getNodeParameter
+				.mockReturnValueOnce('bulkAction')
+				.mockReturnValueOnce('createSequenceSubscription')
+				.mockReturnValueOnce('pause')
+				.mockReturnValueOnce('{}') // sQuery
+				.mockReturnValueOnce({});
+
+			await close.execute.call(mockExecuteFunctions);
+
+			expect(closeApiRequest).toHaveBeenCalledWith(
+				'POST',
+				'/bulk_action/sequence_subscription/',
+				{
+					action_type: 'pause',
+					s_query: {},
+				},
+			);
+		});
+
+		it('should fetch a single bulk email by ID', async () => {
+			(closeApiRequest as jest.Mock).mockResolvedValue({ id: 'bulkemail_1' });
+
+			mockExecuteFunctions.getNodeParameter
+				.mockReturnValueOnce('bulkAction')
+				.mockReturnValueOnce('getEmail')
+				.mockReturnValueOnce('bulkemail_1');
+
+			await close.execute.call(mockExecuteFunctions);
+
+			expect(closeApiRequest).toHaveBeenCalledWith('GET', '/bulk_action/email/bulkemail_1/');
+		});
+
+		it('should list bulk edits with limit', async () => {
+			(closeApiRequest as jest.Mock).mockResolvedValue({ data: [], has_more: false });
+
+			mockExecuteFunctions.getNodeParameter
+				.mockReturnValueOnce('bulkAction')
+				.mockReturnValueOnce('listEdit')
+				.mockReturnValueOnce(false)
+				.mockReturnValueOnce(10);
+
+			await close.execute.call(mockExecuteFunctions);
+
+			expect(closeApiRequest).toHaveBeenCalledWith('GET', '/bulk_action/edit/', {}, { _limit: 10 });
+		});
+	});
+
+	describe('Export Operations', () => {
+		beforeEach(() => {
+			mockExecuteFunctions.getInputData.mockReturnValue([{ json: {} }]);
+		});
+
+		it('should create a lead export', async () => {
+			(closeApiRequest as jest.Mock).mockResolvedValue({ id: 'export_1', status: 'created' });
+
+			mockExecuteFunctions.getNodeParameter
+				.mockReturnValueOnce('export')
+				.mockReturnValueOnce('createLead')
+				.mockReturnValueOnce('csv') // format
+				.mockReturnValueOnce('leads') // leadExportType
+				.mockReturnValueOnce('{"type":"and","queries":[]}') // sQuery
+				.mockReturnValueOnce({
+					dateFormat: 'iso8601',
+					fields: 'id, display_name , status_label',
+					includeSmartFields: true,
+					sendDoneEmail: false,
+				});
+
+			await close.execute.call(mockExecuteFunctions);
+
+			expect(closeApiRequest).toHaveBeenCalledWith('POST', '/export/lead/', {
+				format: 'csv',
+				type: 'leads',
+				s_query: { type: 'and', queries: [] },
+				date_format: 'iso8601',
+				fields: ['id', 'display_name', 'status_label'],
+				include_smart_fields: true,
+				send_done_email: false,
+			});
+		});
+
+		it('should create an opportunity export', async () => {
+			(closeApiRequest as jest.Mock).mockResolvedValue({ id: 'export_2' });
+
+			mockExecuteFunctions.getNodeParameter
+				.mockReturnValueOnce('export')
+				.mockReturnValueOnce('createOpportunity')
+				.mockReturnValueOnce('json')
+				.mockReturnValueOnce('{"status_type":"won"}')
+				.mockReturnValueOnce({ includeAddresses: true, includeCustomObjects: true });
+
+			await close.execute.call(mockExecuteFunctions);
+
+			expect(closeApiRequest).toHaveBeenCalledWith('POST', '/export/opportunity/', {
+				format: 'json',
+				params: { status_type: 'won' },
+				include_addresses: true,
+				include_custom_objects: true,
+			});
+		});
+
+		it('should fetch a single export', async () => {
+			(closeApiRequest as jest.Mock).mockResolvedValue({
+				id: 'export_1',
+				status: 'done',
+				download_url: 'https://example.com/file.csv',
+			});
+
+			mockExecuteFunctions.getNodeParameter
+				.mockReturnValueOnce('export')
+				.mockReturnValueOnce('get')
+				.mockReturnValueOnce('export_1');
+
+			await close.execute.call(mockExecuteFunctions);
+
+			expect(closeApiRequest).toHaveBeenCalledWith('GET', '/export/export_1/');
+		});
+
+		it('should list exports', async () => {
+			(closeApiRequest as jest.Mock).mockResolvedValue({ data: [], has_more: false });
+
+			mockExecuteFunctions.getNodeParameter
+				.mockReturnValueOnce('export')
+				.mockReturnValueOnce('find')
+				.mockReturnValueOnce(false)
+				.mockReturnValueOnce(20);
+
+			await close.execute.call(mockExecuteFunctions);
+
+			expect(closeApiRequest).toHaveBeenCalledWith('GET', '/export/', {}, { _limit: 20 });
+		});
+	});
+
+	describe('Field Enrichment Operations', () => {
+		beforeEach(() => {
+			mockExecuteFunctions.getInputData.mockReturnValue([{ json: {} }]);
+		});
+
+		it('should enrich a field on a lead', async () => {
+			(closeApiRequest as jest.Mock).mockResolvedValue({});
+
+			mockExecuteFunctions.getNodeParameter
+				.mockReturnValueOnce('fieldEnrichment')
+				.mockReturnValueOnce('enrich')
+				.mockReturnValueOnce('orga_1')
+				.mockReturnValueOnce('lead')
+				.mockReturnValueOnce('lead_1')
+				.mockReturnValueOnce('cf_1')
+				.mockReturnValueOnce({ setNewValue: true, overwriteExistingValue: true });
+
+			await close.execute.call(mockExecuteFunctions);
+
+			expect(closeApiRequest).toHaveBeenCalledWith('POST', '/enrich_field/', {
+				organization_id: 'orga_1',
+				object_type: 'lead',
+				object_id: 'lead_1',
+				field_id: 'cf_1',
+				set_new_value: true,
+				overwrite_existing_value: true,
+			});
+		});
+
+		it('should require all enrich field IDs', async () => {
+			mockExecuteFunctions.getNodeParameter
+				.mockReturnValueOnce('fieldEnrichment')
+				.mockReturnValueOnce('enrich')
+				.mockReturnValueOnce('') // organizationId missing
+				.mockReturnValueOnce('lead')
+				.mockReturnValueOnce('lead_1')
+				.mockReturnValueOnce('cf_1')
+				.mockReturnValueOnce({});
+
+			mockExecuteFunctions.getNode.mockReturnValue({ name: 'Close CRM' } as any);
+
+			await expect(close.execute.call(mockExecuteFunctions)).rejects.toThrow(
+				/Organization ID, Object Type, Object ID, and Field ID/,
+			);
 		});
 	});
 

@@ -13,7 +13,7 @@
 [![npm version](https://badge.fury.io/js/n8n-nodes-close-crm.svg)](https://www.npmjs.com/package/n8n-nodes-close-crm)
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 
-[What's New](#-whats-new-in-163) • [Installation](#-installation) • [Features](#-features) • [Credentials](#-credentials) • [Usage Examples](#-usage-examples) • [Resources](#-resources) • [Contributing](#-contributing) • [Code of Conduct](#-code-of-conduct)
+[What's New](#-whats-new-in-164) • [Installation](#-installation) • [Features](#-features) • [Credentials](#-credentials) • [Usage Examples](#-usage-examples) • [Resources](#-resources) • [Contributing](#-contributing) • [Code of Conduct](#-code-of-conduct)
 
 </div>
 
@@ -23,11 +23,20 @@
 
 This n8n community node provides comprehensive integration with **Close CRM**, a sales CRM built for high-growth companies that need to scale their sales operations.
 
-**Current Version: 1.6.3** - Hardens Close Trigger webhook lifecycle to survive Docker/server restarts.
+**Current Version: 1.6.4** - Adds the new "Automation & Bulk Actions" section: Sequences, Bulk Actions, Exports, and Field Enrichment.
 
 **What is n8n?** [n8n](https://n8n.io/) is a [fair-code licensed](https://docs.n8n.io/reference/license/) workflow automation platform that lets you connect different services and automate tasks.
 
-## 🆕 What's New in 1.6.3
+## 🆕 What's New in 1.6.4
+
+- **Sequences**: List, get, create, update, and delete sequences. Subscribe a contact to a sequence, fetch / list / pause / resume sequence subscriptions.
+- **Bulk Actions**: Send bulk emails, run bulk edits (set lead status, set/clear custom fields with replace/add/remove operations), bulk delete (with required `s_query` safety check), and bulk sequence subscriptions (subscribe / pause / resume / resume_finished). List and fetch endpoints for every bulk action type.
+- **Exports**: Start lead exports (`leads` / `contacts` / `lead_opps`) and opportunity exports in CSV or JSON, with options for date format, fields, smart fields, activities, addresses, and custom objects. List exports and fetch a single export to poll `status` and grab `download_url`.
+- **Field Enrichment**: AI-enrich any custom field on a lead or contact via the new `/enrich_field/` endpoint, with `set_new_value` and `overwrite_existing_value` flags.
+- **Power-User JSON Inputs**: Full Close advanced filtering (`s_query`), schedule definitions, step lists, opportunity export `params`, and sort arrays are accepted as JSON so the complete Close capability is reachable from n8n.
+- **Quality**: 28 new unit tests (194 total across 4 suites). All checks green: `tsc`, `eslint`, `jest`, `npm run build`.
+
+### 🆕 What's New in 1.6.3
 
 - **Restart-Safe Activation**: Trigger activation no longer wedges with `Duplicate active subscription` after a Docker container or n8n server restart, webhooks on Close are cleaned up automatically and the webhook is recreated on retry.
 - **Robust Deactivation**: The `delete` webhook lifecycle now always clears local webhook state, even if Close rejects the `DELETE` (e.g. webhook already gone) — preventing stale state from breaking the next activation.

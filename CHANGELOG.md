@@ -5,6 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.6.4] - 2026-04-30
+
+### Added
+- New "Automation & Bulk Actions" resources on the Close CRM node:
+  - **Sequence**: list, get, create, update, delete sequences; subscribe a contact, get / update / list sequence subscriptions (e.g. pause/resume).
+  - **Bulk Action**: create / list / get for bulk Email, bulk Edit (set lead status, set/clear custom field), bulk Delete, and bulk Sequence Subscription (subscribe / pause / resume / resume_finished).
+  - **Export**: start lead exports, start opportunity exports, list exports, fetch a single export to poll `status` and retrieve `download_url`.
+  - **Field Enrichment**: AI-enrich a custom field on a lead or contact via `POST /enrich_field/`.
+- JSON-typed inputs for `s_query`, `schedule`, `steps`, `params`, and `sort` so the full Close advanced filtering / scheduling capability is reachable from n8n.
+- Safety check: bulk delete now requires an `s_query` to avoid accidentally targeting all leads.
+
+### Technical
+- Added `parseJsonParam` helper to validate JSON inputs with clear error messages.
+- 28 new unit tests covering the new endpoints and edge cases (pause/subscribe action types, missing required fields, invalid JSON, list pagination); test count is now 194 across 4 suites.
+- All checks green: `tsc --noEmit`, `eslint`, `jest`, `npm run build`.
+
 ## [1.6.3] - 2026-04-24
 
 ### Fixed
