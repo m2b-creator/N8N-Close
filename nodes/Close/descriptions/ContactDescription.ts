@@ -296,6 +296,43 @@ const contactCustomFieldsCreateSections: INodeProperties[] = [
 					},
 				],
 			},
+			{
+				displayName: 'API Only Field',
+				name: 'contactCustomApiOnlyFields',
+				type: 'fixedCollection',
+				typeOptions: {
+					multipleValues: true,
+				},
+				default: {},
+				description:
+					'Add API-only custom fields (type "Hidden" in Close). These fields are never shown in the Close UI and are only accessible via the API.',
+				options: [
+					{
+						name: 'apiOnlyFields',
+						displayName: 'API Only Fields',
+						values: [
+							{
+								displayName: 'Field Name',
+								name: 'fieldId',
+								type: 'options',
+								typeOptions: {
+									loadOptionsMethod: 'getContactApiOnlyFields',
+									loadOptionsDependsOn: ['credentials'],
+								},
+								default: '',
+								description: 'Select the API-only (hidden) field',
+							},
+							{
+								displayName: 'Value',
+								name: 'fieldValue',
+								type: 'string',
+								default: '',
+								description: 'Enter the value to store for this API-only field',
+							},
+						],
+					},
+				],
+			},
 		],
 	},
 ];

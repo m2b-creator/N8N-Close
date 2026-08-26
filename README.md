@@ -13,7 +13,7 @@
 [![npm version](https://badge.fury.io/js/n8n-nodes-close-crm.svg)](https://www.npmjs.com/package/n8n-nodes-close-crm)
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 
-[What's New](#-whats-new-in-171) • [Installation](#-installation) • [Features](#-features) • [Credentials](#-credentials) • [Usage Examples](#-usage-examples) • [Resources](#-resources) • [Contributing](#-contributing) • [Code of Conduct](#-code-of-conduct)
+[What's New](#-whats-new-in-180) • [Installation](#-installation) • [Features](#-features) • [Credentials](#-credentials) • [Usage Examples](#-usage-examples) • [Resources](#-resources) • [Contributing](#-contributing) • [Code of Conduct](#-code-of-conduct)
 
 </div>
 
@@ -23,14 +23,13 @@
 
 This n8n community node provides comprehensive integration with **Close CRM**, a sales CRM built for high-growth companies that need to scale their sales operations.
 
-**Current Version: 1.7.0** - Adds user attribution, date backdating, missing contact types, and add/remove actions for multi-value custom fields.
+**Current Version: 1.8.0** - Adds API Only (hidden) custom field support for Lead, Opportunity, Contact, and Custom Activity.
 
 **What is n8n?** [n8n](https://n8n.io/) is a [fair-code licensed](https://docs.n8n.io/reference/license/) workflow automation platform that lets you connect different services and automate tasks.
 
-## 🆕 What's New in 1.7.1
+## 🆕 What's New in 1.8.0
 
-- **Fix**: Lead and Contact custom field dropdowns (Choice, User, Contact) now correctly refresh their options when you switch the Close CRM credential, instead of showing stale values from the previous account.
-- **Dependency updates**: Bumped `@types/node`, `@typescript-eslint/*`, `eslint`, `eslint-plugin-n8n-nodes-base`, `@swc/core`, and `prettier` to their latest compatible versions.
+- **API Only (Hidden) custom fields**: Lead, Opportunity, Contact, and Custom Activity create/update operations now have an **API Only Field** group, matching Close's `hidden` field type ("This field can only be set through the API"). These fields never appear in the Close UI but are fully readable/writable from this node — also available on the nested contact fields when creating or updating a Lead.
 - **Quality**: 197 tests green across 5 suites. All checks green: `tsc`, `eslint`, `jest`, `npm run build`.
 
 See the [CHANGELOG](CHANGELOG.md) for complete version history.
@@ -99,6 +98,7 @@ docker exec -it n8n npm install n8n-nodes-close-crm
 - ✨ Preserve existing contacts on update operations
 - ✨ Support for contacts and address fields in lead updates
 - ✨ HTML to Portable Text format conversion for rich text fields
+- ✨ API Only (hidden) custom field support, including on nested contacts
 - ✨ Null/undefined values are removed from outgoing lead payloads before API calls
 
 </details>
@@ -127,7 +127,7 @@ docker exec -it n8n npm install n8n-nodes-close-crm
 | Update | Modify contact information including emails, phones, URLs, and custom fields |
 
 **Features:**
-- ✨ Full custom field support (text, number, date, choice, user fields)
+- ✨ Full custom field support (text, number, date, choice, user, and API-only/hidden fields)
 - ✨ Multiple emails, phones, and URLs per contact
 - ✨ Flexible filtering by lead ID or search query
 - ✨ Pagination support for large contact lists
@@ -147,6 +147,7 @@ docker exec -it n8n npm install n8n-nodes-close-crm
 
 **Enhanced Features:**
 - ✨ Status type parameter for enhanced opportunity filtering (Active, Won, Lost)
+- ✨ API Only (hidden) custom field support
 
 </details>
 
@@ -228,6 +229,7 @@ docker exec -it n8n npm install n8n-nodes-close-crm
 - ✨ Portable Text conversion for rich text custom fields
 - ✨ Enhanced compatibility for multiple value fields
 - ✨ Improved HTML wrapping for rich text content
+- ✨ API Only (hidden) custom field support
 
 </details>
 

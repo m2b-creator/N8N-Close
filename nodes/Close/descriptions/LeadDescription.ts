@@ -457,6 +457,42 @@ export const leadFields: INodeProperties[] = [
 							},
 						],
 					},
+					{
+						displayName: 'Contact Custom API Only Fields',
+						name: 'contactCustomApiOnlyFields',
+						type: 'fixedCollection',
+						typeOptions: {
+							multipleValues: true,
+						},
+						default: {},
+						description: 'Add custom API-only (hidden) fields for this contact',
+						options: [
+							{
+								name: 'apiOnlyFields',
+								displayName: 'API Only Field',
+								values: [
+									{
+										displayName: 'Field Name',
+										name: 'fieldId',
+										type: 'options',
+										typeOptions: {
+											loadOptionsMethod: 'getContactApiOnlyFields',
+											loadOptionsDependsOn: ['credentials'],
+										},
+										default: '',
+										description: 'Select the API-only (hidden) field',
+									},
+									{
+										displayName: 'Value',
+										name: 'fieldValue',
+										type: 'string',
+										default: '',
+										description: 'Enter the value to store for this API-only field',
+									},
+								],
+							},
+						],
+					},
 				],
 			},
 		],
@@ -1084,6 +1120,42 @@ export const leadFields: INodeProperties[] = [
 												fieldId: [''],
 											},
 										},
+									},
+								],
+							},
+						],
+					},
+					{
+						displayName: 'Contact Custom API Only Fields',
+						name: 'contactCustomApiOnlyFields',
+						type: 'fixedCollection',
+						typeOptions: {
+							multipleValues: true,
+						},
+						default: {},
+						description: 'Add custom API-only (hidden) fields for this contact',
+						options: [
+							{
+								name: 'apiOnlyFields',
+								displayName: 'API Only Field',
+								values: [
+									{
+										displayName: 'Field Name',
+										name: 'fieldId',
+										type: 'options',
+										typeOptions: {
+											loadOptionsMethod: 'getContactApiOnlyFields',
+											loadOptionsDependsOn: ['credentials'],
+										},
+										default: '',
+										description: 'Select the API-only (hidden) field',
+									},
+									{
+										displayName: 'Value',
+										name: 'fieldValue',
+										type: 'string',
+										default: '',
+										description: 'Enter the value to store for this API-only field',
 									},
 								],
 							},

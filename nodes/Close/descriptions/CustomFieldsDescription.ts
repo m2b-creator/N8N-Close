@@ -30,7 +30,16 @@ const USER_CACHE_TTL = 15 * 60 * 1000; // 15 minutes
 interface CustomField {
 	id: string;
 	name: string;
-	type: 'choices' | 'text' | 'richtextarea' | 'number' | 'date' | 'datetime' | 'user' | 'contact';
+	type:
+		| 'choices'
+		| 'text'
+		| 'richtextarea'
+		| 'number'
+		| 'date'
+		| 'datetime'
+		| 'user'
+		| 'contact'
+		| 'hidden';
 	accepts_multiple_values: boolean;
 	choices?: string[];
 }
@@ -489,6 +498,42 @@ export const customFieldsCreateSections: INodeProperties[] = [
 					},
 				],
 			},
+			{
+				displayName: 'API Only Field',
+				name: 'apiOnlyField',
+				type: 'fixedCollection',
+				typeOptions: {
+					multipleValues: true,
+				},
+				default: {},
+				description:
+					'Add API-only custom fields (type "Hidden" in Close). These fields are never shown in the Close UI and are only accessible via the API.',
+				options: [
+					{
+						name: 'apiOnlyFields',
+						displayName: 'API Only Fields',
+						values: [
+							{
+								displayName: 'Field Name',
+								name: 'fieldId',
+								type: 'options',
+								typeOptions: {
+									loadOptionsMethod: 'getApiOnlyFields',
+								},
+								default: '',
+								description: 'Select the API-only (hidden) field',
+							},
+							{
+								displayName: 'Value',
+								name: 'fieldValue',
+								type: 'string',
+								default: '',
+								description: 'Enter the value to store for this API-only field',
+							},
+						],
+					},
+				],
+			},
 		],
 	},
 ];
@@ -706,6 +751,19 @@ export const customFieldsLoadMethods = {
 		const fields = await this.getCachedCustomFields(context);
 		return fields
 			.filter((field) => field.type === 'contact' && field.accepts_multiple_values)
+			.map((field) => ({
+				name: field.name,
+				value: field.id,
+			}));
+	},
+
+	/**
+	 * Get API-only (hidden) fields for lead/opportunity
+	 */
+	async getApiOnlyFields(context: any): Promise<INodePropertyOptions[]> {
+		const fields = await this.getCachedCustomFields(context);
+		return fields
+			.filter((field) => field.type === 'hidden')
 			.map((field) => ({
 				name: field.name,
 				value: field.id,
@@ -1177,6 +1235,19 @@ export const customFieldsLoadMethods = {
 				value: field.id,
 			}));
 	},
+
+	/**
+	 * Get contact API-only (hidden) fields
+	 */
+	async getContactApiOnlyFields(context: any): Promise<INodePropertyOptions[]> {
+		const fields = await this.getCachedContactCustomFields(context);
+		return fields
+			.filter((field) => field.type === 'hidden')
+			.map((field) => ({
+				name: field.name,
+				value: field.id,
+			}));
+	},
 };
 
 /**
@@ -1323,6 +1394,7 @@ export function constructCustomFieldsPayload(
 				case 'choiceSingle':
 				case 'userSingle':
 				case 'contactSingle':
+				case 'apiOnly':
 					value = fieldValue;
 					break;
 
@@ -1390,6 +1462,9 @@ export function constructCustomFieldsPayload(
 					break;
 				case 'contact':
 					validationError = customFieldValidators.validateContact(value, field);
+					break;
+				case 'hidden':
+					// Hidden (API-only) fields accept any value per the Close API
 					break;
 			}
 
@@ -1444,6 +1519,10 @@ export function constructCustomFieldsPayload(
 		processFields(customFields.contactMultipleField.contactMultipleFields, 'contactMultiple');
 	}
 
+	if (customFields.apiOnlyField?.apiOnlyFields) {
+		processFields(customFields.apiOnlyField.apiOnlyFields, 'apiOnly');
+	}
+
 	return payload;
 }
 
@@ -1485,6 +1564,7 @@ export function constructContactCustomFieldsPayload(
 				case 'choiceSingle':
 				case 'userSingle':
 				case 'contactSingle':
+				case 'apiOnly':
 					value = fieldValue;
 					break;
 
@@ -1553,6 +1633,9 @@ export function constructContactCustomFieldsPayload(
 				case 'contact':
 					validationError = customFieldValidators.validateContact(value, field);
 					break;
+				case 'hidden':
+					// Hidden (API-only) fields accept any value per the Close API
+					break;
 			}
 
 			if (validationError) {
@@ -1599,6 +1682,10 @@ export function constructContactCustomFieldsPayload(
 
 	if (contactData.contactCustomUserMultipleFields?.userMultipleFields) {
 		processFields(contactData.contactCustomUserMultipleFields.userMultipleFields, 'userMultiple');
+	}
+
+	if (contactData.contactCustomApiOnlyFields?.apiOnlyFields) {
+		processFields(contactData.contactCustomApiOnlyFields.apiOnlyFields, 'apiOnly');
 	}
 
 	return payload;
@@ -1672,6 +1759,7 @@ export async function getCachedCustomActivityCustomFields(
 			else if (field.type === 'choices') fieldType = 'choices';
 			else if (field.type === 'user') fieldType = 'user';
 			else if (field.type === 'contact') fieldType = 'contact';
+			else if (field.type === 'hidden') fieldType = 'hidden';
 
 			// The API might return either 'multiple' or 'accepts_multiple_values'
 			// We need to check both to ensure compatibility
@@ -2020,6 +2108,42 @@ export const customActivityCustomFieldsCreateSections: INodeProperties[] = [
 					},
 				],
 			},
+			{
+				displayName: 'API Only Field',
+				name: 'apiOnlyField',
+				type: 'fixedCollection',
+				typeOptions: {
+					multipleValues: true,
+				},
+				default: {},
+				description:
+					'Add API-only custom fields (type "Hidden" in Close). These fields are never shown in the Close UI and are only accessible via the API.',
+				options: [
+					{
+						name: 'apiOnlyFields',
+						displayName: 'API Only Fields',
+						values: [
+							{
+								displayName: 'Field Name',
+								name: 'fieldId',
+								type: 'options',
+								typeOptions: {
+									loadOptionsMethod: 'getCustomActivityApiOnlyFields',
+								},
+								default: '',
+								description: 'Select the API-only (hidden) field',
+							},
+							{
+								displayName: 'Value',
+								name: 'fieldValue',
+								type: 'string',
+								default: '',
+								description: 'Enter the value to store for this API-only field',
+							},
+						],
+					},
+				],
+			},
 		],
 	},
 ];
@@ -2181,6 +2305,19 @@ export const customActivityCustomFieldsLoadMethods = {
 				value: field.id,
 			}));
 	},
+
+	/**
+	 * Get Custom Activity API-only (hidden) fields
+	 */
+	async getCustomActivityApiOnlyFields(context: any): Promise<INodePropertyOptions[]> {
+		const fields = await getCachedCustomActivityCustomFields(context);
+		return fields
+			.filter((field) => field.type === 'hidden')
+			.map((field) => ({
+				name: field.name,
+				value: field.id,
+			}));
+	},
 };
 
 /**
@@ -2221,6 +2358,7 @@ export function constructCustomActivityCustomFieldsPayload(
 				case 'date':
 				case 'choiceSingle':
 				case 'userSingle':
+				case 'apiOnly':
 					value = fieldValue;
 					break;
 
@@ -2283,6 +2421,9 @@ export function constructCustomActivityCustomFieldsPayload(
 				case 'user':
 					validationError = customFieldValidators.validateUser(value, field);
 					break;
+				case 'hidden':
+					// Hidden (API-only) fields accept any value per the Close API
+					break;
 			}
 
 			if (validationError) {
@@ -2327,6 +2468,10 @@ export function constructCustomActivityCustomFieldsPayload(
 
 	if (customActivityData.userMultipleField?.userMultipleFields) {
 		processFields(customActivityData.userMultipleField.userMultipleFields, 'userMultiple');
+	}
+
+	if (customActivityData.apiOnlyField?.apiOnlyFields) {
+		processFields(customActivityData.apiOnlyField.apiOnlyFields, 'apiOnly');
 	}
 
 	return payload;
