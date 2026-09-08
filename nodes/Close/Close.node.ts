@@ -385,6 +385,14 @@ export class Close implements INodeType {
 				return customFieldsLoadMethods.getContactMultipleUserFields(this);
 			},
 
+			async getApiOnlyFields(this: ILoadOptionsFunctions): Promise<INodePropertyOptions[]> {
+				return customFieldsLoadMethods.getApiOnlyFields(this);
+			},
+
+			async getContactApiOnlyFields(this: ILoadOptionsFunctions): Promise<INodePropertyOptions[]> {
+				return customFieldsLoadMethods.getContactApiOnlyFields(this);
+			},
+
 			async getCustomActivityTypes(this: ILoadOptionsFunctions): Promise<INodePropertyOptions[]> {
 				const returnData: INodePropertyOptions[] = [];
 				const types = await closeApiRequest.call(this, 'GET', '/custom_activity/');
@@ -450,6 +458,12 @@ export class Close implements INodeType {
 				this: ILoadOptionsFunctions,
 			): Promise<INodePropertyOptions[]> {
 				return customActivityCustomFieldsLoadMethods.getCustomActivityMultipleUserFields(this);
+			},
+
+			async getCustomActivityApiOnlyFields(
+				this: ILoadOptionsFunctions,
+			): Promise<INodePropertyOptions[]> {
+				return customActivityCustomFieldsLoadMethods.getCustomActivityApiOnlyFields(this);
 			},
 		},
 	};
@@ -542,7 +556,8 @@ export class Close implements INodeType {
 										contact.contactCustomChoiceSingleFields?.choiceSingleFields?.length ||
 										contact.contactCustomChoiceMultipleFields?.choiceMultipleFields?.length ||
 										contact.contactCustomUserSingleFields?.userSingleFields?.length ||
-										contact.contactCustomUserMultipleFields?.userMultipleFields?.length;
+										contact.contactCustomUserMultipleFields?.userMultipleFields?.length ||
+										contact.contactCustomApiOnlyFields?.apiOnlyFields?.length;
 
 									if (hasCustomFields) {
 										try {
@@ -956,7 +971,8 @@ export class Close implements INodeType {
 										contact.contactCustomChoiceSingleFields?.choiceSingleFields?.length ||
 										contact.contactCustomChoiceMultipleFields?.choiceMultipleFields?.length ||
 										contact.contactCustomUserSingleFields?.userSingleFields?.length ||
-										contact.contactCustomUserMultipleFields?.userMultipleFields?.length;
+										contact.contactCustomUserMultipleFields?.userMultipleFields?.length ||
+										contact.contactCustomApiOnlyFields?.apiOnlyFields?.length;
 
 									if (hasCustomFields) {
 										try {
